@@ -1,0 +1,793 @@
+<title>Pokémon Card Index</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky search bar over a binder-page grid of card faces; filters in a side rail (a drawer on phones). */
+:root {
+  --bg: #e9edf2; --surface: #fbfcfd; --raised: #ffffff; --ink: #141a24; --muted: #5a6474; --line: #d3d9e2;
+  --accent: #2149c4; --accent-ink: #ffffff; --accent-soft: #dfe6fb; --warn: #9a5b00;
+  --card-edge: #e4c35a; --shadow: 0 1px 2px rgba(20,26,36,.08), 0 4px 14px rgba(20,26,36,.06); --up: #157a3d; --down: #b8322a;
+  --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --e-grass:#4f9a2c; --e-fire:#d9481f; --e-water:#2a86d1; --e-lightning:#d8a90f; --e-psychic:#8e4fae; --e-fighting:#a95a26;
+  --e-darkness:#2f3d47; --e-metal:#7d8a97; --e-fairy:#d46aa3; --e-dragon:#a38420; --e-colorless:#b9bdc4; --e-trainer:#6b7686;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f131a; --surface: #161b24; --raised: #1c2230; --ink: #e7ebf1; --muted: #98a2b3; --line: #2a3242;
+  --accent: #8aa6ff; --accent-ink: #0f131a; --accent-soft: #232d48; --warn: #f0b45a;
+  --card-edge: #b99a3a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3); --e-darkness:#4a5a66; --up: #5ed38a; --down: #ff8a7a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0f131a; --surface: #161b24; --raised: #1c2230; --ink: #e7ebf1; --muted: #98a2b3; --line: #2a3242;
+  --accent: #8aa6ff; --accent-ink: #0f131a; --accent-soft: #232d48; --warn: #f0b45a;
+  --card-edge: #b99a3a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3); --e-darkness:#4a5a66; --up: #5ed38a; --down: #ff8a7a; color-scheme: dark }
+
+* { box-sizing: border-box }
+html, body { background: var(--bg); color: var(--ink) }
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.45; -webkit-text-size-adjust: 100% }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface) }
+button, input, select { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1500px; margin: 0 auto }
+
+/* header */
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line) }
+header.top .wrap { padding-block: 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px 16px; align-items: center }
+.mark { font-family: var(--f-display); font-weight: 800; font-stretch: 72%; font-size: 22px; letter-spacing: .01em; line-height: 1; white-space: nowrap; display: flex; align-items: center; gap: 8px }
+.mark i { width: 18px; height: 25px; border-radius: 3px; border: 2px solid var(--card-edge); background: linear-gradient(160deg, var(--accent) 0 48%, var(--surface) 48% 52%, var(--accent) 52%); display: inline-block }
+.search { position: relative; min-width: 0 }
+.search input { width: 100%; height: 44px; border: 1.5px solid var(--line); background: var(--raised); border-radius: 10px; padding: 0 40px 0 14px; font-size: 16px }
+.search input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft) }
+.search .clear { position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border: 0; background: none; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 18px }
+.sortbox { display: flex; gap: 8px; align-items: center }
+select { height: 40px; border: 1.5px solid var(--line); background: var(--raised); border-radius: 10px; padding: 0 10px; max-width: 100% }
+.filters-btn { display: none; height: 40px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700 }
+.filters-btn b { background: var(--accent); color: var(--accent-ink); border-radius: 99px; padding: 0 7px; font-size: 12px; margin-left: 6px }
+.hint { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; margin-top: -2px }
+.hint::-webkit-scrollbar { display: none }
+.cur { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; height: 40px; flex: none }
+.cur button { border: 0; background: var(--raised); width: 40px; font-weight: 800; cursor: pointer; font-family: var(--f-display); font-size: 16px }
+.cur button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
+.seg3 { grid-template-columns: repeat(3, 1fr) }
+.cap .row2 .n1, .cap .row2 .n2 { min-width: 0 }
+.cap .row2 { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; min-width: 0 }
+.cap .px { font-family: var(--f-display); font-weight: 800; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums }
+.cap .px.none { color: var(--muted); font-weight: 600 }
+.cap .px.thin { color: var(--warn) }
+.lang { font: 700 9px/1 var(--f-display); letter-spacing: .08em; background: var(--ink); color: var(--bg); border-radius: 4px; padding: 3px 4px; position: absolute; left: 6px; bottom: 6px; z-index: 1 }
+.prices { display: grid; gap: 14px; border-top: 1px solid var(--line); padding-top: 12px }
+.prices h4 { margin: 0; font-family: var(--f-display); font-stretch: 85%; font-size: 16px; font-weight: 800 }
+.prices .src { font-size: 12.5px; color: var(--muted); margin: 2px 0 6px }
+.prices > * { min-width: 0 }
+.ptable { overflow-x: auto; max-width: 100% }
+.sheet > * { min-width: 0 }
+.ptable table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums }
+.ptable th { text-align: right; font: 700 10px/1.2 var(--f-display); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap }
+.ptable th:first-child, .ptable td:first-child { text-align: left; padding-left: 0 }
+.ptable td { text-align: right; padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap }
+.ptable td.hl { font-weight: 800 }
+.grades { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px }
+.grades div { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; display: grid; gap: 2px; background: var(--raised) }
+.grades span { font: 700 10px/1.2 var(--f-display); letter-spacing: .07em; text-transform: uppercase; color: var(--muted) }
+.grades b { font-family: var(--f-display); font-size: 16px; font-variant-numeric: tabular-nums }
+.sold { display: grid }
+.srow { display: grid; gap: 3px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; min-width: 0 }
+.srow .sl { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
+.srow .sl b { font-family: var(--f-display); font-size: 17px; font-variant-numeric: tabular-nums }
+.srow .sl span { font-size: 12px; color: var(--muted) }
+.srow a { overflow-wrap: anywhere }
+.nolang { font-size: 13px; color: var(--muted); margin: 0 }
+.chg { font: 700 11px/1 var(--f-mono); white-space: nowrap }
+.chg.up { color: var(--up) } .chg.down { color: var(--down) }
+.spark { display: grid; gap: 4px }
+.spark svg { width: 100%; height: auto; display: block }
+.spark .lbl { display: flex; justify-content: space-between; font: 11px/1.2 var(--f-mono); color: var(--muted) }
+.spark .big { font-family: var(--f-display); font-weight: 800; font-size: 18px; color: var(--ink); display: flex; gap: 8px; align-items: baseline }
+.markets { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px }
+.markets h4 { margin: 0; font-family: var(--f-display); font-stretch: 85%; font-size: 16px; font-weight: 800 }
+.mrow { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 8px }
+.mrow .who { font: 700 11px/1.3 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 6px }
+.mrow .who b { display: block; font: 600 12px/1.3 var(--f-body); letter-spacing: 0; text-transform: none; color: var(--ink); overflow-wrap: anywhere }
+.mlinks { display: flex; flex-wrap: wrap; gap: 6px }
+.mlinks a { font-size: 13px; font-weight: 700; color: var(--ink); text-decoration: none; border: 1.5px solid var(--line); background: var(--raised); border-radius: 8px; padding: 5px 9px; white-space: nowrap }
+.mlinks a.sold { border-color: color-mix(in srgb, var(--up) 45%, var(--line)) }
+.hint button { font-family: var(--f-mono); font-size: 12px; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 2px 7px; cursor: pointer; color: var(--ink) }
+
+/* body layout */
+main.wrap { padding-block: 16px 48px; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; align-items: start }
+aside.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 112px); display: grid; gap: 18px; max-height: calc(100vh - 130px); overflow: auto; padding-bottom: 12px }
+.group h3 { margin: 0 0 8px; font-family: var(--f-display); font-stretch: 80%; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted) }
+.chips { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); background: var(--raised); border-radius: 99px; padding: 4px 10px 4px 5px; cursor: pointer; font-size: 13px; line-height: 1.2 }
+.chip.plain { padding-left: 10px }
+.chip .n { color: var(--muted); font-family: var(--f-mono); font-size: 11px; font-variant-numeric: tabular-nums }
+.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
+.chip[disabled] { opacity: .45; cursor: default }
+.seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px }
+.seg .chip { justify-content: space-between; padding-left: 10px }
+.pip { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 11px/1 var(--f-display); color: #fff; flex: none; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35), 0 0 0 1px rgba(0,0,0,.12) }
+.pip.sm { width: 16px; height: 16px; font-size: 9px }
+.t-Grass{background:var(--e-grass)} .t-Fire{background:var(--e-fire)} .t-Water{background:var(--e-water)} .t-Lightning{background:var(--e-lightning);color:#3a2c00} .t-Psychic{background:var(--e-psychic)} .t-Fighting{background:var(--e-fighting)} .t-Darkness{background:var(--e-darkness)} .t-Metal{background:var(--e-metal)} .t-Fairy{background:var(--e-fairy)} .t-Dragon{background:var(--e-dragon)} .t-Colorless{background:var(--e-colorless);color:#2a2f36} .t-Trainer{background:var(--e-trainer)} .t-Free{background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
+.rail select { width: 100% }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer }
+.check input { width: 18px; height: 18px; accent-color: var(--accent) }
+.rail .reset { justify-self: start; border: 0; background: none; color: var(--accent); font-weight: 700; cursor: pointer; padding: 0 }
+details.how { border-top: 1px solid var(--line); padding-top: 12px; font-size: 13px; color: var(--muted) }
+details.how summary { cursor: pointer; font-weight: 700; color: var(--ink) }
+details.how p { margin: 8px 0 0 }
+details.how code { font-family: var(--f-mono); font-size: 12px }
+
+/* results */
+.resbar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin-bottom: 14px; min-width: 0 }
+.resbar .count { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums }
+.resbar .ms { font-family: var(--f-mono); font-size: 12px; color: var(--muted) }
+.resbar .note { font-size: 13px; color: var(--warn) }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px 14px }
+.tile { border: 0; padding: 0; background: none; text-align: left; cursor: pointer; display: grid; gap: 7px; min-width: 0 }
+.face { position: relative; aspect-ratio: 63 / 88; max-width: 100%; border-radius: 4.6% / 3.3%; overflow: hidden; background: var(--raised); box-shadow: var(--shadow); border: 3px solid var(--card-edge); transition: transform .15s ease, box-shadow .15s ease }
+.tile:hover .face, .tile:focus-visible .face { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(20,26,36,.18) }
+.face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--raised) }
+/* data face, drawn when there is no image */
+.df { position: absolute; inset: 0; display: grid; grid-template-rows: auto auto 1fr auto; padding: 7% 7% 6%; gap: 4%; background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 22%, var(--raised)) 0%, var(--raised) 62%) }
+.df .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; min-width: 0 }
+.df .sub { font: 600 10px/1 var(--f-display); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.df .hp { font: 800 13px/1 var(--f-display); white-space: nowrap; display: flex; align-items: center; gap: 3px }
+.df .hp small { font-size: 8px; letter-spacing: .05em }
+.df .nm { font-family: var(--f-display); font-weight: 800; font-stretch: 78%; font-size: 19px; line-height: 1.02; text-wrap: balance; overflow-wrap: anywhere }
+.df .art { border-radius: 3px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--tc) 30%, transparent) 0 6px, color-mix(in srgb, var(--tc) 18%, transparent) 6px 12px); display: grid; place-items: center; position: relative; overflow: hidden; min-height: 0 }
+.df .art .big { width: 38%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font: 800 clamp(16px, 2.6vw, 26px)/1 var(--f-display); color: #fff; box-shadow: inset 0 0 0 3px rgba(255,255,255,.4) }
+.df .moves { font-size: 10.5px; line-height: 1.25; display: grid; gap: 3px; min-width: 0 }
+.df .moves div { display: flex; justify-content: space-between; gap: 4px; border-top: 1px solid var(--line); padding-top: 3px }
+.df .moves span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
+.df .moves b { font-family: var(--f-display); flex: none }
+.cap { display: grid; gap: 1px; min-width: 0; padding: 0 2px }
+.cap .n1 { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.cap .n2 { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums }
+.sentinel { height: 1px }
+.more { margin: 20px auto 0; display: block; height: 42px; padding: 0 20px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700 }
+.empty { padding: 40px 0; color: var(--muted); max-width: 52ch }
+.empty b { color: var(--ink) }
+
+/* loading panel */
+.loader { grid-column: 1 / -1; max-width: 560px; margin: 8vh auto; display: grid; gap: 14px; text-align: left }
+.loader h2 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: 30px; line-height: 1.05; text-wrap: balance }
+.loader p { margin: 0; color: var(--muted) }
+.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s }
+.loader .step { font-family: var(--f-mono); font-size: 12.5px; color: var(--muted) }
+.btn { height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; justify-self: start }
+.btn.ghost { background: none; border: 1.5px solid var(--line); color: var(--ink) }
+
+/* footer status */
+footer.status { border-top: 1px solid var(--line); }
+footer.status .wrap { padding-block: 14px calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); font-family: var(--f-mono); align-items: center }
+footer.status button { font: inherit; border: 1px solid var(--line); background: var(--raised); border-radius: 6px; padding: 3px 8px; cursor: pointer; color: var(--ink) }
+
+/* detail sheet */
+dialog { border: 0; padding: 0; background: var(--surface); color: var(--ink); border-radius: 16px; width: min(940px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-shadow: 0 20px 60px rgba(0,0,0,.35) }
+dialog::backdrop { background: rgba(10,14,20,.55) }
+.sheet { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 24px; padding: 22px; overflow: auto; max-height: calc(100dvh - 24px) }
+.sheet .face { border-width: 4px; width: 100% }
+.sheet .df .nm { font-size: 28px }
+.sheet .df .moves { font-size: 13px }
+.sheet .close { position: absolute; right: 10px; top: 10px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-size: 18px; z-index: 2 }
+.info { display: grid; gap: 14px; min-width: 0; align-content: start }
+.info .kicker { font: 700 12px/1 var(--f-display); letter-spacing: .09em; text-transform: uppercase; color: var(--muted) }
+.info h2 { margin: 2px 0 0; font-family: var(--f-display); font-weight: 800; font-stretch: 78%; font-size: 34px; line-height: 1; text-wrap: balance; padding-right: 40px }
+.info .hpline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-weight: 700 }
+.move { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px }
+.move .row { display: flex; gap: 8px; align-items: center }
+.move .row .nm { font-weight: 700; flex: 1; min-width: 0 }
+.move .row .dmg { font-family: var(--f-display); font-weight: 800; font-size: 20px }
+.move .tag { font: 700 10px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #b8322a; padding: 4px 6px; border-radius: 4px }
+.move p, .rules p { margin: 0; font-size: 14px }
+.rules { font-size: 13.5px; color: var(--muted); display: grid; gap: 6px }
+.wrr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border-top: 1px solid var(--line); padding-top: 10px }
+.wrr div { display: grid; gap: 4px; font-size: 13px }
+.wrr span { font: 700 10px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.wrr em { font-style: normal; display: flex; align-items: center; gap: 4px; flex-wrap: wrap }
+.flavor { font-style: italic; color: var(--muted); font-size: 14px; margin: 0 }
+dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; border-top: 1px solid var(--line); padding-top: 12px; font-size: 14px }
+dl.meta dt { color: var(--muted) }
+dl.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere }
+.link { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-align: left; font-weight: 700 }
+a.ext { color: var(--accent); font-weight: 700 }
+.mono { font-family: var(--f-mono); font-size: 13px }
+
+@media (max-width: 860px) {
+  header.top .wrap { grid-template-columns: 1fr auto; }
+  .mark { grid-column: 1 / -1 }
+  .sortbox { grid-column: 1 / -1; justify-content: space-between }
+  .sortbox select { flex: 1 }
+  .filters-btn { display: inline-block }
+  .search { grid-column: 1 / -1 }
+  main.wrap { grid-template-columns: minmax(0, 1fr) }
+  aside.rail { display: none; position: static; max-height: none; overflow: visible; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px }
+  aside.rail.open { display: grid }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px 12px }
+  .sheet { grid-template-columns: minmax(0, 1fr); padding: 16px }
+  .sheet .face { max-width: 300px; margin: 0 auto }
+}
+@media (max-width: 420px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) } .df .nm { font-size: 16px } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="mark"><i aria-hidden="true"></i>Pokémon Card Index</div>
+    <div class="search">
+      <input id="q" type="search" placeholder="Search 33,000+ cards — name in any language, attack…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search cards">
+      <button class="clear" id="clear" type="button" aria-label="Clear search" hidden>×</button>
+    </div>
+    <div class="sortbox">
+      <button class="filters-btn" id="filtersBtn" type="button" aria-expanded="false" aria-controls="rail">Filters<b id="fcount" hidden>0</b></button>
+      <select id="sort" aria-label="Sort">
+        <option value="relevance">Best match</option>
+        <option value="newest">Newest sets</option>
+        <option value="oldest">Oldest sets</option>
+        <option value="name">Name A–Z</option>
+        <option value="hp">Highest HP</option>
+        <option value="price">Highest price</option>
+        <option value="priceAsc">Lowest price</option>
+        <option value="rising">Rising this week</option>
+        <option value="falling">Falling this week</option>
+      </select>
+      <div class="cur" role="group" aria-label="Price currency"><button type="button" data-cur="eur" aria-pressed="true" title="Cardmarket, euro">€</button><button type="button" data-cur="usd" aria-pressed="false" title="TCGplayer, US dollar">$</button></div>
+    </div>
+    <div class="hint" id="hints" aria-label="Example searches">
+      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <aside class="rail" id="rail" aria-label="Filters">
+    <div class="group"><h3>Language</h3><div class="seg seg3" id="fLang"></div></div>
+    <div class="group"><h3>Card type</h3><div class="seg" id="fSuper"></div></div>
+    <div class="group"><h3>Energy type</h3><div class="chips" id="fType"></div></div>
+    <div class="group"><h3>Set</h3><select id="fSet" aria-label="Set"><option value="">All sets</option></select></div>
+    <div class="group"><h3>Series</h3><select id="fSeries" aria-label="Series"><option value="">All series</option></select></div>
+    <div class="group"><h3>Rarity</h3><select id="fRarity" aria-label="Rarity"><option value="">Any rarity</option></select></div>
+    <div class="group"><h3>Regulation mark</h3><div class="chips" id="fReg"></div></div>
+    <div class="group"><h3>Format</h3>
+      <label class="check"><input type="checkbox" id="fStd"> Standard legal</label>
+      <label class="check"><input type="checkbox" id="fExp"> Expanded legal</label>
+    </div>
+    <div class="group"><h3>Sales data</h3>
+      <label class="check"><input type="checkbox" id="fSales"> Graded prices &amp; recent sales</label>
+    </div>
+    <button class="reset" id="reset" type="button">Reset filters</button>
+    <details class="how">
+      <summary>How the catalog is stored</summary>
+      <p>Every card is packed into a positional tuple (no repeated field names, image URLs shortened to a 2-letter host code). The whole catalog ships gzip-compressed inside the page: 9.6 MB of card data in about 2.6 MB. Live updates from GitHub are saved in IndexedDB, one record per set, so an update only rewrites the sets that changed.</p>
+      <p>On open, the page builds an inverted index: a sorted term dictionary with a <code>Uint32Array</code> posting list per term. Prefix lookups are a binary search plus a contiguous scan.</p>
+      <p>Filters are bitmaps, one bit per card. Combining filters is a word-by-word AND over ~650 32-bit words, and the live counts on the chips are popcounts of those ANDs. Typos fall back to an edit-distance match over the dictionary.</p>
+      <p><b>Prices</b> are a snapshot taken when the page was built. Each language is its own card: Japanese prints have their own entries and their own Cardmarket prices. English cards show TCGplayer (US market, English copies only) and Cardmarket (Europe). Cardmarket's public price guide pools all European languages of a card, so a German or French copy can sell above or below the figure shown.</p>
+      <p><b>Query syntax:</b> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
+    </details>
+  </aside>
+  <section id="results" aria-live="polite" style="min-width:0">
+    <div class="loader" id="loader">
+      <h2>Opening the card binder</h2>
+      <p id="loadMsg">Loading every English and Japanese Pokémon TCG card, with prices.</p>
+      <div class="bar"><i id="loadBar"></i></div>
+      <div class="step" id="loadStep">Starting…</div>
+    </div>
+  </section>
+</main>
+
+<footer class="status"><div class="wrap" id="status">—</div></footer>
+
+<dialog id="dlg" aria-label="Card details"><div class="sheet" id="sheet"></div></dialog>
+
+<script type="application/octet-stream" id="catalog-gz">__GZ__</script>
+<script>
+/*__CORE__*/
+</script>
+<script>
+(function () {
+  'use strict';
+  var BUNDLE_COMMIT = '__COMMIT__';
+  var LIVE_SOURCES = ['https://cdn.jsdelivr.net/gh/PokemonTCG/pokemon-tcg-data@master/', 'https://raw.githubusercontent.com/PokemonTCG/pokemon-tcg-data/master/'];
+  var LETTER = { Grass: 'G', Fire: 'R', Water: 'W', Lightning: 'L', Psychic: 'P', Fighting: 'F', Darkness: 'D', Metal: 'M', Fairy: 'Y', Dragon: 'N', Colorless: 'C', Free: '' };
+  var PAGE = 72;
+  var $ = function (id) { return document.getElementById(id); };
+  var DATES = { eur: '', usd: '', ja: '' }, AXES = { e: [], u: [] };
+  var cat = null, imagesOK = false, mode = 'bundle', results = null, shown = 0, meta = {};
+  var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set() };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function fmt(n) { return n.toLocaleString('en-US'); }
+
+  // ---------- IndexedDB ----------
+  var dbp = null;
+  function db() {
+    if (dbp) return dbp;
+    dbp = new Promise(function (res, rej) {
+      try {
+        var r = indexedDB.open('ptcg-card-index', 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore('meta'); r.result.createObjectStore('sets', { keyPath: 'id' }); };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { rej(r.error); };
+      } catch (e) { rej(e); }
+    });
+    return dbp;
+  }
+  function withTimeout(p, ms) { return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('storage timeout')); }, ms); })]); }
+  function tx(store, modeRW, fn) {
+    return withTimeout(db().then(function (d) {
+      return new Promise(function (res, rej) {
+        var t = d.transaction(store, modeRW), s = t.objectStore(store), out = fn(s);
+        t.oncomplete = function () { res(out && 'result' in out ? out.result : undefined); };
+        t.onerror = t.onabort = function () { rej(t.error); };
+      });
+    }), 8000);
+  }
+  function getMeta(k) { return tx('meta', 'readonly', function (s) { return s.get(k); }); }
+  function setMeta(k, v) { return tx('meta', 'readwrite', function (s) { s.put(v, k); }); }
+  function allSets() { return tx('sets', 'readonly', function (s) { return s.getAll(); }); }
+  function putSets(recs) { return tx('sets', 'readwrite', function (s) { recs.forEach(function (r) { s.put(r); }); }); }
+  function clearAll() { return tx('sets', 'readwrite', function (s) { s.clear(); }).then(function () { return tx('meta', 'readwrite', function (s) { s.clear(); }); }); }
+
+  // ---------- loading ----------
+  function progress(frac, step, msg) {
+    $('loadBar').style.width = Math.round(frac * 100) + '%';
+    if (step) $('loadStep').textContent = step;
+    if (msg) $('loadMsg').textContent = msg;
+  }
+  function nextFrame() { return new Promise(function (r) { setTimeout(r, 16); }); }
+
+  function fetchWithProgress(url, label) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error(r.status + ' ' + url);
+      var total = +r.headers.get('content-length') || 0;
+      if (!r.body || !r.body.getReader) return r.json();
+      var reader = r.body.getReader(), chunks = [], got = 0;
+      function pump() {
+        return reader.read().then(function (x) {
+          if (x.done) { var b = new Uint8Array(got), o = 0; chunks.forEach(function (c) { b.set(c, o); o += c.length; }); return JSON.parse(new TextDecoder().decode(b)); }
+          chunks.push(x.value); got += x.value.length;
+          progress(total ? Math.min(.85, got / total * .85) : Math.min(.8, got / 1e7 * .8), label + ' · ' + (got / 1048576).toFixed(1) + ' MB');
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  function liveJSON(path) {
+    var i = 0;
+    function attempt() {
+      return fetch(LIVE_SOURCES[i] + path).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .catch(function (e) { if (++i < LIVE_SOURCES.length) return attempt(); throw e; });
+    }
+    return attempt();
+  }
+
+  // live sync from GitHub — only changed sets are downloaded
+  function liveSync(force) {
+    return liveJSON('sets/en.json').then(function (sets) {
+      return allSets().catch(function () { return []; }).then(function (have) {
+        var known = new Map(have.map(function (r) { return [r.id, r.u]; }));
+        var todo = sets.filter(function (s) { return force || known.get(s.id) !== s.updatedAt; });
+        var done = 0, failed = 0, batch = [];
+        progress(0.02, todo.length + ' sets to download');
+        var q = todo.slice();
+        function worker() {
+          var s = q.shift(); if (!s) return Promise.resolve();
+          return liveJSON('cards/en/' + s.id + '.json').then(function (cards) {
+            batch.push({ id: s.id, u: s.updatedAt, c: cards.map(PTCG.compactCard) });
+          }).catch(function () { failed++; }).then(function () {
+            done++; progress(done / Math.max(1, todo.length) * .85, done + ' / ' + todo.length + ' sets · ' + s.name);
+            return worker();
+          });
+        }
+        var workers = []; for (var w = 0; w < 6; w++) workers.push(worker());
+        return Promise.all(workers).then(function () { return putSets(batch); }).then(function () {
+          return setMeta('setList', sets.map(PTCG.compactSet));
+        }).then(function () {
+          return setMeta('info', { source: 'live', syncedAt: Date.now(), failed: failed });
+        }).then(function () { return { updated: todo.length - failed, failed: failed }; });
+      });
+    });
+  }
+
+  // the catalog ships inside the page as gzip + base64, so it never depends on a network request
+  function loadBundle() {
+    var el = document.getElementById('catalog-gz');
+    progress(.2, 'Unpacking ' + (el ? (el.textContent.length / 1048576).toFixed(1) + ' MB' : '') + ' catalog');
+    return nextFrame().then(function () {
+      if (!el || typeof DecompressionStream === 'undefined') throw new Error('inline catalog unavailable');
+      var bin = atob(el.textContent.trim()), u8 = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      var stream = new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'));
+      return new Response(stream).text();
+    }).then(function (txt) { progress(.7, 'Parsing'); return JSON.parse(txt); })
+      .catch(function (e) {
+        console.warn('inline catalog failed, trying catalog.json', e);
+        return fetchWithProgress('catalog.json', 'Downloading catalog');
+      });
+  }
+
+  function boot() {
+    var t0 = performance.now();
+    progress(.03, 'Checking this device');
+    getMeta('info').catch(function () { return null; }).then(function (info) {
+      if (info && info.source === 'live') {
+        progress(.5, 'Reading saved catalog from this device');
+        return Promise.all([getMeta('setList'), allSets()]).then(function (x) {
+          if (!x[0] || !x[1] || !x[1].length) throw new Error('empty saved catalog');
+          meta = info; meta.from = 'device'; return { setList: x[0], records: x[1] };
+        }).catch(function () { return null; });
+      }
+      return null;
+    }).then(function (saved) {
+      if (saved) return saved;
+      return loadBundle().then(function (d) {
+        meta = { source: 'bundle', commit: d.commit, from: 'page' };
+        if (d.meta) AXES = { e: d.meta.eurAxis || [], u: d.meta.usdAxis || [] };
+        if (d.meta) DATES = { eur: d.meta.eurDate || '', usd: d.meta.usdDate || '', ja: String(d.meta.jaEurDate || '').slice(0, 10) };
+        return d;
+      });
+    }).then(function (data) {
+      if (meta.source === 'live') mode = 'live';
+      progress(.92, 'Building search index');
+      return nextFrame().then(function () {
+        cat = new PTCG.Catalog(data.setList, data.records);
+        meta.loadMs = performance.now() - t0;
+        progress(1, 'Ready');
+        buildFilters(); run(); status(); probeImages();
+      });
+    }).catch(function (e) {
+      $('loadMsg').textContent = 'The catalog could not be loaded. Reload the page to try again.';
+      $('loadStep').textContent = 'Error: ' + String(e && e.message || e);
+      var b = document.createElement('button'); b.className = 'btn'; b.textContent = 'Reload'; b.onclick = function () { location.reload(); };
+      $('loader').appendChild(b);
+    });
+  }
+
+  function probeImages() {
+    var img = new Image(), done = false;
+    var t = setTimeout(function () { done = true; }, 4000);
+    img.onload = function () { if (done) return; clearTimeout(t); imagesOK = true; render(true); };
+    img.onerror = function () { clearTimeout(t); };
+    img.src = PTCG.imgUrls('p:base1/4.png').small;
+  }
+
+  // ---------- filters UI ----------
+  function buildFilters() {
+    $('fLang').innerHTML = [['', 'All'], ['en', 'English'], ['ja', 'Japanese']].map(function (l) {
+      return '<button type="button" class="chip" data-lang="' + l[0] + '" aria-pressed="' + (state.lang === l[0]) + '"><span>' + l[1] + '</span><span class="n" data-cnt></span></button>';
+    }).join('');
+    var sup = $('fSuper');
+    sup.innerHTML = ['', 'Pokémon', 'Trainer', 'Energy'].map(function (v) {
+      return '<button type="button" class="chip" data-super="' + esc(v) + '" aria-pressed="' + (state.supertype === v) + '"><span>' + (v || 'All') + '</span><span class="n" data-cnt></span></button>';
+    }).join('');
+    $('fType').innerHTML = PTCG.TYPE_ORDER.map(function (t) {
+      return '<button type="button" class="chip" data-type="' + t + '" aria-pressed="false" title="' + t + '"><span class="pip sm t-' + t + '">' + LETTER[t] + '</span>' + t + ' <span class="n" data-cnt></span></button>';
+    }).join('');
+    var bySeries = new Map();
+    cat.sets.slice().reverse().sort(function (a, b) { return (a.lang === 'ja') - (b.lang === 'ja'); }).forEach(function (s) { var k = (s.lang || 'en') + '|' + s.se; if (!bySeries.has(k)) bySeries.set(k, []); bySeries.get(k).push(s); });
+    var html = '<option value="">All sets (' + cat.sets.length + ')</option>';
+    bySeries.forEach(function (list, key) { var se = key.split('|')[1];
+      html += '<optgroup label="' + (list[0].lang === 'ja' ? 'JP · ' : '') + esc(se) + '">' + list.map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.n) + (s.ne ? ' (' + esc(s.ne) + ')' : '') + ' · ' + s.d.slice(0, 4) + '</option>'; }).join('') + '</optgroup>';
+    });
+    $('fSet').innerHTML = html;
+    $('fSeries').innerHTML = '<option value="">All series</option>' + Array.from(new Set(Array.from(bySeries.keys()).map(function (k) { return k.split('|')[1]; }))).map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
+    var rar = Array.from(cat.facets.rarity.entries()).map(function (e) { return [e[0], PTCGpop(e[1])]; }).sort(function (a, b) { return b[1] - a[1]; });
+    $('fRarity').innerHTML = '<option value="">Any rarity</option>' + rar.map(function (r) { return '<option value="' + esc(r[0]) + '">' + esc(r[0]) + ' (' + fmt(r[1]) + ')</option>'; }).join('');
+    $('fReg').innerHTML = Array.from(cat.facets.reg.keys()).sort().map(function (r) { return '<button type="button" class="chip plain mono" data-reg="' + esc(r) + '" aria-pressed="false">' + esc(r) + '</button>'; }).join('');
+  }
+  function PTCGpop(b) { var n = 0; for (var i = 0; i < b.length; i++) { var x = b[i]; while (x) { x &= x - 1; n++; } } return n; }
+
+  // ---------- search + render ----------
+  var pending = 0;
+  function run() {
+    if (!cat) return;
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(function () {
+      results = cat.search(state.q, state, state.sort);
+      shown = 0; render(false); updateFacetCounts();
+    });
+  }
+
+  function updateFacetCounts() {
+    var c = results.counts;
+    document.querySelectorAll('#fType [data-type]').forEach(function (el) {
+      var n = c.type[el.dataset.type] || 0; el.querySelector('[data-cnt]').textContent = fmt(n);
+      el.disabled = !n && el.getAttribute('aria-pressed') !== 'true';
+    });
+    var langCounts = langTally();
+    document.querySelectorAll('#fLang [data-lang]').forEach(function (el) { var v = el.dataset.lang; el.querySelector('[data-cnt]').textContent = fmt(v ? langCounts[v] : langCounts.en + langCounts.ja); });
+    var allSup = 0; for (var k in c.supertype) allSup += c.supertype[k];
+    document.querySelectorAll('#fSuper [data-super]').forEach(function (el) {
+      var v = el.dataset.super; el.querySelector('[data-cnt]').textContent = fmt(v ? (c.supertype[v] || 0) : allSup);
+    });
+    var active = (state.lang ? 1 : 0) + state.type.size + (state.supertype ? 1 : 0) + (state.set ? 1 : 0) + (state.series ? 1 : 0) + (state.rarity ? 1 : 0) + state.reg.size + state.legal.size;
+    $('fcount').hidden = !active; $('fcount').textContent = active;
+  }
+
+  function langTally() {
+    var f = {}; for (var k in state) f[k] = state[k]; f.lang = '';
+    var r = state.lang ? cat.search(state.q, f, 'newest') : results, en = 0, ja = 0;
+    var jb = cat.facets.lang.get('ja');
+    for (var i = 0; i < r.ids.length; i++) { var x = r.ids[i]; if (jb && (jb[x >>> 5] >>> (x & 31)) & 1) ja++; else en++; }
+    return { en: en, ja: ja };
+  }
+  function money(v, cur) { if (v == null || isNaN(v)) return '—'; var sym = cur === 'usd' ? '$' : '€'; return sym + (v >= 1000 ? Math.round(v).toLocaleString('en-US') : (+v).toFixed(2)); }
+  function headPrice(t) {
+    var p = t[21]; if (!p) return { txt: '—', cls: 'none' };
+    if (state.currency === 'usd') return p.uh != null ? { txt: money(p.uh, 'usd'), cls: '' } : { txt: p.eh != null ? money(p.eh, 'eur') : '—', cls: 'none' };
+    if (p.eh != null) return { txt: (p.et ? '~' : '') + money(p.eh, 'eur'), cls: p.et ? 'thin' : '' };
+    return { txt: p.uh != null ? money(p.uh, 'usd') : '—', cls: 'none' };
+  }
+  function numLabel(t, set) {
+    var n = String(t[8] || '');
+    if (/^\d+$/.test(n) && set.pt) { var w = String(set.pt).length; while (n.length < w) n = '0' + n; return n + '/' + set.pt; }
+    return n;
+  }
+  function typeOf(t) { return (t[5] && t[5][0]) || (t[2] === 'Trainer' ? 'Trainer' : 'Colorless'); }
+
+  function dataFace(t, big) {
+    var ty = typeOf(t), sub = (t[3] || []).join(' · ') || t[2];
+    var moves = (t[14] || []).slice(0, 1).map(function (a) { return '<div><span>' + esc(a[0]) + ': ' + esc(a[1]) + '</span></div>'; })
+      .concat((t[13] || []).slice(0, big ? 4 : 2).map(function (a) { return '<div><span>' + esc(a[0]) + '</span><b>' + esc(a[2]) + '</b></div>'; }));
+    if (!moves.length && t[15] && t[15][0]) moves.push('<div><span>' + esc(t[15][0]) + '</span></div>');
+    return '<div class="df" style="--tc:var(--e-' + ty.toLowerCase() + ')">' +
+      '<div class="hd"><span class="sub">' + esc(sub) + '</span>' + (t[4] ? '<span class="hp"><small>HP</small>' + t[4] + '</span>' : '') + '</div>' +
+      '<div class="nm">' + esc(t[1]) + '</div>' +
+      '<div class="art"><span class="big t-' + ty + '">' + (t[2] === 'Trainer' ? 'T' : t[2] === 'Energy' && !t[5] ? 'E' : LETTER[ty] || '') + '</span></div>' +
+      '<div class="moves">' + moves.join('') + '</div></div>';
+  }
+
+  function tileHTML(id) {
+    var t = cat.cards[id], set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(t[11]), hp = headPrice(t);
+    var cv = cat.chg[state.currency][id], cp = cat[state.currency][id];
+ var chg = !isNaN(cv) && cp >= 2 && Math.abs(cv) >= 1 ? '<span class="chg ' + (cv > 0 ? 'up">▲' : 'down">▼') + Math.abs(cv).toFixed(0) + '%</span>' : '';
+    return '<button type="button" class="tile" data-id="' + id + '"><div class="face">' + dataFace(t, false) +
+      (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + (t[22] === 'ja' ? '<span class="lang">JP</span>' : '') + '</div>' +
+      '<div class="cap"><div class="row2"><span class="n1">' + esc(t[1]) + '</span><span class="px ' + hp.cls + '">' + hp.txt + '</span></div><div class="row2"><span class="n2">' + esc(set.c || set.id.toUpperCase()) + ' · ' + esc(numLabel(t, set)) + (t[6] ? ' · ' + esc(t[6]) : '') + '</span>' + chg + '</div></div></button>';
+  }
+
+  var io = null;
+  function render(keep) {
+    var box = $('results');
+    if (!keep) shown = 0;
+    var r = results, note = r.notes.length ? '<span class="note">No exact match for “' + esc(r.notes[0].from) + '”, showing “' + esc(r.notes[0].to) + '”</span>' : '';
+    var head = '<div class="resbar"><span class="count">' + fmt(r.total) + ' <span style="font-size:15px;font-weight:600">' + (r.total === 1 ? 'card' : 'cards') + '</span></span><span class="ms">found in ' + r.ms.toFixed(1) + ' ms</span>' + note + '</div>';
+    if (!r.total) {
+      box.innerHTML = head + '<div class="empty"><b>No cards match.</b> Try fewer words, remove a filter, or use a prefix such as <span class="mono">char</span>. Field searches look like <span class="mono">artist:sugimori</span>.</div>';
+      return;
+    }
+    var n = keep ? Math.max(shown, PAGE) : PAGE;
+    shown = Math.min(n, r.total);
+    var html = '';
+    for (var i = 0; i < shown; i++) html += tileHTML(r.ids[i]);
+    box.innerHTML = head + '<div class="grid" id="grid">' + html + '</div><div class="sentinel" id="sent"></div>' + (shown < r.total ? '<button class="more" id="more" type="button">Show more</button>' : '');
+    observe();
+  }
+  function more() {
+    var r = results, start = shown, end = Math.min(r.total, shown + PAGE * 2), html = '';
+    for (var i = start; i < end; i++) html += tileHTML(r.ids[i]);
+    shown = end;
+    $('grid').insertAdjacentHTML('beforeend', html);
+    if (shown >= r.total && $('more')) $('more').remove();
+  }
+  function observe() {
+    if (io) io.disconnect();
+    if (!('IntersectionObserver' in window)) return;
+    io = new IntersectionObserver(function (es) { if (es[0].isIntersecting && results && shown < results.total) more(); }, { rootMargin: '900px' });
+    var s = $('sent'); if (s) io.observe(s);
+  }
+
+  // ---------- detail ----------
+  function pips(list) { return (list || []).map(function (c) { return '<span class="pip sm t-' + esc(c) + '" title="' + esc(c) + '">' + (LETTER[c] || '') + '</span>'; }).join(''); }
+  function openCard(id) {
+    var t = cat.cards[id], c = PTCG.expand(t), set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(c.img);
+    var h = '<button class="close" type="button" id="dclose" aria-label="Close">×</button>';
+    h += '<div><div class="face">' + dataFace(t, true) + (img ? '<img alt="' + esc(c.name) + '" src="' + esc(img.large) + '" style="background:url(' + esc(img.small) + ') center/cover">' : '') + '</div></div>';
+    h += '<div class="info"><div><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print · ' : 'English print · ') + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div><h2>' + esc(c.name) + '</h2></div>';
+    if (c.hp || c.types.length) h += '<div class="hpline">' + (c.hp ? 'HP ' + c.hp : '') + ' ' + pips(c.types) + (c.evolvesFrom ? ' <span style="font-weight:400;color:var(--muted)">Evolves from <button class="link" data-q="name:&quot;' + esc(c.evolvesFrom) + '&quot;">' + esc(c.evolvesFrom) + '</button></span>' : '') + '</div>';
+    c.abilities.forEach(function (a) { h += '<div class="move"><div class="row"><span class="tag">' + esc(a[0]) + '</span><span class="nm">' + esc(a[1]) + '</span></div><p>' + esc(a[2]) + '</p></div>'; });
+    c.attacks.forEach(function (a) { h += '<div class="move"><div class="row">' + pips(a[1]) + '<span class="nm">' + esc(a[0]) + '</span><span class="dmg">' + esc(a[2]) + '</span></div>' + (a[3] ? '<p>' + esc(a[3]) + '</p>' : '') + '</div>'; });
+    if (c.rules.length) h += '<div class="rules">' + c.rules.map(function (r) { return '<p>' + esc(r) + '</p>'; }).join('') + '</div>';
+    if (c.supertype === 'Pokémon' && c.lang !== 'ja') {
+      var wr = function (l) { return l.length ? l.map(function (w) { return pips([w[0]]) + esc(w[1]); }).join(' ') : '—'; };
+      h += '<div class="wrr"><div><span>Weakness</span><em>' + wr(c.weaknesses) + '</em></div><div><span>Resistance</span><em>' + wr(c.resistances) + '</em></div><div><span>Retreat</span><em>' + (c.retreat ? pips(new Array(c.retreat).fill('Colorless')) : '—') + '</em></div></div>';
+    }
+    if (c.flavor) h += '<p class="flavor">' + esc(c.flavor) + '</p>';
+    h += priceBlock(c, set);
+    h += '<dl class="meta">' +
+      '<dt>Set</dt><dd><button class="link" data-set="' + esc(set.id) + '">' + esc(set.n) + '</button> <span class="mono" style="color:var(--muted)">' + esc(set.c || set.id) + ' · ' + esc(set.d) + '</span></dd>' +
+      '<dt>Number</dt><dd class="mono">' + esc(numLabel(t, set)) + '</dd>' +
+      (c.rarity ? '<dt>Rarity</dt><dd>' + esc(c.rarity) + '</dd>' : '') +
+      (c.artist ? '<dt>Illustrator</dt><dd><button class="link" data-q="artist:&quot;' + esc(c.artist) + '&quot;">' + esc(c.artist) + '</button></dd>' : '') +
+      (c.dex.length ? '<dt>Pokédex</dt><dd>' + c.dex.map(function (d) { return '<button class="link mono" data-q="dex:' + d + '">#' + String(d).padStart(4, '0') + '</button>'; }).join(' ') + '</dd>' : '') +
+      (c.reg ? '<dt>Regulation</dt><dd class="mono">' + esc(c.reg) + '</dd>' : '') +
+      '<dt>Formats</dt><dd>' + ([c.legal.indexOf('S') >= 0 ? 'Standard' : '', c.legal.indexOf('E') >= 0 ? 'Expanded' : '', c.legal.indexOf('U') >= 0 ? 'Unlimited' : ''].filter(Boolean).join(', ') || '—') + '</dd>' +
+      (c.names ? '<dt>Other names</dt><dd>' + Object.keys(c.names).map(function (l) { return '<span class="mono" style="color:var(--muted)">' + l.toUpperCase() + '</span> ' + esc(c.names[l]); }).join(' · ') + '</dd>' : '') +
+      (c.alias && c.lang === 'ja' ? '<dt>English name</dt><dd>' + esc(c.alias) + '</dd>' : '') +
+      '<dt>Card ID</dt><dd class="mono">' + esc(c.id) + '</dd>' +
+      '</dl></div>';
+    $('sheet').innerHTML = h;
+    var d = $('dlg');
+    if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute('open', '');
+    $('sheet').scrollTop = 0;
+  }
+  function ptable(heads, rows, hlIdx) {
+    return '<div class="ptable"><table><thead><tr>' + heads.map(function (x) { return '<th>' + x + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      rows.map(function (r) { return '<tr>' + r.map(function (v, i) { return '<td' + (i === hlIdx ? ' class="hl"' : '') + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+  }
+  function priceBlock(c, set) {
+    var p = c.price, h = '<div class="prices">';
+    var cmName = c.lang === 'ja' ? (c.alias || c.name) : c.name;
+    var cmLink = '<a class="ext" target="_blank" rel="noopener" href="https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(cmName) + '">Cardmarket</a>';
+    if (p && p.e) {
+      h += '<div><h4>Cardmarket · euro</h4><p class="src">' + (c.lang === 'ja'
+        ? 'Japanese-language copies only. Cardmarket lists Japanese prints as separate products.'
+        : 'European market. Cardmarket pools every European language (EN, DE, FR, IT, ES, PT…) into one figure, so a single language can sell higher or lower.') +
+        (p.et ? ' Few recent sales: treat as a rough guide.' : '') + ' Snapshot ' + esc(c.lang === 'ja' ? DATES.ja : DATES.eur) + '.</p>';
+      h += ptable(['Variant', 'Trend', 'From', '1-day', '7-day', '30-day'], p.e.map(function (r) { return [esc(r[0]), money(r[1]), money(r[2]), money(r[3]), money(r[4]), money(r[5])]; }), 1) + '</div>';
+    }
+    if (p && p.u) {
+      h += '<div><h4>TCGplayer · US dollar</h4><p class="src">US market, English-language copies only. Snapshot ' + esc(DATES.usd) + '.</p>';
+      h += ptable(['Variant', 'Market', 'Low', 'Mid', 'High'], p.u.map(function (r) { return [esc(r[0]), money(r[1], 'usd'), money(r[2], 'usd'), money(r[3], 'usd'), money(r[4], 'usd')]; }), 1) + '</div>';
+    }
+    if (c.hist && c.hist.e) h += spark(c.hist.e, AXES.e, 'eur', 'Cardmarket trend' + (c.lang === 'ja' ? ' (Japanese copies)' : ''));
+    if (c.hist && c.hist.u) h += spark(c.hist.u, AXES.u, 'usd', 'TCGplayer market price');
+    if (!p) h += '<p class="nolang">No price data for this card yet.</p>';
+    if (c.lang === 'ja') h += '<p class="nolang">No US-dollar price: TCGplayer\'s Japanese catalogue isn\'t in this snapshot.</p>';
+    else if (p && !p.u) h += '<p class="nolang">No TCGplayer match for this card.</p>';
+    return h + '</div>' + salesBlock(c) + markets(c, set);
+  }
+  function spark(h, axis, cur, label) {
+    var st = h[0], vals = h.slice(1), pts = [];
+    var ok = vals.filter(function (v) { return v != null; }).sort(function (a, b) { return a - b; }), md = ok[ok.length >> 1];
+    vals.forEach(function (v, i) { if (v != null && v > md / 8 && v < md * 8) pts.push([st + i, v]); });
+    if (pts.length < 2) return '';
+    var W = 300, H = 84, pad = 4, x0 = pts[0][0], x1 = pts[pts.length - 1][0];
+    var lo = Math.min.apply(null, pts.map(function (p) { return p[1]; })), hi = Math.max.apply(null, pts.map(function (p) { return p[1]; }));
+    var rlo = lo, rhi = hi;
+    if (hi === lo) { hi += 1; lo = Math.max(0, lo - 1); }
+    function X(i) { return pad + (i - x0) / Math.max(1, x1 - x0) * (W - pad * 2); }
+    function Y(v) { return pad + (1 - (v - lo) / (hi - lo)) * (H - pad * 2); }
+    var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1); }).join(' ');
+    var area = line + ' L' + X(x1).toFixed(1) + ' ' + H + ' L' + X(x0).toFixed(1) + ' ' + H + ' Z';
+    var first = pts[0][1], last = pts[pts.length - 1][1], pc = first > 0 ? (last - first) / first * 100 : 0;
+    var col = pc >= 0 ? 'var(--up)' : 'var(--down)', lp = pts[pts.length - 1];
+    var grid = [0.25, 0.5, 0.75].map(function (g) { return '<line x1="0" x2="' + W + '" y1="' + (pad + g * (H - pad * 2)) + '" y2="' + (pad + g * (H - pad * 2)) + '" stroke="var(--line)" stroke-width="1"/>'; }).join('');
+    return '<div class="spark"><div class="big">' + money(last, cur) + ' <span class="chg ' + (pc >= 0 ? 'up">▲' : 'down">▼') + Math.abs(pc).toFixed(1) + '% since ' + esc(fmtDate(axis[x0])) + '</span></div>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + ' history">' + grid +
+      '<path d="' + area + '" fill="' + col + '" fill-opacity=".12"/><path d="' + line + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<circle cx="' + X(lp[0]).toFixed(1) + '" cy="' + Y(lp[1]).toFixed(1) + '" r="3.5" fill="' + col + '"/></svg>' +
+      '<div class="lbl"><span>' + esc(fmtDate(axis[x0])) + '</span><span>' + esc(fmtDate(axis[x1])) + '</span></div>' +
+      '<div class="lbl"><span>' + esc(label) + '</span><span>low ' + money(rlo, cur) + ' · high ' + money(rhi, cur) + '</span></div></div>';
+  }
+  function salesBlock(c) {
+    var x = c.sales; if (!x) return '';
+    var G = ['Ungraded', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 9.5', 'PSA 10'];
+    var h = '<div class="prices"><div><h4>Graded prices &amp; recent sales</h4><p class="src">PriceCharting, US dollar' + (c.lang === 'ja' ? ', Japanese copies' : '') + '. Grades 7–9.5 combine PSA, CGC and BGS sales. Retrieved 22 Oct 2026.</p>';
+    h += '<div class="grades">' + G.map(function (g, i) { return '<div><span>' + g + '</span><b>' + money(x.g[i], 'usd') + '</b></div>'; }).join('') + '</div></div>';
+    if (x.s.length) {
+      h += '<div><h4 style="font-size:14px">Recent sold listings</h4><div class="sold">' +
+        x.s.map(function (r) {
+          var t = esc(r[2]), where = r[4] ? (/ebay/.test(r[4]) ? 'eBay' : /tcgplayer/.test(r[4]) ? 'TCGplayer' : 'Link') : 'Auction house';
+          return '<div class="srow"><div class="sl"><b>' + money(r[3], 'usd') + '</b><span>' + esc(r[1]) + '</span><span>' + esc(fmtDate(r[0])) + ' · ' + where + '</span></div>' +
+            (r[4] ? '<a class="ext" target="_blank" rel="noopener" href="' + esc(r[4]) + '">' + t + '</a>' : '<span>' + t + '</span>') + '</div>';
+        }).join('') + '</div></div>';
+    }
+    h += '<p class="nolang"><a class="ext" target="_blank" rel="noopener" href="' + esc(x.pc) + '">Full sales history on PriceCharting</a></p>';
+    return h + '</div>';
+  }
+  function fmtDate(d) { if (!d) return ''; var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return +d.slice(8, 10) + ' ' + m[+d.slice(5, 7) - 1]; }
+  function L(href, txt, cls) { return '<a target="_blank" rel="noopener"' + (cls ? ' class="' + cls + '"' : '') + ' href="' + esc(href) + '">' + txt + '</a>'; }
+  function ebay(host, q) {
+    var b = 'https://' + host + '/sch/i.html?_nkw=' + encodeURIComponent(q);
+    return L(b + '&LH_Sold=1&LH_Complete=1', 'eBay sold', 'sold') + L(b + '&_sop=15', 'eBay for sale');
+  }
+  var EBAY = { en: ['www.ebay.com', 'English'], uk: ['www.ebay.co.uk', 'English · UK'], de: ['www.ebay.de', 'Deutsch'], fr: ['www.ebay.fr', 'Français'], it: ['www.ebay.it', 'Italiano'], es: ['www.ebay.es', 'Español'], nl: ['www.ebay.nl', 'Nederlands'] };
+  function markets(c, set) {
+    var num = c.number && set.pt && /^\d+$/.test(c.number) ? c.number.replace(/^0+/, '') + '/' + set.pt : c.number;
+    var enName = c.lang === 'ja' ? (c.alias || c.name) : c.name;
+    var setEn = set.ne || set.n;
+    var rows = [];
+    if (c.lang === 'ja') {
+      var jq = c.name + ' ' + set.c + ' ' + c.number;
+      rows.push(['Japanese', c.name, L('https://auctions.yahoo.co.jp/closedsearch/closedsearch?p=' + encodeURIComponent(jq), 'Yahoo! sold', 'sold') + L('https://jp.mercari.com/search?keyword=' + encodeURIComponent(jq), 'Mercari') + L('https://snkrdunk.com/search?keywords=' + encodeURIComponent(jq), 'SNKRDUNK') + ebay('www.ebay.com', enName + ' ' + set.c + ' ' + c.number + ' japanese')]);
+      rows.push(['Guides', '', L('https://www.pricecharting.com/search-products?type=prices&q=' + encodeURIComponent(enName + ' japanese ' + setEn + ' ' + c.number), 'PriceCharting (graded)', 'sold') + L('https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(enName), 'Cardmarket')]);
+    } else {
+      var names = c.names || {};
+      rows.push(['English', c.name, ebay(EBAY.en[0], c.name + ' ' + num + ' ' + setEn) + L('https://www.tcgplayer.com/' + (c.price && c.price.tp ? 'product/' + c.price.tp : 'search/pokemon/product?q=' + encodeURIComponent(c.name + ' ' + setEn)), 'TCGplayer')]);
+      rows.push(['UK', c.name, ebay(EBAY.uk[0], c.name + ' ' + num + ' ' + setEn)]);
+      ['de', 'fr', 'it', 'es'].forEach(function (l) {
+        var nm = names[l] || c.name;
+        rows.push([EBAY[l][1], nm, ebay(EBAY[l][0], nm + ' ' + num)]);
+      });
+      rows.push(['Belgium · NL', c.name, ebay('www.benl.ebay.be', c.name + ' ' + num)]);
+      rows.push(['Guides', '', L('https://www.pricecharting.com/search-products?type=prices&q=' + encodeURIComponent(c.name + ' ' + setEn + ' ' + num), 'PriceCharting (graded)', 'sold') + L('https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(c.name), 'Cardmarket')]);
+    }
+    return '<div class="markets"><h4>Live prices & sold listings</h4><p class="nolang">Each language is searched on its own market with its own card name. Green buttons show completed sales.</p>' +
+      rows.map(function (r) { return '<div class="mrow"><div class="who">' + esc(r[0]) + (r[1] ? '<b>' + esc(r[1]) + '</b>' : '') + '</div><div class="mlinks">' + r[2] + '</div></div>'; }).join('') + '</div>';
+  }
+  function closeCard() { var d = $('dlg'); if (d.close) d.close(); else d.removeAttribute('open'); }
+
+  // ---------- status ----------
+  function ago(ts) { var s = (Date.now() - ts) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; }
+  function status() {
+    var st = cat.stats;
+    var parts = [fmt(st.cards) + ' cards', st.sets + ' sets', fmt(st.terms) + ' search terms', fmt(st.postings) + ' postings', 'index built in ' + Math.round(st.buildMs) + ' ms',
+      (meta.from === 'device' ? 'opened from this device' : 'loaded') + ' in ' + Math.round(meta.loadMs) + ' ms',
+      'data ' + (meta.source === 'live' ? 'synced ' + ago(meta.syncedAt) : 'snapshot of ' + String(meta.commit || '').slice(0, 10)),
+      'prices: Cardmarket ' + (DATES.eur || '—') + ', TCGplayer ' + (DATES.usd || '—')];
+    var html = parts.map(function (p) { return '<span>' + esc(p) + '</span>'; }).join('');
+    html += '<span id="usage"></span>';
+    if (mode === 'live') html += '<button type="button" id="sync">Check for new sets</button>';
+    html += '<button type="button" id="wipe">Clear saved data</button>';
+    $('status').innerHTML = html;
+    try { navigator.storage.estimate().then(function (e) { if (e.usage) $('usage').textContent = (e.usage / 1048576).toFixed(1) + ' MB stored'; }); } catch (e) {}
+  }
+
+  // ---------- events ----------
+  var qEl = $('q');
+  qEl.addEventListener('input', function () { state.q = qEl.value; $('clear').hidden = !qEl.value; run(); });
+  $('clear').addEventListener('click', function () { qEl.value = ''; state.q = ''; $('clear').hidden = true; run(); qEl.focus(); });
+  $('sort').addEventListener('change', function (e) { state.sort = e.target.value; run(); });
+  document.querySelector('.cur').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cur]'); if (!b) return;
+    state.currency = b.dataset.cur;
+    this.querySelectorAll('[data-cur]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+    run();
+  });
+  $('hints').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; setQuery(b.textContent); });
+  function setQuery(q) { qEl.value = q; state.q = q; $('clear').hidden = !q; run(); window.scrollTo({ top: 0 }); }
+  $('filtersBtn').addEventListener('click', function () { var r = $('rail'), o = !r.classList.contains('open'); r.classList.toggle('open', o); this.setAttribute('aria-expanded', o); });
+  $('rail').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.type) { toggle(state.type, b.dataset.type, b); }
+    else if (b.dataset.lang !== undefined) { state.lang = b.dataset.lang; document.querySelectorAll('#fLang [data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
+    else if (b.dataset.super !== undefined) { state.supertype = b.dataset.super; document.querySelectorAll('#fSuper [data-super]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
+    else if (b.dataset.reg) { toggle(state.reg, b.dataset.reg, b); }
+    else if (b.id === 'reset') { resetFilters(); }
+    else return;
+    run();
+  });
+  function toggle(set, v, el) { if (set.has(v)) set.delete(v); else set.add(v); el.setAttribute('aria-pressed', set.has(v)); }
+  function resetFilters() {
+    state.type.clear(); state.reg.clear(); state.legal.clear(); state.supertype = ''; state.lang = ''; state.set = ''; state.series = ''; state.rarity = '';
+    document.querySelectorAll('#rail [aria-pressed]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.super === '' || x.dataset.lang === ''); });
+    $('fSet').value = ''; $('fSeries').value = ''; $('fRarity').value = ''; $('fStd').checked = false; $('fExp').checked = false; $('fSales').checked = false;
+  }
+  $('fSet').addEventListener('change', function (e) { state.set = e.target.value; run(); });
+  $('fSeries').addEventListener('change', function (e) { state.series = e.target.value; run(); });
+  $('fRarity').addEventListener('change', function (e) { state.rarity = e.target.value; run(); });
+  $('fStd').addEventListener('change', function (e) { e.target.checked ? state.legal.add('standard') : state.legal.delete('standard'); run(); });
+  $('fSales').addEventListener('change', function (e) { e.target.checked ? state.legal.add('sales') : state.legal.delete('sales'); run(); });
+  $('fExp').addEventListener('change', function (e) { e.target.checked ? state.legal.add('expanded') : state.legal.delete('expanded'); run(); });
+  $('results').addEventListener('click', function (e) {
+    if (e.target.id === 'more') { more(); return; }
+    var t = e.target.closest('.tile'); if (t) openCard(+t.dataset.id);
+  });
+  $('results').addEventListener('error', function (e) { if (e.target.tagName === 'IMG') e.target.remove(); }, true);
+  $('dlg').addEventListener('click', function (e) {
+    if (e.target === this || e.target.id === 'dclose') { closeCard(); return; }
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.q) { closeCard(); setQuery(b.dataset.q); }
+    else if (b.dataset.set) { closeCard(); resetFilters(); state.set = b.dataset.set; $('fSet').value = b.dataset.set; state.sort = 'oldest'; $('sort').value = 'oldest'; setQuery(''); }
+  });
+  $('sheet').addEventListener('error', function (e) { if (e.target.tagName === 'IMG') e.target.remove(); }, true);
+  $('status').addEventListener('click', function (e) {
+    if (e.target.id === 'wipe') {
+      if (e.target.dataset.armed) { clearAll().then(function () { location.reload(); }); }
+      else { e.target.dataset.armed = '1'; e.target.textContent = 'Tap again to clear'; }
+    } else if (e.target.id === 'sync') {
+      e.target.disabled = true; e.target.textContent = 'Checking…';
+      liveSync(false).then(function (r) { e.target.textContent = r.updated ? r.updated + ' sets updated, reloading…' : 'Up to date'; if (r.updated) location.reload(); })
+        .catch(function () { e.target.textContent = 'Could not reach GitHub'; e.target.disabled = false; });
+    }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === '/' && document.activeElement !== qEl && !$('dlg').open) { e.preventDefault(); qEl.focus(); } });
+
+  boot();
+})();
+</script>

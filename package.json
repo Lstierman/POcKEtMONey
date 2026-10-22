@@ -1,0 +1,10 @@
+{
+  "name": "pokemon-card-index",
+  "private": true,
+  "description": "Every English and Japanese Pokémon TCG card in one offline, instantly searchable page, with prices.",
+  "scripts": {
+    "sources": "bash scripts/fetch-sources.sh build/sources",
+    "build": "mkdir -p build && node scripts/build-catalog.js build/sources build/catalog.json && node scripts/merge-pricecharting.js data/pricecharting build/pc_data.json && node scripts/assemble.js",
+    "refresh": "npm run sources && npm run build"
+  }
+}
