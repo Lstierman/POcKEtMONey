@@ -116,6 +116,7 @@ function apply(m, card) {
     store.write(store.listingFile('pricecharting', card[1], card[0]), { v: SCHEMA, id: card[0], at, source, url: d.url, g, sold: d.sold }, 'pcListing');
     if (d.url) { state.urls.pricecharting[card[0]] = d.url; byPc.set(d.url, card[0]); }
     e.pc = { u: d.url, g, at, n: d.sold.length };
+    P.setSegments(e, 'pc', P.obsPricecharting(d.sold, card[5] === 'ja' ? 7 : 1, fx));
     return 'PriceCharting: ' + g.filter(x => x != null).length + ' graded prices, ' + d.sold.length + ' sales';
   }
   throw new Error('unknown site ' + m.site);

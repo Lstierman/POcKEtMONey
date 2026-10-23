@@ -9,6 +9,8 @@
 //       c  CardTrader listing stats, same keys as l; ctt time, ctn count
 //       ea / es  eBay for sale / sold, raw copies only [n, min, median, avg, max] EUR; en [for sale, sold] counts; et time
 //       h / hs   headline EUR and its source (trend, listings, tcg, sold)
+//       b  every listing and sale by source, for sale / sold, language and grade (src/prices.js segments):
+//          { "eb|S|3|PSA 10": [n, min, median, avg, max] EUR, "cm|L|1|": …, … }
 //   history/<set>.json.gz                       { card id: [[hour, headline, trend, listing avg, tcgplayer, sold median] (EUR)] }
 //   listings/cardmarket/<set>/<card>.json       every Cardmarket article of the card's products (PRICES.ARTICLE rows)
 //   listings/ebay/<set>/<card>.json             eBay items for sale and sold items, per marketplace
@@ -18,6 +20,7 @@
 //
 // Every write is validated first and goes to a temp file that is renamed into place, so a crash never leaves half a file.
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
+const { SEG_KEY } = require('../../src/prices.js');
 const SCHEMA = 1;
 
 const safe = s => String(s).replace(/[^A-Za-z0-9._-]/g, '_');
@@ -123,6 +126,7 @@ function summaryEntryError(e) {
   if (e.l) { for (const k in e.l) if (!/^\d+\|[A-Z]{2}\|[f1sa]*$/.test(k) || !isStats(e.l[k])) return 'l ' + k; if (!isIso(e.lt)) return 'lt'; }
   if (e.c) { for (const k in e.c) if (!/^\d+\|[A-Z?]{2}\|[f1sa]*$/.test(k) || !isStats(e.c[k])) return 'c ' + k; if (!isIso(e.ctt)) return 'ctt'; }
   for (const k of ['ea', 'es']) if (e[k] && !isStats(e[k])) return k;
+  if (e.b) { if (typeof e.b !== 'object') return 'b'; for (const k in e.b) if (!SEG_KEY.test(k) || !isStats(e.b[k])) return 'b ' + k; }
   if ((e.ea || e.es) && !isIso(e.et)) return 'et';
   if (!isNum(e.h === undefined ? null : e.h)) return 'h';
   return null;

@@ -141,3 +141,38 @@ test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip
 
   assert.strictEqual((await post('/publish', {})).status, 400, 'pushing needs npm run helper');
 });
+
+test('classification: grading company and grade, language, raw copies that mention grading', () => {
+  const P = require('../src/prices.js');
+  const cases = [
+    ['1999 Pokemon Base Set Charizard 4/102 PSA 10 GEM MINT', 'PSA 10', 0],
+    ['Charizard 4/102 BGS 9.5 Gem Mint', 'BGS 9.5', 0],
+    ['Charizard Beckett 10 Black Label', 'BGS 10 Black Label', 0],
+    ['Charizard CGC 10 Pristine', 'CGC 10 Pristine', 0],
+    ['Gem Mint 10 PSA Charizard 4/102', 'PSA 10', 0],
+    ['Dracaufeu 4/102 VF CGC 9,5', 'CGC 9.5', 2],
+    ['Glurak 4/102 Basis Set deutsch PSA 8', 'PSA 8', 3],
+    ['Charizard 4/102 japanese PSA 9', 'PSA 9', 7],
+    ['Charizard TAG 9.5 slab', 'TAG 9.5', 0],
+    ['Charizard PSA 10 candidate! NM', '', 0],
+    ['Pikachu & Zekrom GX Tag Team 33/181', '', 0],
+    ['Pikachu & Zekrom GX Tag Team 33/181 PSA 9', 'PSA 9', 0],
+    ['Ace Trainer 69/72 raw', '', 0],
+    ['Charizard 4/102 Holo English', '', 1],
+    ['Charizard 1999 Base Set', '', 0]
+  ];
+  for (const [t, g, l] of cases) { assert.strictEqual(P.grade(t), g, t); assert.strictEqual(P.titleLang(t), l, t); }
+  assert.strictEqual(P.grade('Charizard 4/102', 'Graded'), 'Graded ?');
+  assert.strictEqual(P.grade('Charizard PSA 9', 'Ungraded'), '');
+  assert.deepStrictEqual(['PSA 9', '', 'BGS 10 Black Label', 'PSA 10', 'CGC 10'].sort(P.gradeOrder), ['', 'BGS 10 Black Label', 'PSA 10', 'CGC 10', 'PSA 9']);
+  // Cardmarket comments: a graded copy leaves the raw condition stats and lands in the breakdown under its grade
+  const row = (id, lang, price, comment) => [id, lang, 'NM', price, 1, 0, 0, 0, 0, 'DE', 's', comment, 5];
+  const arts = [row(1, 1, 100, ''), row(2, 1, 110, ''), row(3, 1, 2000, 'PSA 10 slab'), row(4, 3, 80, '')];
+  assert.deepStrictEqual(Object.keys(P.aggregateArticles(arts)).sort(), ['1|NM|', '3|NM|']);
+  assert.strictEqual(P.aggregateArticles(arts)['1|NM|'][4], 110);
+  const b = P.segments(P.obsArticles('cm', arts));
+  assert.deepStrictEqual(Object.keys(b).sort(), ['cm|L|1|', 'cm|L|1|PSA 10', 'cm|L|3|']);
+  // PriceCharting: the title's company wins over the tab
+  const pc = P.segments(P.obsPricecharting([['2026-10-20', 'Grade 9', 'Charizard BGS 9', 100, null], ['2026-10-20', 'Grade 9', 'Charizard 4/102', 90, null], ['2026-10-20', 'Ungraded', 'Charizard', 10, null]], 1, { EUR: 1, USD: 1 }));
+  assert.deepStrictEqual(Object.keys(pc).sort(), ['pc|S|1|', 'pc|S|1|BGS 9', 'pc|S|1|Graded 9']);
+});

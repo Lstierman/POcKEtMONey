@@ -79,6 +79,21 @@ listings/ebay/<set>/<card>.json        eBay items for sale and sold
 
 Every file is validated against its schema before it is written. It goes to a temporary file that is renamed into place, so a crash never leaves half a file. After the run every file is read back and validated again; if anything fails, the workflow stops before publishing. `npm test` covers the OAuth signature (RFC 5849 vector), listing statistics, eBay filtering and currency conversion, the store's refusal of bad data, history compaction, and full collector runs against mocked APIs.
 
+### Every price: graded, language, for sale and sold
+
+Every listing and sale, from every marketplace, is classified the same way (`src/prices.js`) and kept apart along four lines:
+
+| Split | How |
+|---|---|
+| **Raw or graded** | The title (eBay, PriceCharting) or seller comment (Cardmarket, CardTrader) is read for a grading company and grade: `PSA 10`, `BGS 9.5`, `BGS 10 Black Label`, `CGC 10 Pristine`, also SGC, ACE, TAG, PCA and others. "PSA 10 candidate" or "ready to grade" stays raw; eBay's own Graded / Ungraded condition is used too. A grade without a named company is `Graded 9`. |
+| **Language** | Cardmarket and CardTrader state it per listing. On eBay the title is read (“japanese”, “deutsch”, “VF”…), then the card name it uses (Glurak: German), then the language the site was searched in. PriceCharting sales are in the print's language. |
+| **For sale or sold** | Current listings (Cardmarket, CardTrader, eBay) and completed sales (eBay, PriceCharting) are never mixed. |
+| **Source** | Each figure keeps its marketplace. |
+
+The store keeps this per card as `b` in `summary.json.gz`: `"eb|S|3|PSA 10": [n, min, median, avg, max]` (source, L for sale / S sold, Cardmarket language id, grade; EUR). Headline figures (the Cardmarket listing average, eBay `ea` / `es`) use raw copies in the print's own language only, so a German copy or a slab never moves an English card's price.
+
+A card's details open with **Every price**: one table across all its prints, raw copies per language first, then every grade, with the median for sale and sold, how many, and which marketplaces. The Cardmarket price guide (European languages pooled) and TCGplayer (English, raw) can't be split this way and stay in their own sections.
+
 ### Scraper extension
 
 For the data the APIs don't give (every Cardmarket listing, eBay for sale and sold, PriceCharting graded prices), the **scraper extension** (`scraper-extension/`) visits the sites in your own Chrome, where the "are you a robot" checks see a normal browser. It opens one page at a time in a separate window, with a 7–10 second pause between pages.
