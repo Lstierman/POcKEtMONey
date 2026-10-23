@@ -67,8 +67,14 @@ function plan(site, c, { cfg, urls = {} }) {
   if (site === 'cardmarket') {
     const max = (cfg.cardmarket && cfg.cardmarket.maxProductsPerCard) || 3, known = urls.cardmarket || {};
     const products = c[6].slice(0, max).map(([cm, variant]) => ({ cm, variant, url: known[cm] || null }));
+    // every listing per language and condition: Cardmarket shows the cheapest offers first and loads more on request;
+    // when a product has more offers than `maxLoadMore` clicks reveal, it is reloaded per language (?language=) and,
+    // within a language, per condition threshold (?minCondition=1 Mint … 7 Poor, "this or better")
+    const sc = (cfg.scrape && cfg.scrape.cardmarket) || {};
+    const filters = { maxLoadMore: sc.maxLoadMore || 40, conditions: sc.conditions !== false,
+      languages: (isJa(c) ? sc.jaLanguages || [7] : sc.languages || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]).slice() };
     return Object.assign(base, {
-      products,
+      products, filters,
       // English prints: pokemontcg.io redirects to the card's Cardmarket product page
       redirect: isJa(c) ? null : 'https://prices.pokemontcg.io/cardmarket/' + encodeURIComponent(c[0]),
       search: 'https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(enName(c))

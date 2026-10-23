@@ -176,3 +176,64 @@ test('classification: grading company and grade, language, raw copies that menti
   const pc = P.segments(P.obsPricecharting([['2026-10-20', 'Grade 9', 'Charizard BGS 9', 100, null], ['2026-10-20', 'Grade 9', 'Charizard 4/102', 90, null], ['2026-10-20', 'Ungraded', 'Charizard', 10, null]], 1, { EUR: 1, USD: 1 }));
   assert.deepStrictEqual(Object.keys(pc).sort(), ['pc|S|1|', 'pc|S|1|BGS 9', 'pc|S|1|Graded 9']);
 });
+
+test('scraper extension: Cardmarket offers per language and condition when a product has too many to load', async () => {
+  const vm = require('vm');
+  // a product with 1,400 offers: English (many, mostly cheap Poor/Played copies), German, Japanese
+  const conds = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'], offers = [];
+  let id = 1000000;
+  for (let i = 0; i < 900; i++) offers.push([id++, 1, conds[6 - (i % 3)], 5 + i * 0.1, 1, 0, 0, 0, 0, 'DE', 's', '', 5]); // Poor, Played, Light Played
+  for (let i = 0; i < 300; i++) offers.push([id++, 1, conds[i % 2], 200 + i, 1, 0, 0, 0, 0, 'DE', 's', '', 5]);         // Mint, Near Mint: pricier
+  for (let i = 0; i < 150; i++) offers.push([id++, 3, conds[1], 150 + i, 1, 0, 0, 0, 0, 'DE', 's', '', 5]);
+  for (let i = 0; i < 50; i++) offers.push([id++, 7, conds[1], 300 + i, 1, 0, 0, 0, 0, 'JP', 's', '', 5]);
+  const PER = 50, base = 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Base-Set/Charizard';
+  let url = '', clicks = 0, loads = 0, ingested = null;
+  function view() {
+    const u = new URL(url), lang = +u.searchParams.get('language') || 0, cond = +u.searchParams.get('minCondition') || 7;
+    const all = offers.filter(a => (!lang || a[1] === lang) && conds.indexOf(a[2]) + 1 <= cond).sort((a, b) => a[3] - b[3]);
+    const shown = all.slice(0, PER * (1 + clicks));
+    return { none: false, url: url.split('#')[0], more: shown.length < all.length, data: { site: 'cardmarket', idProduct: 5, title: 'Charizard', articles: shown, found: shown.length, rowsSeen: shown.length } };
+  }
+  const ctx = {
+    console, URL, URLSearchParams, Map, Set, JSON, Math, Date, Promise, Object, Array, String, Error,
+    setTimeout: fn => setImmediate(fn), setInterval: () => 0, clearInterval: () => {},
+    importScripts: () => { ctx.PTCG_MATCH = require('../scraper-extension/match.js'); },
+    fetch: async (u, o) => { if (/\/ingest$/.test(u)) { ingested = JSON.parse(o.body); return { status: 200, json: async () => ({ report: 'ok', card: { id: 'base1-4' } }) }; } return { status: 200, json: async () => ({}) }; },
+    chrome: {
+      storage: { local: { get: async () => ({}), set: async () => {}, remove: async () => {} } },
+      action: { setBadgeText() {}, setBadgeBackgroundColor() {} }, runtime: { onMessage: { addListener() {} }, getPlatformInfo() {} },
+      notifications: { create() {}, clear() {} }, windows: { create: async () => ({ id: 1, tabs: [{ id: 2 }] }), update: async () => {}, remove: async () => {} },
+      tabs: { get: async () => ({ status: 'complete' }), update: async (t, o) => { url = o.url; clicks = 0; loads++; } },
+      scripting: { executeScript: async ({ func, args }) => {
+        if (!func) return [{}];
+        if (func.name === 'readPage') return [{ result: view() }];
+        if (func.name === 'loadAllOffers') { const max = args[0]; while (clicks < max && view().more) clicks++; return [{ result: clicks }]; }
+        if (func.name === 'blockCheck') return [{ result: '' }];
+        return [{ result: null }];
+      } }
+    }
+  };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(root, 'scraper-extension/background.js'), 'utf8'), ctx);
+  await new Promise(r => setImmediate(r));
+  vm.runInContext('job = { items: [], i: 0, saved: 0, skipped: 0, failed: 0, gap: 0, log: [], status: "running" }; pause = async () => {};', ctx);
+  const item = { site: 'cardmarket', card: 'base1-4', label: 'Charizard', products: [{ cm: 5, url: base }], filters: { maxLoadMore: 5, languages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], conditions: true }, match: {} };
+  const n = await vm.runInContext('scrapeCardmarket', ctx)(item);
+  assert.strictEqual(n, 1);
+  const got = ingested.data.articles, byLC = {};
+  for (const a of got) byLC[a[1] + a[2]] = (byLC[a[1] + a[2]] || 0) + 1;
+  assert.strictEqual(new Set(got.map(a => a[0])).size, got.length, 'each offer once');
+  assert.ok(got.length > 300, 'more than the 300 a single cut-off view shows: ' + got.length);
+  assert.strictEqual(byLC['1MT'], 150, 'every English Mint offer'); assert.strictEqual(byLC['1NM'], 150, 'every English Near Mint offer');
+  assert.strictEqual(byLC['3NM'], 150, 'every German offer'); assert.strictEqual(byLC['7NM'], 50, 'Japanese offers, too expensive to show in the first view');
+  const cov = ingested.data.coverage;
+  assert.deepStrictEqual(cov[0].slice(0, 2).concat(cov[0][3]), [0, 0, 0], 'all languages: cut off');
+  assert.ok(cov.some(c => c[0] === 1 && c[1] && c[3]), 'English complete at some condition threshold');
+  assert.ok(cov.some(c => c[0] === 3 && c[1] === 0 && c[3]), 'German complete without a condition filter');
+  assert.deepStrictEqual(cov.find(c => c[0] === 2), [2, 0, 0, 1], 'French: checked, no offers');
+  // Cardmarket's condition filter is "this or better", so the worst conditions can't be isolated: beyond the load
+  // limit their most expensive offers stay out (the coverage says which views were cut off); the cheapest are all in
+  const ids = new Set(got.map(a => a[0])), cheapEn = offers.filter(a => a[1] === 1).sort((x, y) => x[3] - y[3]).slice(0, 300);
+  assert.ok(cheapEn.every(a => ids.has(a[0])), 'the cheapest English offers of any condition');
+  assert.ok(offers.filter(a => ['MT', 'NM', 'EX', 'GD'].includes(a[2]) || a[1] !== 1).every(a => ids.has(a[0])), 'every offer in Good or better, and in every other language');
+});

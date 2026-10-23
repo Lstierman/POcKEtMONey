@@ -140,20 +140,69 @@ async function scrapeEbay(item) {
   return n;
 }
 
+// Cardmarket lists the cheapest offers first and loads more on request. Every listing per language and condition:
+// load the product's offers to the end; if that is cut off (more than filters.maxLoadMore clicks), reload it per
+// language, and within a language per condition threshold (minCondition=6 … 1, "this or better") until a view is
+// complete. All views are merged (same offer once) and stored as one product, with which views were complete.
+const COND_NAMES = ['', 'Mint', 'Near Mint', 'Excellent', 'Good', 'Light Played', 'Played', 'Poor'];
+function offerKey(a) { return a[0] > 99999 ? 'id' + a[0] : JSON.stringify(a.slice(1, 12)); } // real article ids, else the row's content
+
+async function cmView(base, lang, cond, max) { // one filtered view, loaded to the end (or max clicks)
+  const q = new URLSearchParams(); if (lang) q.set('language', lang); if (cond) q.set('minCondition', cond);
+  const tabId = await visit(base + (q.toString() ? '?' + q : ''));
+  let page = await run(tabId, readPage, [], ['parsers.js']);
+  if (page.none || page.data.site !== 'cardmarket') return null;
+  if (page.more) { await run(tabId, loadAllOffers, [max]); page = await run(tabId, readPage); }
+  await pause();
+  return page;
+}
+
+async function cmProduct(tabId, page, item, max) { // page: the product page as just opened in tabId, not yet expanded
+  const base = page.url.split('?')[0], offers = new Map(), coverage = [], f = item.filters || {};
+  const add = (p, lang, cond) => {
+    p.data.articles.forEach(a => offers.set(offerKey(a), a));
+    coverage.push([lang, cond, p.data.found, p.more ? 0 : 1]);
+    log('Cardmarket ' + (lang ? (LANG_NAME[lang] || 'lang ' + lang) : 'all languages') + (cond ? ', ' + COND_NAMES[cond] + ' or better' : '') + ': ' + p.data.found + (p.more ? ' (cut off)' : ''));
+    return !p.more;
+  };
+  let all;
+  if (!/\?/.test(page.url)) { // already the unfiltered view: expand it where it is
+    all = page.more ? (await run(tabId, loadAllOffers, [max]), await run(tabId, readPage)) : page;
+    await pause();
+  } else all = await cmView(base, 0, 0, max);
+  if (!all) return null;
+  if (!add(all, 0, 0)) {
+    const langs = new Set(f.languages || []); all.data.articles.forEach(a => { if (a[1]) langs.add(a[1]); });
+    for (const lang of langs) {
+      const v = await cmView(base, lang, 0, max); if (!v) continue;
+      if (add(v, lang, 0) || f.conditions === false) continue;
+      // cut off in this language: Mint-or-better is the smallest view; widen until one is complete, from worst down
+      for (let cond = 6; cond >= 1; cond--) { const w = await cmView(base, lang, cond, max); if (w && add(w, lang, cond)) break; }
+    }
+  }
+  return Object.assign({}, all.data, { articles: [...offers.values()], found: offers.size, coverage });
+}
+const LANG_NAME = { 1: 'English', 2: 'French', 3: 'German', 4: 'Spanish', 5: 'Italian', 6: 'S-Chinese', 7: 'Japanese', 8: 'Portuguese', 9: 'Russian', 10: 'Korean', 11: 'T-Chinese', 12: 'Dutch', 13: 'Polish' };
+
 async function scrapeCardmarket(item) {
-  const want = new Set(item.products.map(p => p.cm)), got = new Set(), tried = new Set();
+  const want = new Set(item.products.map(p => p.cm)), got = new Set(), tried = new Set(), max = (item.filters && item.filters.maxLoadMore) || 40;
   async function product(url) {
     if (tried.has(url.split('#')[0]) || got.size === want.size) return;
     tried.add(url.split('#')[0]);
     const tabId = await visit(url);
-    let page = await run(tabId, readPage, [], ['parsers.js']);
+    const page = await run(tabId, readPage, [], ['parsers.js']);
     if (page.none || page.data.site !== 'cardmarket') return page;
-    if (page.more) { await run(tabId, loadAllOffers, [30]); page = await run(tabId, readPage); }
+    tried.add(page.url.split('?')[0]);
     const id = page.data.idProduct, mine = want.has(id);
     if (!id) { log('Cardmarket: no product id on ' + page.url); return page; }
-    const res = await ingest('cardmarket', page, mine ? item.card : null, { empty: page.data.found === 0 }).catch(e => { log('Cardmarket ' + id + ': ' + e.message); return null; });
-    if (res) { log('Cardmarket: ' + res.report + (mine ? '' : ' → ' + res.card.id)); if (mine) got.add(id); }
-    await pause();
+    if (!mine) { // another card's product: store what this page shows, without the per-language passes
+      const res = await ingest('cardmarket', page, null, { empty: page.data.found === 0 }).catch(e => { log('Cardmarket ' + id + ': ' + e.message); return null; });
+      if (res) log('Cardmarket: ' + res.report + ' → ' + res.card.id);
+      await pause(); return page;
+    }
+    const data = await cmProduct(tabId, page, item, max); if (!data) return page;
+    const res = await ingest('cardmarket', { url: page.url, data }, item.card, { empty: data.found === 0 }).catch(e => { log('Cardmarket ' + id + ': ' + e.message); return null; });
+    if (res) { log('Cardmarket: ' + res.report); got.add(id); }
     return page;
   }
   for (const p of item.products) if (p.url) await product(p.url);
@@ -161,7 +210,7 @@ async function scrapeCardmarket(item) {
   if (got.size < want.size) {
     const tabId = await visit(item.search);
     const page = await run(tabId, readPage, [], ['parsers.js']);
-    if (!page.none && page.data.site === 'cardmarket') { tried.delete(page.url); await product(page.url); } // a single hit opens the product directly
+    if (!page.none && page.data.site === 'cardmarket') { tried.delete(page.url); tried.delete(page.url.split('?')[0]); await product(page.url); } // a single hit opens the product directly
     else {
       const cands = await pick(tabId, 'cm', item.match);
       await pause();

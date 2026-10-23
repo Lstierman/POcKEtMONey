@@ -97,10 +97,14 @@ function apply(m, card) {
     const rel = store.listingFile('cardmarket', card[1], card[0]), old = store.read(rel, null);
     const products = (old ? old.products : []).filter(p => p.cm !== (d.idProduct || 0));
     const label = (card[6].find(x => x[0] === d.idProduct) || [])[1] || d.title || 'Cardmarket';
-    products.push({ cm: d.idProduct || 0, label, articles: d.articles.map(a => (a[12] = d.idProduct || 0, a)) });
+    const prod = { cm: d.idProduct || 0, label, articles: d.articles.map(a => (a[12] = d.idProduct || 0, a)) };
+    // which filtered views the scraper loaded: [language id or 0 for all, minCondition or 0, offers seen, complete]
+    if (Array.isArray(d.coverage)) prod.coverage = d.coverage.filter(x => Array.isArray(x) && x.length === 4).map(x => [+x[0] || 0, +x[1] || 0, +x[2] || 0, x[3] ? 1 : 0]);
+    products.push(prod);
     applyCardmarket(store, e, card, products, at, source);
     if (d.idProduct && /cardmarket\.com\/[a-z]{2}\/Pokemon\/Products\/Singles\//.test(page)) state.urls.cardmarket[d.idProduct] = page.split('?')[0]; // visit directly next time
-    return d.articles.length + ' Cardmarket listings' + (d.idProduct ? ' (product ' + d.idProduct + ')' : '');
+    return d.articles.length + ' Cardmarket listings' + (d.idProduct ? ' (product ' + d.idProduct + ')' : '') +
+      (prod.coverage ? ', ' + (prod.coverage.every(x => x[3]) ? 'complete' : prod.coverage.filter(x => x[3]).length + '/' + prod.coverage.length + ' views complete') : '');
   }
   if (m.site === 'ebay') {
     const rel = store.listingFile('ebay', card[1], card[0]), old = store.read(rel, null) || { queries: {}, active: [], sold: [] };

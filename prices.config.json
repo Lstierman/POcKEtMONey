@@ -51,6 +51,28 @@
       "EBAY_DE",
       "EBAY_US"
     ],
-    "ebaySold": true
+    "ebaySold": true,
+    "cardmarket": {
+      "maxLoadMore": 40,
+      "languages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "jaLanguages": [
+        7
+      ],
+      "conditions": true
+    }
   }
 }
