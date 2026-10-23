@@ -100,9 +100,15 @@ test('collector end to end: listings, eBay, summary, history, interval gate', ()
   assert.strictEqual(eb.active.find(x => x[0] === 'EBAY_DE-4')[2], 350); // auction: current bid
   assert.strictEqual(eb.sold.length, 8);
   assert.deepStrictEqual(eb.queries, { EBAY_DE: 'Glurak 4/102', EBAY_US: 'Charizard 4/102', EBAY_GB: 'Charizard 4/102', EBAY_FR: 'Dracaufeu 4/102' });
-  // stats are EUR, raw copies only: 400 EUR, 400 USD, 400 GBP, 400 EUR (FR) and the 350 bids
+  // headline stats are EUR, raw copies in the card's language: 400 EUR, 400 USD, 400 GBP, 400 EUR (FR); the
+  // "Glurak" auctions are German copies and the PSA 9 is graded, so both are only in the breakdown
   const usd = 400 / 1.12, gbp = 400 / 0.84;
-  assert.deepStrictEqual(e.ea, P.stats([400, 350, usd, 350 / 1.12, gbp, 350 / 0.84, 400, 350]));
+  assert.deepStrictEqual(e.ea, P.stats([400, usd, gbp, 400]));
+  assert.deepStrictEqual(e.b['eb|L|3|'], P.stats([350, 350 / 1.12, 350 / 0.84, 350]), 'German copies, for sale');
+  assert.strictEqual(e.b['eb|L|1|PSA 9'][0], 4, 'PSA 9, once per marketplace');
+  assert.ok(e.b['eb|S|1|CGC 8.5'] && e.b['eb|S|1|'], 'sold: graded and raw apart');
+  assert.ok(Object.keys(e.b).some(k => /^cm\|L\|3\|$/.test(k)) && Object.keys(e.b).some(k => /^cm\|L\|1\|$/.test(k)), 'Cardmarket listings per language');
+  assert.ok(Object.keys(e.b).every(k => P.SEG_KEY.test(k)));
   assert.deepStrictEqual(e.es, P.stats([420, 420 / 1.12, 420, 420]));
   // guide, TCGplayer, headline and history
   assert.strictEqual(e.g[0][1], 280); assert.strictEqual(typeof e.g[0][8], 'string'); assert.strictEqual(e.t[0][2], 954.65);

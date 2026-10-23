@@ -161,6 +161,10 @@ table.bt tr.here td { background: var(--accent-soft) }
 table.bt td:nth-child(2), table.bt th:nth-child(2) { min-width: 150px; text-align: left }
 #cmList .ptable { max-height: 420px; overflow: auto }
 #cmList thead th { position: sticky; top: 0; background: var(--raised) }
+.every td small { color: var(--muted); font-weight: 400; margin-left: 3px }
+.every td.g { font-weight: 700 } .every tr.first td { border-top: 2px solid var(--line) }
+.every .st { font: 700 9.5px/1 var(--f-display); letter-spacing: .05em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; margin-left: 3px }
+.item .ln { color: var(--muted); font-weight: 700 }
 .lb { font: 700 10px/1 var(--f-display); letter-spacing: .08em; background: var(--ink); color: var(--bg); border-radius: 4px; padding: 3px 4px }
 .lang.multi { background: var(--accent); color: var(--accent-ink) }
 .cv { text-decoration: underline dotted color-mix(in srgb, var(--muted) 60%, transparent); text-underline-offset: 3px }
@@ -1167,7 +1171,7 @@ a.ext { color: var(--accent); font-weight: 700 }
       h += '<div class="pstat unknown"><b>No price known</b>' + covHTML(o.cov, true) + checklist + '<span>No source has price data for this ' + (c.lang === 'ja' ? 'Japanese ' : '') + 'print' +
         (o.busy ? '. Checking live sources…' : o.checked ? ', checked live ' + ago(o.checked) + '.' : '.') + '</span></div>';
     }
-    h += bundlePart(id);
+    h += everyPart(id) + bundlePart(id);
     // Cardmarket price guide, with its history graphs
     h += '<details class="sec" data-k="guide" open><summary><h4>Cardmarket price guide</h4><span>' + (o.guide && o.guide.trend != null ? 'trend ' + moneyText(o.guide.trend, 'EUR') : 'none') + '</span></summary>';
     if (o.guide) {
@@ -1208,6 +1212,50 @@ a.ext { color: var(--accent); font-weight: 700 }
       var col = +el.dataset.col, pts = (openHist || []).filter(function (p) { return p[col] != null; });
       el.innerHTML = pts.length >= 2 ? spark([0].concat(pts.map(function (p) { return p[col]; })), pts.map(function (p) { return p[0]; }), 'EUR', el.dataset.label) : '';
     });
+  }
+
+  // ---- every price of this card in one table: all its prints, for sale and sold, raw and each grade, per language ----
+  // from the store's breakdown (summary field b, src/prices.js segments) plus the build's PriceCharting sales
+  var everyFilter = 'all';
+  var SRC_SHORT = { cm: 'CM', ct: 'CT', eb: 'eBay', pc: 'PC' };
+  function everyPart(id) {
+    var ids = bundleIds(id), parts = [], own = cat.cards[id][22] === 'ja' ? 7 : 1;
+    ids.forEach(function (i) {
+      var t = cat.cards[i], hz = HOURLY && HOURLY.cards[t[0]], b = (hz && hz.b) || {};
+      parts.push(b);
+      var sales = t[26] && t[26].s;
+      if (sales && sales.length && !Object.keys(b).some(function (k) { return k.slice(0, 3) === 'pc|'; }))
+        parts.push(PRICES.segments(PRICES.obsPricecharting(sales, t[22] === 'ja' ? 7 : 1, FX)));
+    });
+    var m = PRICES.mergeSegments(parts), rows = {};
+    for (var k in m) { var c = m[k], rk = c.grade + '|' + c.lang; (rows[rk] = rows[rk] || { grade: c.grade, lang: c.lang, n: 0 })[c.kind] = c; rows[rk].n += c.n; }
+    var all = Object.keys(rows).map(function (k) { return rows[k]; });
+    var nRaw = all.filter(function (r) { return !r.grade; }).length, nGr = all.length - nRaw;
+    var list = all.filter(function (r) { return everyFilter === 'all' || (everyFilter === 'graded') === !!r.grade; }).sort(function (a, b) {
+      return PRICES.gradeOrder(a.grade, b.grade) || (b.lang === own) - (a.lang === own) || b.n - a.n;
+    });
+    var h = '<details class="sec" data-k="every" open><summary><h4>Every price</h4><span>' + (all.length ? all.length + ' groups' : 'none yet') + '</span></summary>';
+    if (!all.length) return h + '<p class="nolang">No listings or sales collected for ' + (ids.length > 1 ? 'these prints' : 'this card') + ' yet. The price guide and TCGplayer are below.</p></details>';
+    h += '<div class="seg3 fseg">' + [['all', 'All', all.length], ['raw', 'Raw', nRaw], ['graded', 'Graded', nGr]].map(function (f) {
+      return '<button type="button" class="chip plain" data-evf="' + f[0] + '" aria-pressed="' + (everyFilter === f[0]) + '">' + f[1] + ' <span class="n">' + f[2] + '</span></button>'; }).join('') + '</div>';
+    var cell = function (c) {
+      if (!c) return '—';
+      var tip = c.n + (c.kind === 'S' ? ' sold' : ' for sale') + ', ' + moneyText(c.min, 'EUR') + ' to ' + moneyText(c.max, 'EUR') + ' · ' +
+        Object.keys(c.src).map(function (s) { return PRICES.SEG_SOURCES[s] + ' ' + c.src[s][0] + '× median ' + moneyText(c.src[s][2], 'EUR'); }).join(' · ');
+      return '<span title="' + esc(tip) + '"><b>' + (c.approx ? '≈' : '') + moneyText(c.med, 'EUR') + '</b><small>' + c.n + '×</small></span>';
+    };
+    var prev = null;
+    h += '<div class="ptable every"><table><thead><tr><th>Copy</th><th>Language</th><th>For sale</th><th>Sold</th><th>Sources</th></tr></thead><tbody>' + list.map(function (r) {
+      var srcs = {}; ['L', 'S'].forEach(function (kd) { if (r[kd]) for (var s in r[kd].src) srcs[s] = 1; });
+      var first = r.grade !== prev; prev = r.grade;
+      return '<tr' + (first ? ' class="first"' : '') + '><td class="g">' + (first ? esc(r.grade || 'Raw') : '') + '</td><td>' + esc(r.lang ? PRICES.LANGS[r.lang] || 'Language ' + r.lang : 'Not stated') + '</td><td>' + cell(r.L) + '</td><td>' + cell(r.S) + '</td><td>' +
+        Object.keys(srcs).map(function (s) { return '<span class="st" title="' + esc(PRICES.SEG_SOURCES[s]) + '">' + SRC_SHORT[s] + '</span>'; }).join('') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+    h += '<p class="src">Median per group' + (ids.length > 1 ? ', all ' + ids.length + ' prints of this card together' : '') + '; ≈ combines several sources, weighted by count. Hover a price for its range and per-source figures. ' +
+      'Cardmarket (CM) and CardTrader (CT): current listings of plain copies in any condition (the Cardmarket section splits by condition); a seller comment naming a grade counts as graded. ' +
+      'eBay: language from the title or the card name it uses, else the language the site was searched in. PriceCharting (PC): sales in this print’s language; grades without a named company show as “Graded”. ' +
+      'The Cardmarket price guide (European languages pooled) and TCGplayer (English, raw) are market figures, below.</p>';
+    return h + '</details>';
   }
 
   // ---- all languages of this card: every print, and Cardmarket listings per language across all of them ----
@@ -1317,17 +1365,23 @@ a.ext { color: var(--accent); font-weight: 700 }
   function storeFile(rel) { if (!fileCache.has(rel)) fileCache.set(rel, storeGet(rel).catch(function (e) { fileCache.delete(rel); throw e; })); return fileCache.get(rel); }
   function safeName(s) { return String(s).replace(/[^A-Za-z0-9._-]/g, '_'); }
   var ebayFilter = 'all';
+  // grade label of an eBay or PriceCharting item ('' raw), from its title, eBay's condition or PriceCharting's tab
+  function itemGrade(r) {
+    if (r[5] === 'PriceCharting') { var g = PRICES.grade(r[1]); return g || PRICES.PC_TAB[r[4]] || ''; }
+    return PRICES.grade(r[1], r[4]);
+  }
   function itemRows(items, kind) {
-    var list = items.filter(function (r) { return ebayFilter === 'all' || (ebayFilter === 'graded') === !!r[12]; });
+    items.forEach(function (r) { if (r.g == null) { r.g = itemGrade(r); r.l = PRICES.titleLang(r[1]); } });
+    var list = items.filter(function (r) { return ebayFilter === 'all' || (ebayFilter === 'graded') === !!r.g; });
     list.sort(kind === 'sold' ? function (a, b) { return a[6] < b[6] ? 1 : -1; } : function (a, b) { return (toDisp(a[2], a[3]) || 0) - (toDisp(b[2], b[3]) || 0); });
-    var seg = '<div class="seg3 fseg">' + [['all', 'All'], ['raw', 'Raw'], ['graded', 'Graded']].map(function (f) { return '<button type="button" class="chip plain" data-ebf="' + f[0] + '" aria-pressed="' + (ebayFilter === f[0]) + '">' + f[1] + ' <span class="n">' + items.filter(function (r) { return f[0] === 'all' || (f[0] === 'graded') === !!r[12]; }).length + '</span></button>'; }).join('') + '</div>';
+    var seg = '<div class="seg3 fseg">' + [['all', 'All'], ['raw', 'Raw'], ['graded', 'Graded']].map(function (f) { return '<button type="button" class="chip plain" data-ebf="' + f[0] + '" aria-pressed="' + (ebayFilter === f[0]) + '">' + f[1] + ' <span class="n">' + items.filter(function (r) { return f[0] === 'all' || (f[0] === 'graded') === !!r.g; }).length + '</span></button>'; }).join('') + '</div>';
     if (!list.length) return seg + '<p class="nolang">Nothing in this filter.</p>';
     var st = PRICES.stats(list.map(function (r) { return toDisp(r[2], r[3]); }));
     return seg + '<p class="src">' + list.length + ' items · median ' + fmtCur(st[2], settings.currency) + ' · average ' + fmtCur(st[3], settings.currency) + ' (outer 10% trimmed)</p><div class="items">' + list.map(function (r) {
       var extra = [r[4], r[5] === 'PriceCharting' ? 'PriceCharting' : (r[5] || '').replace('EBAY_', 'eBay '), r[11], r[6] ? fmtDate(r[6].slice(0, 10)) : '', r[9] === 'AUCTION' ? 'auction · ' + r[10] + ' bids' : r[9] === 'SOLD' && r[10] > 1 ? r[10] + ' sold' : ''].filter(Boolean);
       return '<div class="item">' + (r[7] ? '<img loading="lazy" alt="" src="' + esc(r[7]) + '">' : '<span class="noimg"></span>') + '<div class="it">' +
         (r[8] ? '<a target="_blank" rel="noopener" href="' + esc(r[8]) + '">' + esc(r[1]) + '</a>' : '<span>' + esc(r[1]) + '</span>') +
-        '<div class="im"><b>' + money(r[2], r[3]) + '</b>' + (r[12] ? '<span class="gr">graded</span>' : '') + extra.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div></div></div>';
+        '<div class="im"><b>' + money(r[2], r[3]) + '</b>' + (r.g ? '<span class="gr">' + esc(r.g) + '</span>' : '') + (r.l ? '<span class="ln">' + esc(PRICES.LANGS[r.l]) + '</span>' : '') + extra.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div></div></div>';
     }).join('') + '</div>';
   }
   var ebayData = null;
@@ -1474,6 +1528,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     else if (b.dataset.set) { closeCard(); resetFilters(); state.set = b.dataset.set; $('fSet').value = b.dataset.set; state.sort = 'oldest'; $('sort').value = 'oldest'; setQuery(''); }
     else if (b.classList.contains('lc')) { sel = { lang: +b.dataset.lang, cond: b.dataset.cond, flags: b.dataset.flags, better: false }; syncCalc(); refreshCalc(); }
     else if (b.dataset.ebf) { ebayFilter = b.dataset.ebf; renderEbay(); }
+    else if (b.dataset.evf) { everyFilter = b.dataset.evf; rerenderPrices(); }
     else if (b.dataset.open) { openCard(+b.dataset.open); }
   });
   // listing calculator inputs

@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "POcKEtMONey scraper",
+  "version": "1.0.0",
+  "description": "Visits Cardmarket, eBay and PriceCharting in your own Chrome at a human pace and saves the prices into your POcKEtMONey price store.",
+  "permissions": ["storage", "tabs", "scripting", "notifications"],
+  "host_permissions": [
+    "http://127.0.0.1:8787/*", "http://localhost:8787/*",
+    "https://www.cardmarket.com/*",
+    "https://www.pricecharting.com/*",
+    "https://prices.pokemontcg.io/*",
+    "https://www.ebay.com/*", "https://www.ebay.co.uk/*", "https://www.ebay.de/*", "https://www.ebay.fr/*",
+    "https://www.ebay.it/*", "https://www.ebay.es/*", "https://www.ebay.at/*", "https://www.ebay.nl/*", "https://*.ebay.be/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "POcKEtMONey scraper", "default_popup": "popup.html", "default_icon": { "16": "icon16.png", "32": "icon32.png", "48": "icon48.png" } },
+  "icons": { "16": "icon16.png", "32": "icon32.png", "48": "icon48.png", "128": "icon128.png" }
+}

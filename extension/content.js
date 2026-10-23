@@ -4,6 +4,7 @@
 (function () {
   'use strict';
   if (window.__pocketmoney) return; window.__pocketmoney = true;
+  if (/pocketmoney-scrape/.test(location.hash)) return; // a page the scraper extension opened: it saves the prices itself
   var PARSE = window.PTCG_PARSE, first = PARSE && PARSE.parsePage(document, location);
   if (!first) return;
   var site = first.site;

@@ -79,6 +79,39 @@ listings/ebay/<set>/<card>.json        eBay items for sale and sold
 
 Every file is validated against its schema before it is written. It goes to a temporary file that is renamed into place, so a crash never leaves half a file. After the run every file is read back and validated again; if anything fails, the workflow stops before publishing. `npm test` covers the OAuth signature (RFC 5849 vector), listing statistics, eBay filtering and currency conversion, the store's refusal of bad data, history compaction, and full collector runs against mocked APIs.
 
+### Every price: graded, language, for sale and sold
+
+Every listing and sale, from every marketplace, is classified the same way (`src/prices.js`) and kept apart along four lines:
+
+| Split | How |
+|---|---|
+| **Raw or graded** | The title (eBay, PriceCharting) or seller comment (Cardmarket, CardTrader) is read for a grading company and grade: `PSA 10`, `BGS 9.5`, `BGS 10 Black Label`, `CGC 10 Pristine`, also SGC, ACE, TAG, PCA and others. "PSA 10 candidate" or "ready to grade" stays raw; eBay's own Graded / Ungraded condition is used too. A grade without a named company is `Graded 9`. |
+| **Language** | Cardmarket and CardTrader state it per listing. On eBay the title is read (“japanese”, “deutsch”, “VF”…), then the card name it uses (Glurak: German), then the language the site was searched in. PriceCharting sales are in the print's language. |
+| **For sale or sold** | Current listings (Cardmarket, CardTrader, eBay) and completed sales (eBay, PriceCharting) are never mixed. |
+| **Source** | Each figure keeps its marketplace. |
+
+The store keeps this per card as `b` in `summary.json.gz`: `"eb|S|3|PSA 10": [n, min, median, avg, max]` (source, L for sale / S sold, Cardmarket language id, grade; EUR). Headline figures (the Cardmarket listing average, eBay `ea` / `es`) use raw copies in the print's own language only, so a German copy or a slab never moves an English card's price.
+
+A card's details open with **Every price**: one table across all its prints, raw copies per language first, then every grade, with the median for sale and sold, how many, and which marketplaces. The Cardmarket price guide (European languages pooled) and TCGplayer (English, raw) can't be split this way and stay in their own sections.
+
+### Scraper extension
+
+For the data the APIs don't give (every Cardmarket listing, eBay for sale and sold, PriceCharting graded prices), the **scraper extension** (`scraper-extension/`) visits the sites in your own Chrome, where the "are you a robot" checks see a normal browser. It opens one page at a time in a separate window, with a 7–10 second pause between pages.
+
+1. In the project folder: `npm run helper`. It works on a copy of the `prices` branch in `store/`.
+2. Chrome → `chrome://extensions` → *Developer mode* → *Load unpacked* → pick `scraper-extension/`.
+3. Click the extension: each site shows when it was last scraped. Press *Scrape* for one site, or *Scrape all sites*.
+4. If a site asks for a human check or a login, the window comes to the front with a notification; complete it and the run continues.
+5. *Push to GitHub* publishes what you scraped to the `prices` branch (also done when you stop the helper with Ctrl+C). Until then everything stays in `store/` on your PC.
+
+Which cards: the `always` list, then the most valuable cards not scraped on that site in the last `scrape.staleHours` (12). *Only* takes card ids or set ids/codes (`base1-4, sv3pt5`). Cards a site has no match for are tried again after `scrape.missRecheckHours` (168, one week). The helper re-reads `data/card-map.json.gz` when the daily build changes it, so added cards are queued and removed cards are forgotten.
+
+**Cardmarket: every listing per language and condition.** Cardmarket shows the 50 cheapest offers and loads more on request. The scraper loads a product's offers to the end; if there are more than `scrape.cardmarket.maxLoadMore` (40) loads reveal, it reloads the product per language (`?language=`, all Cardmarket languages) and, where a language is still cut off, per condition (`?minCondition=`, from Played-or-better up to Mint) until a view is complete. All views are merged, each offer once. Because the condition filter means "this or better", only the most expensive Poor/Played offers of a very crowded product can stay out; the listing file records every view and whether it was complete (`coverage`).
+
+How it finds each card: eBay uses the same localized searches as the API collector and keeps only items naming the card and its number. Cardmarket opens product pages it has seen before, else the pokemontcg.io redirect (English prints), else a Cardmarket search; a page only counts for a card when its product id is one of that card's Cardmarket ids. PriceCharting uses the known page, else a search, and accepts a page only when its URL has the card's name, number and language. Found page addresses are remembered in `state.json`.
+
+The capture extension (`extension/`) still works for saving the single page you are looking at; both use `extension/parsers.js` (`scraper-extension/parsers.js` is a copy, checked by `npm test`).
+
 ### Evidence
 
 Every price section in a card's details ends with an **Evidence** line of links to where its figures come from:
@@ -126,12 +159,16 @@ scripts/fetch-tcgdex-sets.js   TCGdex set and card numbers, for mapping cards to
 scripts/fetch-tcgdex-products.js Cardmarket ids TCGdex knows for English cards (cached, incremental)
 scripts/fetch-pricecharting.js refreshes graded prices from the PriceCharting API (optional token)
 scripts/collect.js             hourly price collector (writes the price store)
+scripts/ingest-server.js       local helper for both extensions: stores captures, plans scraper runs, pushes to prices
+scripts/lib/scrape-plan.js     which cards and URLs the scraper visits next
+extension/                     capture extension: save the page you are looking at
+scraper-extension/             scraper extension: visits the sites for you in your own Chrome
 scripts/lib/                   store (schemas, atomic writes, history), public sources, Cardmarket and eBay clients
 src/prices.js                  listing statistics, currency conversion, data-coverage label (page + collector)
 prices.config.json             interval, budgets, marketplaces, schedule
 data/card-map.json.gz          card -> Cardmarket / TCGplayer product ids and names (built daily, read by the collector)
 data/tcgdex-products.json      cache of TCGdex card -> Cardmarket / TCGplayer ids
-test/                          collector tests with mocked APIs (npm test)
+test/                          collector and scraper-helper tests with mocked APIs (npm test)
 .github/workflows/collect.yml  runs the collector every hour and publishes the prices branch
 scripts/build-catalog.js       builds the compact catalog with prices and history
 scripts/merge-pricecharting.js normalises the PriceCharting sales files

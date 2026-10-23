@@ -16,12 +16,12 @@ function activeRow(it, mp) {
   const p = auction && it.currentBidPrice ? it.currentBidPrice : it.price || {};
   return [it.itemId, it.title || '', +p.value, p.currency || '', it.condition || '', mp, it.itemCreationDate || it.itemEndDate || '',
     (it.image && it.image.imageUrl) || (it.thumbnailImages && it.thumbnailImages[0] && it.thumbnailImages[0].imageUrl) || '',
-    it.itemWebUrl || '', auction ? 'AUCTION' : 'FIXED_PRICE', it.bidCount || 0, (it.itemLocation && it.itemLocation.country) || '', isGraded(it.title) ? 1 : 0];
+    it.itemWebUrl || '', auction ? 'AUCTION' : 'FIXED_PRICE', it.bidCount || 0, (it.itemLocation && it.itemLocation.country) || '', isGraded(it.title, it.condition) ? 1 : 0];
 }
 function soldRow(it, mp) {
   const p = it.lastSoldPrice || {};
   return [it.itemId, it.title || '', +p.value, p.currency || '', it.condition || '', mp, it.lastSoldDate || '',
-    (it.image && it.image.imageUrl) || '', it.itemWebUrl || '', 'SOLD', it.totalSoldQuantity || 1, (it.itemLocation && it.itemLocation.country) || '', isGraded(it.title) ? 1 : 0];
+    (it.image && it.image.imageUrl) || '', it.itemWebUrl || '', 'SOLD', it.totalSoldQuantity || 1, (it.itemLocation && it.itemLocation.country) || '', isGraded(it.title, it.condition) ? 1 : 0];
 }
 
 class Ebay {
@@ -67,6 +67,20 @@ function query(card, mp) {
   const local = (names && names[MP_LANG[mp]]) || name;
   return local + ' ' + (/^\d+$/.test(num) && printed ? num + '/' + printed : num);
 }
+// the language of an eBay item whose title doesn't name one: the card name it uses (Glurak: German, Charizard:
+// English), else the language the search was made in. Japanese cards stay Japanese.
+const LANG_ID = { de: 3, fr: 2, it: 5, es: 4, pt: 8, nl: 12, pl: 13 };
+function defaultLang(card, mp, q, title) {
+  if (card[5] === 'ja') return 7;
+  const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const t = norm(title), hasEn = t.includes(norm(card[2]));
+  if (!hasEn) for (const [l, name] of Object.entries(card[8] || {})) if (LANG_ID[l] && name && name !== card[2] && t.includes(norm(name))) return LANG_ID[l];
+  if (hasEn) return 1;
+  const l = MP_LANG[mp], local = l && card[8] && card[8][l];
+  if (!local || local === card[2]) return 1;
+  return q == null || norm(q).includes(norm(local)) ? LANG_ID[l] : 1;
+}
+
 // keeps items whose title names this card (first word of any of its names) and no other card number
 function relevant(card, rows) {
   const { sameCardNumber } = require('../../src/prices.js');
@@ -76,4 +90,4 @@ function relevant(card, rows) {
   return rows.filter(r => { const t = norm(r[1]); return sameCardNumber(r[1], card[3]) && (!words.length || words.some(w => t.includes(w))); });
 }
 
-module.exports = { Ebay, credentials, query, relevant, activeRow, soldRow, SCOPE, INSIGHTS };
+module.exports = { Ebay, credentials, query, relevant, defaultLang, activeRow, soldRow, SCOPE, INSIGHTS };
