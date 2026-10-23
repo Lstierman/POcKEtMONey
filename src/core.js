@@ -144,7 +144,10 @@
     this.dex = new Array(N);
     this.eur = new Float32Array(N).fill(NaN);
     this.usd = new Float32Array(N).fill(NaN);
-    this.chg = { eur: new Float32Array(N).fill(NaN), usd: new Float32Array(N).fill(NaN) };
+    this.chg = { eur: new Float32Array(N).fill(NaN), usd: new Float32Array(N).fill(NaN), any: new Float32Array(N).fill(NaN) };
+    this.priced = new Uint32Array(W); // one bit per card with any price data (coverage >= 1)
+    this.cov = new Uint8Array(N); // price-data coverage 0..6 (see src/prices.js METHODS), set by the page
+    this.covBits = []; for (var cb = 0; cb <= 6; cb++) this.covBits.push(new Uint32Array(W));
     function med(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[b.length >> 1] : NaN; }
     function change(h) { // h = [startIdx, v...]; robust % change: median of last 3 vs median of 3 points a week earlier
       if (!h) return NaN; var v = h.slice(1).filter(function (x) { return x != null; });
@@ -177,7 +180,9 @@
 
         var pr = t[21];
         if (pr) { if (pr.eh != null && !pr.et) this.eur[id] = pr.eh; if (pr.uh != null) this.usd[id] = pr.uh; }
-        if (t[25]) { this.chg.eur[id] = change(t[25].e); this.chg.usd[id] = change(t[25].u); }
+        if ((pr && (pr.eh != null || pr.uh != null)) || t[26]) this.priced[id >>> 5] |= (1 << (id & 31)) >>> 0;
+        this.covBits[0][id >>> 5] |= (1 << (id & 31)) >>> 0;
+        if (t[25]) { this.chg.eur[id] = change(t[25].e); this.chg.usd[id] = change(t[25].u); this.chg.any[id] = isNaN(this.chg.eur[id]) ? this.chg.usd[id] : this.chg.eur[id]; }
         fac(facets.lang, t[22] || 'en', id);
         if (t[26]) fac(facets.legal, 'sales', id);
         (t[5] || []).forEach(function (v) { fac(facets.type, v, id); });
@@ -215,6 +220,15 @@
     this.cache = new Map();
     this.stats = { cards: N, sets: sets.length, terms: this.ix.all.terms.length, postings: postings, buildMs: now() - t0 };
   }
+
+  // the page's price model decided a card's headline (in EUR and USD, null when unknown) and its coverage 0..6
+  Catalog.prototype.setValue = function (id, eur, usd, cov) {
+    this.eur[id] = eur == null ? NaN : eur; this.usd[id] = usd == null ? NaN : usd;
+    var w = id >>> 5, bit = (1 << (id & 31)) >>> 0, old = this.cov[id];
+    if (old !== cov) { this.covBits[old][w] &= ~bit; this.covBits[cov][w] |= bit; this.cov[id] = cov; }
+    if (cov > 0) this.priced[w] |= bit; else this.priced[w] &= ~bit;
+  };
+  Catalog.prototype.isPriced = function (id) { return ((this.priced[id >>> 5] >>> (id & 31)) & 1) === 1; };
 
   // union of postings for every term starting with `prefix`
   Catalog.prototype.prefixBits = function (field, prefix, exact) {
@@ -272,12 +286,13 @@
 
     parseQuery(q || '').forEach(function (p) {
       var field = p.field, op = p.op;
-      if (field && (field === 'hp' || field === 'dex' || field === 'no' || field === 'number') && /^\d+$/.test(p.value)) {
+      if (field && (field === 'hp' || field === 'dex' || field === 'no' || field === 'number' || field === 'data') && /^\d+$/.test(p.value)) {
         numeric.push({ k: field === 'number' ? 'no' : field, op: op === ':' ? '=' : op, v: +p.value, neg: p.neg }); return;
       }
       if (field && (field === 'price' || field === 'eur' || field === 'usd') && op && /^\d+(\.\d+)?$/.test(p.value)) {
         numeric.push({ k: field === 'price' ? (f && f.currency) || 'eur' : field, op: op === ':' ? '>=' : op, v: +p.value, neg: p.neg }); return;
       }
+      if (field === 'has' && /^pric/i.test(p.value)) { (p.neg ? andNotInto : andInto)(bits, self.priced); return; }
       if (field === 'has' && /^(sales|sold|graded|psa)/i.test(p.value)) {
         var sb = self.facets.legal.get('sales') || new Uint32Array(W); (p.neg ? andNotInto : andInto)(bits, sb); return;
       }
@@ -316,6 +331,7 @@
             var c = numeric[n], vals;
             if (c.k === 'hp') vals = [this.hp[id]];
             else if (c.k === 'dex') vals = this.dex[id] || [];
+            else if (c.k === 'data') vals = [this.cov[id]];
             else if (c.k === 'eur' || c.k === 'usd') vals = isNaN(this[c.k][id]) ? [] : [this[c.k][id]];
             else vals = [this.numKey[id]];
             var ok = vals.some(function (x) { return c.op === '>' ? x > c.v : c.op === '<' ? x < c.v : c.op === '>=' ? x >= c.v : c.op === '<=' ? x <= c.v : x === c.v; });
@@ -342,12 +358,20 @@
     single.forEach(function (s) { if (s[1] && s[0] !== 'supertype') andInto(bits, self.facets[s[0]].get(s[1]) || new Uint32Array(W)); });
     if (f.reg && f.reg.size) andInto(bits, orOf(this.facets.reg, f.reg));
     if (f.legal && f.legal.size) f.legal.forEach(function (v) { andInto(bits, self.facets.legal.get(v) || new Uint32Array(W)); });
+    var allPriced = typeSel ? andInto(bits.slice(), typeSel) : bits.slice();
+    if (superSel) andInto(allPriced, superSel);
+    var covCounts = this.covBits.map(function (b) { return popcount(andInto(allPriced.slice(), b)); });
+    var nAll = popcount(allPriced), nKnown = popcount(andInto(allPriced, this.priced));
+    if (f.priced === 'yes') andInto(bits, this.priced); else if (f.priced === 'no') andNotInto(bits, this.priced);
+    if (f.cov) { // minimum coverage 1..6
+      var cs = new Uint32Array(W); for (var ck = +f.cov; ck <= 6; ck++) orInto(cs, this.covBits[ck]); andInto(bits, cs);
+    }
     withoutType = superSel ? andInto(bits.slice(), superSel) : bits.slice();
     withoutSuper = typeSel ? andInto(bits.slice(), typeSel) : bits.slice();
     if (typeSel) andInto(bits, typeSel);
     if (superSel) andInto(bits, superSel);
 
-    var counts = { type: {}, supertype: {} };
+    var counts = { type: {}, supertype: {}, priced: { yes: nKnown, no: nAll - nKnown }, cov: covCounts };
     this.facets.type.forEach(function (b, k) { counts.type[k] = popcount(andInto(withoutType.slice(), b)); });
     this.facets.supertype.forEach(function (b, k) { counts.supertype[k] = popcount(andInto(withoutSuper.slice(), b)); });
 
@@ -388,7 +412,7 @@
         return dir * (b1 - a1) || setIx[q2] - setIx[p];
       });
     } else if (mode === 'rising' || mode === 'falling') {
-      var cur = f.currency === 'usd' ? 'usd' : 'eur', ch = this.chg[cur], pv = this[cur], sg = mode === 'rising' ? 1 : -1;
+      var ch = this.chg.any, pv = this.eur, sg = mode === 'rising' ? 1 : -1; // % change is currency-independent
       arr = arr.filter(function (x) { return !isNaN(ch[x]) && pv[x] >= 2; });
       arr.sort(function (p, q2) { return sg * (ch[q2] - ch[p]) || pv[q2] - pv[p]; });
     } else if (mode === 'hp') {
@@ -397,7 +421,56 @@
     return { ids: arr, total: arr.length, ms: now() - t0, notes: notes, counts: counts };
   };
 
+  // ---------- live price responses ----------
+  // Both return the same shapes the build stores in t[21], plus `at` (the source's own update time, ISO), or null.
+  function pos(x) { return typeof x === 'number' && x > 0 ? Math.round(x * 100) / 100 : null; }
+  function words(s) { return String(s).replace(/-/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); }); }
+
+  // api.tcgdex.net card: Cardmarket EUR per variant. Cardmarket's "-holo" fields are the reverse-holo copies.
+  var TD_TYPE = { normal: 'Normal', holo: 'Holo', reverse: 'Reverse holo' };
+  function liveFromTcgdex(card) {
+    var vs = (card && card.variants_detailed) || [], rows = [], seen = {}, at = '';
+    var hasReverse = !!(card && card.variants && card.variants.reverse);
+    // many cards carry the price only at card level, not on their variants
+    if (!vs.some(function (v) { return v.pricing && v.pricing.cardmarket; }) && card && card.pricing && card.pricing.cardmarket)
+      vs = [{ type: card.variants && card.variants.holo && !card.variants.normal ? 'holo' : 'normal', pricing: card.pricing }];
+    vs.forEach(function (v) {
+      var cm = v.pricing && v.pricing.cardmarket; if (!cm || seen[cm.idProduct]) return; seen[cm.idProduct] = 1;
+      var stamp = (v.stamp || []).indexOf('1st-edition') >= 0 ? '1st Edition ' : '';
+      var base = TD_TYPE[v.type] || words(v.type || 'normal'), label = stamp ? stamp + base.toLowerCase() : base;
+      if (v.subtype) label += ' ' + String(v.subtype).replace(/-/g, ' ');
+      var main = [label, pos(cm.trend), pos(cm.low), pos(cm.avg1), pos(cm.avg7), pos(cm.avg30)];
+      if (main[1] != null || main[2] != null) rows.push(main);
+      var rh = ['Reverse holo' + (stamp ? ' (' + stamp.trim().toLowerCase() + ')' : ''), pos(cm['trend-holo']), pos(cm['low-holo']), pos(cm['avg1-holo']), pos(cm['avg7-holo']), pos(cm['avg30-holo'])];
+      if (hasReverse && v.type !== 'holo' && (rh[1] != null || rh[2] != null)) rows.push(rh);
+      if (cm.updated > at) at = cm.updated;
+    });
+    if (!rows.length) return null;
+    // headline: the plain print first (no 1st Edition, no reverse), and only a row with both a trend and a low counts as solid
+    var order = rows.map(function (r, i) { return i; }).sort(function (a, b) { return rank(rows[a][0]) - rank(rows[b][0]) || a - b; });
+    function rank(l) { return /^1st/.test(l) ? 2 : /^Reverse/.test(l) ? 1 : 0; }
+    for (var i = 0; i < order.length; i++) { var r = rows[order[i]]; if (r[1] != null && r[2] != null) return { e: rows, eh: r[1], cm: card.pricing && card.pricing.cardmarket ? card.pricing.cardmarket.idProduct : null, at: at }; }
+    var h = rows[order[0]];
+    return { e: rows, eh: h[1] != null ? h[1] : h[5] != null ? h[5] : h[2], et: 1, at: at };
+  }
+
+  // api.pokemontcg.io card (select=id,tcgplayer): TCGplayer USD per finish
+  var PT_PREF = ['normal', 'holofoil', 'unlimitedHolofoil', 'unlimitedNormal', '1stEditionHolofoil', '1stEditionNormal', 'reverseHolofoil'];
+  function liveFromPtcgio(card) {
+    var tp = card && card.tcgplayer, pr = tp && tp.prices; if (!pr) return null;
+    var keys = Object.keys(pr).sort(function (a, b) { var x = PT_PREF.indexOf(a), y = PT_PREF.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); });
+    var rows = [], uh = null;
+    keys.forEach(function (k) {
+      var v = pr[k] || {}, row = [k.replace(/^1st/, '1st ').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, function (c) { return c.toUpperCase(); }), pos(v.market), pos(v.low), pos(v.mid), pos(v.high)];
+      if (row[1] == null && row[2] == null) return;
+      rows.push(row); if (uh == null && row[1] != null) uh = row[1];
+    });
+    if (!rows.length) return null;
+    return { u: rows, uh: uh, at: String(tp.updatedAt || '').replace(/\//g, '-') };
+  }
+
   function now() { return (typeof performance !== 'undefined' ? performance : Date).now(); }
 
-  root.PTCG = { compactCard: compactCard, compactSet: compactSet, expand: expand, imgUrls: imgUrls, Catalog: Catalog, tokens: tokens, norm: norm, TYPE_ORDER: TYPE_ORDER, parseQuery: parseQuery };
+  root.PTCG = { compactCard: compactCard, compactSet: compactSet, expand: expand, imgUrls: imgUrls, Catalog: Catalog, tokens: tokens, norm: norm, TYPE_ORDER: TYPE_ORDER, parseQuery: parseQuery,
+    liveFromTcgdex: liveFromTcgdex, liveFromPtcgio: liveFromPtcgio };
 })(typeof window !== 'undefined' ? window : globalThis);

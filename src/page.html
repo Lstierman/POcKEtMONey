@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pokémon Card Index</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -53,8 +55,27 @@ select { height: 40px; border: 1.5px solid var(--line); background: var(--raised
 .cap .row2 .n1, .cap .row2 .n2 { min-width: 0 }
 .cap .row2 { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; min-width: 0 }
 .cap .px { font-family: var(--f-display); font-weight: 800; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums }
-.cap .px.none { color: var(--muted); font-weight: 600 }
+/* price tag: known (bold), other currency only (muted), unknown (dashed pill) */
 .cap .px.thin { color: var(--warn) }
+.cap .px.alt { color: var(--muted); font-weight: 600; font-size: 12.5px }
+.cap .px.none { color: var(--muted); font: 600 11px/1 var(--f-body); border: 1px dashed color-mix(in srgb, var(--muted) 60%, var(--line)); border-radius: 99px; padding: 3px 7px }
+.ld { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--up); margin-right: 4px; vertical-align: 2px }
+.tile.unpriced .face { filter: grayscale(.7); opacity: .72; border-style: dashed }
+.tile.unpriced:hover .face, .tile.unpriced:focus-visible .face { filter: none; opacity: 1 }
+.cut { grid-column: 1 / -1; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; border-top: 2px dashed var(--line); padding-top: 12px; margin-top: 6px }
+.cut b { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: 18px }
+.cut span { font-size: 13px; color: var(--muted) }
+.resbar .pk { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: baseline }
+.resbar .pk button { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px }
+.resbar .pk button.no { color: var(--muted) }
+.pstat { border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; font-size: 13.5px }
+.pstat.known { background: var(--accent-soft) }
+.pstat.unknown { border: 1.5px dashed var(--line); color: var(--muted) }
+.pstat.unknown b { color: var(--ink); font-family: var(--f-display); font-size: 17px }
+.pstat .hl { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.pstat .hl b { font-family: var(--f-display); font-size: 20px; font-variant-numeric: tabular-nums }
+.pstat .hl span { color: var(--muted); font-size: 12.5px }
+.src .lv { color: var(--up); font-weight: 700 }
 .lang { font: 700 9px/1 var(--f-display); letter-spacing: .08em; background: var(--ink); color: var(--bg); border-radius: 4px; padding: 3px 4px; position: absolute; left: 6px; bottom: 6px; z-index: 1 }
 .prices { display: grid; gap: 14px; border-top: 1px solid var(--line); padding-top: 12px }
 .prices h4 { margin: 0; font-family: var(--f-display); font-stretch: 85%; font-size: 16px; font-weight: 800 }
@@ -71,12 +92,6 @@ select { height: 40px; border: 1.5px solid var(--line); background: var(--raised
 .grades div { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; display: grid; gap: 2px; background: var(--raised) }
 .grades span { font: 700 10px/1.2 var(--f-display); letter-spacing: .07em; text-transform: uppercase; color: var(--muted) }
 .grades b { font-family: var(--f-display); font-size: 16px; font-variant-numeric: tabular-nums }
-.sold { display: grid }
-.srow { display: grid; gap: 3px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; min-width: 0 }
-.srow .sl { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
-.srow .sl b { font-family: var(--f-display); font-size: 17px; font-variant-numeric: tabular-nums }
-.srow .sl span { font-size: 12px; color: var(--muted) }
-.srow a { overflow-wrap: anywhere }
 .nolang { font-size: 13px; color: var(--muted); margin: 0 }
 .chg { font: 700 11px/1 var(--f-mono); white-space: nowrap }
 .chg.up { color: var(--up) } .chg.down { color: var(--down) }
@@ -84,14 +99,84 @@ select { height: 40px; border: 1.5px solid var(--line); background: var(--raised
 .spark svg { width: 100%; height: auto; display: block }
 .spark .lbl { display: flex; justify-content: space-between; font: 11px/1.2 var(--f-mono); color: var(--muted) }
 .spark .big { font-family: var(--f-display); font-weight: 800; font-size: 18px; color: var(--ink); display: flex; gap: 8px; align-items: baseline }
-.markets { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px }
-.markets h4 { margin: 0; font-family: var(--f-display); font-stretch: 85%; font-size: 16px; font-weight: 800 }
-.mrow { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 8px }
-.mrow .who { font: 700 11px/1.3 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding-top: 6px }
-.mrow .who b { display: block; font: 600 12px/1.3 var(--f-body); letter-spacing: 0; text-transform: none; color: var(--ink); overflow-wrap: anywhere }
-.mlinks { display: flex; flex-wrap: wrap; gap: 6px }
-.mlinks a { font-size: 13px; font-weight: 700; color: var(--ink); text-decoration: none; border: 1.5px solid var(--line); background: var(--raised); border-radius: 8px; padding: 5px 9px; white-space: nowrap }
-.mlinks a.sold { border-color: color-mix(in srgb, var(--up) 45%, var(--line)) }
+/* price-data label: one pip per method, coloured by tier (No data .. Complete) */
+.cov { display: inline-flex; gap: 2px; align-items: center; flex: none; --cv: var(--muted) }
+.cov i { width: 4px; height: 10px; border-radius: 1px; background: var(--line) }
+.cov i.on { background: var(--cv) }
+.cov.c1 { --cv: var(--down) } .cov.c2 { --cv: var(--warn) } .cov.c3, .cov.c4 { --cv: var(--accent) } .cov.c5, .cov.c6 { --cv: var(--up) }
+.cov.big i { width: 9px; height: 15px; border-radius: 2px }
+.cov.big b { font: 800 12px/1 var(--f-display); letter-spacing: .07em; text-transform: uppercase; margin-left: 7px; color: var(--cv) }
+.cov.c0.big b { color: var(--muted) }
+/* on a card face: dark chip, bottom right */
+.cov.tag { position: absolute; right: 5px; bottom: 5px; z-index: 1; background: rgba(15,19,26,.82); border-radius: 5px; padding: 3px 5px 3px 4px; gap: 1.5px }
+.cov.tag i { width: 3.5px; height: 9px; background: rgba(255,255,255,.22) }
+.cov.tag.c1 { --cv: #ff8a7a } .cov.tag.c2 { --cv: #f0b45a } .cov.tag.c3, .cov.tag.c4 { --cv: #8aa6ff } .cov.tag.c5, .cov.tag.c6 { --cv: #5ed38a }
+.cov.tag b { font: 800 8.5px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: #fff; margin-left: 4px }
+.cov.tag.c0 b { color: #c9ced6 }
+ul.cl { list-style: none; margin: 2px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; font-size: 12.5px }
+ul.cl li::before { content: "✓"; font-weight: 800; color: var(--up); margin-right: 6px }
+ul.cl li.n { color: var(--muted) } ul.cl li.n::before { content: "✗"; color: var(--muted) }
+details.sec { border-top: 1px solid var(--line); padding-top: 10px; min-width: 0 }
+details.sec > summary { display: flex; gap: 10px; align-items: baseline; cursor: pointer; list-style: none }
+details.sec > summary::-webkit-details-marker { display: none }
+details.sec > summary::before { content: "▸"; color: var(--muted); font-size: 12px; transition: transform .15s; display: inline-block }
+details.sec[open] > summary::before { transform: rotate(90deg) }
+details.sec > summary h4 { margin: 0; flex: 1 }
+details.sec > summary span { font: 700 13px/1 var(--f-display); color: var(--muted); font-variant-numeric: tabular-nums }
+details.sec > :not(summary) { margin-top: 8px }
+.prices.lists { gap: 10px }
+table.lm td, table.lm th { text-align: center }
+table.lm td:first-child { text-align: left; white-space: normal; min-width: 90px }
+table.lm td small { color: var(--muted); font-size: 11px; display: block }
+table.lm td.e { color: var(--line) }
+.lc { border: 0; background: none; font: 700 13px/1.15 var(--f-body); font-variant-numeric: tabular-nums; cursor: pointer; padding: 3px 5px; border-radius: 6px; color: var(--ink) }
+.lc small { display: block; font-weight: 400; color: var(--muted); font-size: 10.5px }
+.lc:hover, .lc.on { background: var(--accent-soft) }
+.calc { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 10px }
+.calc select { height: 32px; font-size: 13px; margin-left: 4px }
+.calcout { flex-basis: 100%; font-size: 13.5px }
+.calcout b { font-family: var(--f-display); font-size: 18px }
+.calcout small { color: var(--muted) }
+.fseg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px }
+.fseg .chip { justify-content: center }
+.items { display: grid; max-height: 460px; overflow: auto; border-top: 1px solid var(--line) }
+.item { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: start }
+.item img, .item .noimg { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; background: var(--raised); display: block }
+.item .it { display: grid; gap: 3px; min-width: 0; font-size: 13.5px }
+.item a { color: var(--ink); overflow-wrap: anywhere; text-decoration: none } .item a:hover { text-decoration: underline }
+.item .im { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 12px; color: var(--muted) }
+.item .im b { font-family: var(--f-display); font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums }
+.item .gr { color: var(--accent); font-weight: 700 }
+td.cm { white-space: normal !important; max-width: 220px; color: var(--muted); font-size: 12px }
+.ev { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 12px; margin: 8px 0 0 !important; color: var(--muted) }
+.ev b { font: 800 10px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.ev a, td a, .bt a { color: var(--accent); font-weight: 600; text-decoration: none; overflow-wrap: anywhere }
+.ev a:hover, td a:hover { text-decoration: underline }
+details.sub { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--raised) }
+details.sub > summary { cursor: pointer; font-weight: 700; font-size: 13.5px }
+h5.subh { margin: 10px 0 4px; font: 800 13px/1.2 var(--f-display) }
+table.bt td small { display: block; color: var(--muted); font-size: 11.5px; white-space: normal }
+table.bt td { white-space: normal; vertical-align: top }
+table.bt tr.here td { background: var(--accent-soft) }
+table.bt td:nth-child(2), table.bt th:nth-child(2) { min-width: 150px; text-align: left }
+#cmList .ptable { max-height: 420px; overflow: auto }
+#cmList thead th { position: sticky; top: 0; background: var(--raised) }
+.lb { font: 700 10px/1 var(--f-display); letter-spacing: .08em; background: var(--ink); color: var(--bg); border-radius: 4px; padding: 3px 4px }
+.lang.multi { background: var(--accent); color: var(--accent-ink) }
+.cv { text-decoration: underline dotted color-mix(in srgb, var(--muted) 60%, transparent); text-underline-offset: 3px }
+.gear { height: 40px; width: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--raised); cursor: pointer; font-size: 18px; flex: none }
+dialog#settings { width: min(520px, calc(100vw - 24px)) }
+.setf { display: grid; gap: 14px; padding: 22px; max-height: calc(100dvh - 24px); overflow: auto }
+.setf h2 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-size: 26px }
+.setf h3 { margin: 6px 0 0; font-family: var(--f-display); font-size: 15px }
+.setf fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px }
+.setf legend { font-weight: 700; margin-bottom: 6px }
+.setf .fld { display: grid; gap: 6px; font-weight: 700 }
+.setf .fld input { height: 40px; width: 90px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--raised); padding: 0 10px; margin-right: 6px }
+.setf .fld span { font-weight: 400 }
+.setf .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end }
+ul.srcs { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: 13px; color: var(--muted) }
+ul.srcs b { color: var(--ink) } ul.srcs li.y b::before { content: "● "; color: var(--up) } ul.srcs li.n b::before { content: "● "; color: var(--down) }
 .hint button { font-family: var(--f-mono); font-size: 12px; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 2px 7px; cursor: pointer; color: var(--ink) }
 
 /* body layout */
@@ -233,17 +318,19 @@ a.ext { color: var(--accent); font-weight: 700 }
         <option value="rising">Rising this week</option>
         <option value="falling">Falling this week</option>
       </select>
-      <div class="cur" role="group" aria-label="Price currency"><button type="button" data-cur="eur" aria-pressed="true" title="Cardmarket, euro">€</button><button type="button" data-cur="usd" aria-pressed="false" title="TCGplayer, US dollar">$</button></div>
+      <div class="cur" role="group" aria-label="Show prices in"><button type="button" data-cur="eur" aria-pressed="true" title="Show every price in euro">€</button><button type="button" data-cur="usd" aria-pressed="false" title="Show every price in US dollar">$</button></div>
+      <button type="button" class="gear" id="setBtn" title="Settings" aria-label="Settings">⚙</button>
     </div>
     <div class="hint" id="hints" aria-label="Example searches">
-      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
+      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">-has:price</button><button type="button">data&gt;=4</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
     </div>
   </div>
 </header>
 
 <main class="wrap" id="main">
   <aside class="rail" id="rail" aria-label="Filters">
-    <div class="group"><h3>Language</h3><div class="seg seg3" id="fLang"></div></div>
+    <div class="group"><h3>Language</h3><div class="seg seg3" id="fLang"></div>
+      <label class="check" style="margin-top:8px"><input type="checkbox" id="fBundle"> One tile per card, all languages bundled</label></div>
     <div class="group"><h3>Card type</h3><div class="seg" id="fSuper"></div></div>
     <div class="group"><h3>Energy type</h3><div class="chips" id="fType"></div></div>
     <div class="group"><h3>Set</h3><select id="fSet" aria-label="Set"><option value="">All sets</option></select></div>
@@ -254,6 +341,8 @@ a.ext { color: var(--accent); font-weight: 700 }
       <label class="check"><input type="checkbox" id="fStd"> Standard legal</label>
       <label class="check"><input type="checkbox" id="fExp"> Expanded legal</label>
     </div>
+    <div class="group"><h3>Price</h3><div class="seg seg3" id="fPriced"></div></div>
+    <div class="group"><h3>Price data (at least)</h3><div class="chips" id="fCov"></div></div>
     <div class="group"><h3>Sales data</h3>
       <label class="check"><input type="checkbox" id="fSales"> Graded prices &amp; recent sales</label>
     </div>
@@ -263,8 +352,11 @@ a.ext { color: var(--accent); font-weight: 700 }
       <p>Every card is packed into a positional tuple (no repeated field names, image URLs shortened to a 2-letter host code). The whole catalog ships gzip-compressed inside the page: 9.6 MB of card data in about 2.6 MB. Live updates from GitHub are saved in IndexedDB, one record per set, so an update only rewrites the sets that changed.</p>
       <p>On open, the page builds an inverted index: a sorted term dictionary with a <code>Uint32Array</code> posting list per term. Prefix lookups are a binary search plus a contiguous scan.</p>
       <p>Filters are bitmaps, one bit per card. Combining filters is a word-by-word AND over ~650 32-bit words, and the live counts on the chips are popcounts of those ANDs. Typos fall back to an edit-distance match over the dictionary.</p>
-      <p><b>Prices</b> are a snapshot taken when the page was built. Each language is its own card: Japanese prints have their own entries and their own Cardmarket prices. English cards show TCGplayer (US market, English copies only) and Cardmarket (Europe). Cardmarket's public price guide pools all European languages of a card, so a German or French copy can sell above or below the figure shown.</p>
-      <p><b>Query syntax:</b> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
+      <p><b>Prices</b> come from three layers, newest wins per source: the snapshot built into the page, the hourly price store (Cardmarket price guide and listings, TCGplayer, eBay for sale and sold), and live checks this browser makes for the cards on screen. A green dot means the figure is newer than the snapshot. Every price is shown in the currency picked in the header (€ or $); the other currency is converted at the ECB rate, and a dotted underline shows the original.</p>
+      <p><b>Evidence:</b> every price section in a card's details ends with links to its sources: the Cardmarket and TCGplayer product pages, the API response or data file each figure was read from, the exact eBay searches, and each listing's own page. Its history graphs sit in the same section.</p>
+      <p><b>Languages:</b> prints of the same card in different languages (and same-art reprints) share one tile (badge <code>EN · JP</code>). Its details compare every print, matched by Cardmarket's card id and illustrator. Switch it off under Language.</p>
+      <p><b>Price data label:</b> the chip on each card counts which of six methods have data: Cardmarket price guide, Cardmarket listings by language and condition, TCGplayer, eBay for sale, sold listings, graded prices. From <i>No data</i> (greyed-out card) to <i>Complete</i>. Filter with the chips or <code>data&gt;=3</code>.</p>
+      <p><b>Query syntax:</b> <code>has:price</code> <code>data&gt;=3</code> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
     </details>
   </aside>
   <section id="results" aria-live="polite" style="min-width:0">
@@ -280,6 +372,7 @@ a.ext { color: var(--accent); font-weight: 700 }
 <footer class="status"><div class="wrap" id="status">—</div></footer>
 
 <dialog id="dlg" aria-label="Card details"><div class="sheet" id="sheet"></div></dialog>
+<dialog id="settings" aria-label="Settings"><form class="setf" id="setForm" method="dialog"></form></dialog>
 
 <script type="application/octet-stream" id="catalog-gz">__GZ__</script>
 <script>
@@ -295,7 +388,16 @@ a.ext { color: var(--accent); font-weight: 700 }
   var $ = function (id) { return document.getElementById(id); };
   var DATES = { eur: '', usd: '', ja: '' }, AXES = { e: [], u: [] };
   var cat = null, imagesOK = false, mode = 'bundle', results = null, shown = 0, meta = {};
-  var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set() };
+  var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set(), priced: '', cov: '' };
+
+  // ---------- settings (defaults from prices.config.json, kept per browser) ----------
+  var CONFIG = "__CONFIG__", PRICES_URL = "__PRICES_URL__";
+  if (typeof CONFIG === 'string') CONFIG = {};
+  var settings = { currency: CONFIG.displayCurrency || 'EUR', interval: CONFIG.intervalMinutes || 60, headline: CONFIG.headline || 'trend', cond: CONFIG.listingCondition || 'NM', live: true, bundle: true };
+  try { Object.assign(settings, JSON.parse(localStorage.getItem('ptcg-settings') || '{}')); } catch (e) {}
+  settings.interval = Math.max(5, Math.min(1440, +settings.interval || 60));
+  state.currency = settings.currency === 'USD' ? 'usd' : 'eur';
+  function saveSettings() { try { localStorage.setItem('ptcg-settings', JSON.stringify(settings)); } catch (e) {} }
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function fmt(n) { return n.toLocaleString('en-US'); }
@@ -306,8 +408,13 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (dbp) return dbp;
     dbp = new Promise(function (res, rej) {
       try {
-        var r = indexedDB.open('ptcg-card-index', 1);
-        r.onupgradeneeded = function () { r.result.createObjectStore('meta'); r.result.createObjectStore('sets', { keyPath: 'id' }); };
+        var r = indexedDB.open('ptcg-card-index', 2);
+        r.onupgradeneeded = function () {
+          var d = r.result;
+          if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta');
+          if (!d.objectStoreNames.contains('sets')) d.createObjectStore('sets', { keyPath: 'id' });
+          if (!d.objectStoreNames.contains('live')) d.createObjectStore('live', { keyPath: 'id' });
+        };
         r.onsuccess = function () { res(r.result); };
         r.onerror = function () { rej(r.error); };
       } catch (e) { rej(e); }
@@ -328,7 +435,273 @@ a.ext { color: var(--accent); font-weight: 700 }
   function setMeta(k, v) { return tx('meta', 'readwrite', function (s) { s.put(v, k); }); }
   function allSets() { return tx('sets', 'readonly', function (s) { return s.getAll(); }); }
   function putSets(recs) { return tx('sets', 'readwrite', function (s) { recs.forEach(function (r) { s.put(r); }); }); }
-  function clearAll() { return tx('sets', 'readwrite', function (s) { s.clear(); }).then(function () { return tx('meta', 'readwrite', function (s) { s.clear(); }); }); }
+  function clearAll() {
+    return tx('sets', 'readwrite', function (s) { s.clear(); }).then(function () { return tx('meta', 'readwrite', function (s) { s.clear(); }); })
+      .then(function () { return tx('live', 'readwrite', function (s) { s.clear(); }); });
+  }
+
+  // ---------- live prices ----------
+  // Cards on screen (and the open card) are re-priced straight from public APIs:
+  // Cardmarket EUR from api.tcgdex.net (English and Japanese prints), TCGplayer USD from api.pokemontcg.io (English prints).
+  // A live figure replaces the built-in snapshot only when its source date is at least as recent. Results are kept on
+  // this device (IndexedDB 'live', one record per card id) and re-checked once per refresh interval (settings).
+  var TCGDEX = 'https://api.tcgdex.net/v2/', PTCGIO = 'https://api.pokemontcg.io/v2/cards';
+  var LIVE_KEEP = 3 * 86400e3, EUR_CONC = 4, USD_BATCH = 30;
+  function liveTtl() { return settings.interval * 60e3; } // re-check a card once per refresh interval
+  var live = { on: settings.live, rec: new Map(), busy: new Set(), eurQ: [], usdQ: [], eurRun: 0, usdRun: 0, ok: 0, failed: 0, dirty: new Map(), saveT: 0, statT: 0, cntT: 0 };
+  var openId = -1, idIx = null;
+
+  function getJSON(url, tries, wait) {
+    wait = wait || 600;
+    return fetch(url).then(function (r) {
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).catch(function (e) {
+      if (tries <= 1) throw e;
+      return new Promise(function (res) { setTimeout(res, wait); }).then(function () { return getJSON(url, tries - 1, wait * 2); });
+    });
+  }
+  function liveCan(i, ch) { // ch: 'e' (Cardmarket) or 'u' (TCGplayer)
+    var t = cat.cards[i];
+    if (ch === 'u') return t[22] !== 'ja';
+    return t[22] === 'ja' || tcgdexNo(i) !== '';
+  }
+  function tcgdexNo(i) { // TCGdex card number of an English card, '' when TCGdex doesn't have it
+    var t = cat.cards[i], set = cat.sets[cat.setIx[i]];
+    if (!set.tx) return '';
+    return set.tn && t[0] in set.tn ? set.tn[t[0]] : String(t[8]);
+  }
+  function liveDue(i, ch) {
+    if (!liveCan(i, ch) || live.busy.has(ch + i)) return false;
+    var r = live.rec.get(cat.cards[i][0]);
+    return !r || !r[ch + 't'] || Date.now() - r[ch + 't'] > liveTtl();
+  }
+  function liveWant(ids, urgent) {
+    if (!live.on || !cat) return;
+    ids.forEach(function (i) {
+      ['e', 'u'].forEach(function (ch) {
+        if (!liveDue(i, ch)) return;
+        var q = ch === 'e' ? live.eurQ : live.usdQ, k = q.indexOf(i);
+        if (k >= 0) { if (!urgent) return; q.splice(k, 1); }
+        if (urgent) q.unshift(i); else q.push(i);
+      });
+    });
+    livePump();
+  }
+  function livePump() {
+    while (live.eurRun < EUR_CONC && live.eurQ.length) liveEur(live.eurQ.shift());
+    while (live.usdRun < 2 && live.usdQ.length) liveUsd(live.usdQ.splice(0, USD_BATCH));
+  }
+  function liveStart(ids, ch) { ids.forEach(function (i) { live.busy.add(ch + i); if (i === openId || !cat.isPriced(i)) liveShow(i); }); }
+  function liveEur(i) {
+    if (!liveDue(i, 'e')) return;
+    var t = cat.cards[i], set = cat.sets[cat.setIx[i]];
+    var url = t[22] === 'ja' ? TCGDEX + 'ja/cards/' + encodeURIComponent(t[0].slice(3))
+      : TCGDEX + 'en/sets/' + encodeURIComponent(set.tx) + '/' + encodeURIComponent(tcgdexNo(i));
+    live.eurRun++; liveStart([i], 'e');
+    getJSON(url, 2).then(function (card) { liveGot(i, 'e', card ? PTCG.liveFromTcgdex(card) : null); }, function () { liveGot(i, 'e', undefined); })
+      .then(function () { live.eurRun--; livePump(); });
+  }
+  function liveUsd(ids) {
+    ids = ids.filter(function (i) { return liveDue(i, 'u'); });
+    if (!ids.length) return livePump();
+    var url = PTCGIO + '?q=' + encodeURIComponent(ids.map(function (i) { return 'id:"' + cat.cards[i][0] + '"'; }).join(' OR ')) + '&select=id,tcgplayer&pageSize=250';
+    live.usdRun++; liveStart(ids, 'u');
+    getJSON(url, 4).then(function (res) { // api.pokemontcg.io answers about half of all requests with a 5xx, so retry harder
+      var by = new Map(((res && res.data) || []).map(function (c) { return [c.id, c]; }));
+      ids.forEach(function (i) { var c = by.get(cat.cards[i][0]); liveGot(i, 'u', c ? PTCG.liveFromPtcgio(c) : null); });
+    }, function () { ids.forEach(function (i) { liveGot(i, 'u', undefined); }); })
+      .then(function () { live.usdRun--; livePump(); });
+  }
+  // data: parsed price, null (source has no price), undefined (request failed: retried next time the card is shown)
+  function liveGot(i, ch, data) {
+    var id = cat.cards[i][0], r = live.rec.get(id) || { id: id };
+    live.busy.delete(ch + i);
+    if (data === undefined) { live.failed++; r[ch + 'err'] = 1; }
+    else { live.ok++; r[ch] = data; r[ch + 't'] = Date.now(); delete r[ch + 'err']; live.dirty.set(id, r); }
+    live.rec.set(id, r);
+    liveApply(i); liveShow(i);
+    clearTimeout(live.saveT); live.saveT = setTimeout(liveSave, 1500);
+    if (!live.statT) live.statT = setTimeout(function () { live.statT = 0; liveStatus(); }, 400);
+  }
+  function liveApply(i) {
+    var was = cat.cov[i];
+    applyValue(i);
+    if (was !== cat.cov[i] && !live.cntT) live.cntT = setTimeout(function () { live.cntT = 0; recount(); }, 500);
+  }
+  function liveShow(i) {
+    var el = document.querySelector('#grid .tile[data-id="' + i + '"]');
+    if (el) {
+      var o = priceOf(i), px = el.querySelector('.px'), cv = el.querySelector('.cov');
+      if (px) px.outerHTML = priceTag(i, o);
+      if (cv) cv.outerHTML = covHTML(o.cov, 'tag');
+      el.classList.toggle('unpriced', !o.known);
+    }
+    if (i === openId) rerenderPrices();
+  }
+  function liveSave() {
+    if (!live.dirty.size) return;
+    var recs = Array.from(live.dirty.values()); live.dirty.clear();
+    tx('live', 'readwrite', function (s) { recs.forEach(function (r) { s.put(r); }); }).catch(function () {});
+  }
+  function liveLoad() {
+    return tx('live', 'readonly', function (s) { return s.getAll(); }).then(function (recs) {
+      var stale = [], n = 0;
+      (recs || []).forEach(function (r) {
+        var i = idIx.get(r.id), at = Math.max(r.et || 0, r.ut || 0);
+        if (i == null || Date.now() - at > LIVE_KEEP) { stale.push(r.id); return; }
+        live.rec.set(r.id, r); liveApply(i); n++;
+      });
+      if (stale.length) tx('live', 'readwrite', function (s) { stale.forEach(function (k) { s.delete(k); }); }).catch(function () {});
+      return n;
+    }).catch(function () { return 0; });
+  }
+  function liveStatus() {
+    var el = $('liveStat'); if (!el) return;
+    el.textContent = !live.on ? 'live prices off' : 'live prices: ' + fmt(live.rec.size) + ' cards checked' + (live.failed ? ' · ' + fmt(live.failed) + ' requests failed' : '');
+    $('liveToggle').textContent = live.on ? 'Pause live prices' : 'Resume live prices';
+  }
+
+  // ---------- hourly price store ----------
+  // summary.json.gz from the collector (scripts/collect.js), kept in IndexedDB so it also works offline
+  var HOURLY = null, hourlyErr = '';
+  function gunzipJSON(buf) {
+    var u8 = new Uint8Array(buf);
+    if (u8[0] !== 0x1f || u8[1] !== 0x8b) return Promise.resolve(JSON.parse(new TextDecoder().decode(u8))); // host already decoded it
+    return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text().then(JSON.parse);
+  }
+  function storeGet(rel) { // a file of the price store, null if missing
+    return fetch(PRICES_URL + rel, { cache: 'no-cache' }).then(function (r) {
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return /\.gz$/.test(rel) ? r.arrayBuffer().then(gunzipJSON) : r.json();
+    });
+  }
+  function useHourly(s) {
+    if (!s || !s.cards || s.v !== 1) return false;
+    HOURLY = s;
+    if (s.fx && s.fx.USD > 0) { FX = s.fx; FX_SRC = 'ECB ' + s.fxDate + ' (price store)'; }
+    return true;
+  }
+  function loadHourly() {
+    return storeGet('meta.json').then(function (m) {
+      if (!m) { hourlyErr = 'not published yet'; return false; }
+      if (HOURLY && HOURLY.at === m.at && (HOURLY.scrapedAt || '') === (m.scrapedAt || '')) return false; // collector run or scraper run
+      return fetch(PRICES_URL + 'summary.json.gz', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+        .then(function (buf) {
+          return gunzipJSON(buf.slice(0)).then(function (s) {
+            if (!useHourly(s)) throw new Error('unexpected summary format');
+            hourlyErr = ''; setMeta('hourly', buf).catch(function () {});
+            return true;
+          });
+        });
+    }).catch(function (e) { hourlyErr = e.message || String(e); return false; });
+  }
+  function loadHourlyCached() {
+    return getMeta('hourly').then(function (buf) { return buf ? gunzipJSON(buf).then(useHourly) : false; }).catch(function () { return false; });
+  }
+
+  // ---------- price model ----------
+  // Every source keeps its native currency; FX converts (euro per unit). The freshest copy of each source wins:
+  // the built-in snapshot, a live check from this browser, or the hourly store.
+  var FX = { EUR: 1 }, FX_SRC = '';
+  function tsOf(at) { var x = Date.parse(at); return isNaN(x) ? 0 : x; }
+  function newest(list) { // ties go to the later source in the list (hourly > live > snapshot)
+    var best = null, bi = -1;
+    list.forEach(function (x, i) { if (!best || tsOf(x.at) >= tsOf(best.at)) { best = x; bi = i; } });
+    return best;
+  }
+  function num(x) { return typeof x === 'number' && isFinite(x) ? x : null; }
+  var HEAD_LABEL = { trend: 'Cardmarket trend', listings: 'Cardmarket listing average', tcg: 'TCGplayer market', sold: 'Sold median (eBay)', graded: 'PriceCharting ungraded', thin: 'Cardmarket trend, few sales' };
+  function priceOf(i) {
+    var t = cat.cards[i], p = t[21] || {}, r = live.rec.get(t[0]) || {}, ja = t[22] === 'ja', hz = HOURLY && HOURLY.cards[t[0]];
+    var o = { ja: ja, busy: live.busy.has('e' + i) || live.busy.has('u' + i), err: !!(r.eerr || r.uerr), checked: Math.max(r.et || 0, r.ut || 0) };
+    var gs = [];
+    if (p.e) gs.push({ rows: p.e, trend: p.eh, thin: !!p.et, at: ja ? DATES.ja : DATES.eur, src: 'snapshot' });
+    if (r.e) gs.push({ rows: r.e.e, trend: r.e.eh, thin: !!r.e.et, at: r.e.at, src: 'live' });
+    if (hz && hz.g) {
+      var rows = []; hz.g.forEach(function (g) {
+        rows.push([g[8], g[1], g[2], g[3], g[4], g[5]]);
+        if (g[6] != null && !/holo/i.test(g[8])) rows.push([g[8] + ' · reverse holo', g[6], g[7], null, null, null]); // "-holo" fields = reverse copies
+      });
+      var solid = hz.g.filter(function (g) { return g[1] != null && g[2] != null; })[0], any = hz.g.filter(function (g) { return g[1] != null; })[0];
+      gs.push({ rows: rows, trend: solid ? solid[1] : any ? any[1] : null, thin: !solid, at: HOURLY.guideAt, src: 'hourly' });
+    }
+    o.guide = newest(gs);
+    var ts = [];
+    if (p.u) ts.push({ rows: p.u, market: p.uh, at: DATES.usd, src: 'snapshot' });
+    if (r.u) ts.push({ rows: r.u.u, market: r.u.uh, at: r.u.at, src: 'live' });
+    if (hz && hz.t) ts.push({ rows: tcgRows(hz.t), market: (hz.t.filter(function (x) { return x[2] != null; })[0] || [])[2], at: HOURLY.tcgAt, src: 'hourly' });
+    o.tcg = newest(ts);
+    o.listings = hz && hz.lt ? { groups: hz.l || null, at: hz.lt, n: hz.ln || 0 } : null;
+    o.ebay = hz && hz.et ? { ea: hz.ea || null, es: hz.es || null, en: hz.en || [0, 0], at: hz.et, esl: hz.esl } : null;
+    o.graded = t[26] || null;
+    o.lang = ja ? 7 : 1;
+    o.la = o.listings ? PRICES.listingAvg(o.listings.groups, o.lang, settings.cond) : null;
+    var pcSold = !!(t[26] && t[26].s && t[26].s.length), gradedAny = !!(t[26] && t[26].g.some(function (x) { return x != null; }));
+    o.cov = PRICES.coverage({ guide: o.guide && num(o.guide.trend) != null, listings: o.listings && o.listings.n > 0, tcg: o.tcg && num(o.tcg.market) != null,
+      ebayActive: o.ebay && o.ebay.ea, ebaySold: (o.ebay && o.ebay.es) || pcSold, graded: gradedAny });
+    var cand = {
+      trend: o.guide && !o.guide.thin ? num(o.guide.trend) : null,
+      listings: o.la ? o.la.avg : null,
+      tcg: o.tcg ? num(PRICES.toEur(o.tcg.market, 'USD', FX)) : null,
+      sold: o.ebay && o.ebay.es ? o.ebay.es[2] : null,
+      graded: t[26] && t[26].g[0] != null ? num(PRICES.toEur(t[26].g[0], 'USD', FX)) : null,
+      thin: o.guide && o.guide.thin ? num(o.guide.trend) : null };
+    var order = settings.headline === 'listings' ? ['listings', 'trend', 'tcg', 'sold', 'graded', 'thin'] : ['trend', 'listings', 'tcg', 'sold', 'graded', 'thin'];
+    for (var k = 0; k < order.length; k++) if (cand[order[k]] != null) { o.head = { eur: cand[order[k]], src: order[k] }; break; }
+    o.head = o.head || null;
+    // fresh = this figure came from the hourly store or a live check, not the built-in snapshot
+    if (o.head) o.head.fresh = /trend|thin/.test(o.head.src) ? o.guide.src !== 'snapshot' : o.head.src === 'tcg' ? o.tcg.src !== 'snapshot' : o.head.src !== 'graded';
+    o.known = o.cov.n > 0;
+    return o;
+  }
+  function applyValue(i) {
+    var o = priceOf(i), e = o.head ? o.head.eur : null;
+    cat.setValue(i, e, e != null && FX.USD ? e / FX.USD : null, o.cov.n);
+  }
+  function applyAll() { for (var i = 0; i < cat.N; i++) applyValue(i); }
+
+  // a live exchange rate from the browser, used until the price store's own rate is loaded
+  function liveFx() {
+    if (HOURLY && HOURLY.fx) return Promise.resolve(false);
+    return fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP').then(function (r) { return r.json(); }).then(function (d) {
+      FX = { EUR: 1, USD: 1 / d.rates.USD, GBP: 1 / d.rates.GBP }; FX_SRC = 'ECB ' + d.date + ' (live)'; return true;
+    }).catch(function () { return false; });
+  }
+  // once per refresh interval (settings, default from prices.config.json): re-read the price store, re-check the cards on screen
+  var refreshT = 0, lastRefresh = Date.now();
+  function scheduleRefresh() { clearInterval(refreshT); refreshT = setInterval(refreshCycle, settings.interval * 60e3); }
+  function refreshCycle() {
+    lastRefresh = Date.now();
+    return loadHourly().then(function (changed) {
+      if (changed) { applyAll(); recount(); refreshShown(); }
+      status();
+      if (live.on) { document.querySelectorAll('#grid .tile').forEach(function (el) { el.removeAttribute('data-w'); }); watchTiles(); }
+      if (openId >= 0) { liveWant([openId], true); if (changed) liveShow(openId); }
+      return changed;
+    });
+  }
+  function refreshShown() { document.querySelectorAll('#grid .tile').forEach(function (el) { liveShow(+el.dataset.id); }); }
+
+  // ---------- money: every figure converted to the display currency ----------
+  var SYM = { EUR: '€', USD: '$', GBP: '£', JPY: '¥' };
+  function toDisp(v, from) { // from: native currency code (EUR default)
+    if (v == null || isNaN(v)) return null;
+    var e = PRICES.toEur(+v, (from || 'EUR').toUpperCase(), FX);
+    return e == null ? null : settings.currency === 'EUR' ? e : PRICES.fromEur(e, settings.currency, FX);
+  }
+  function fmtCur(v, cur) { return (SYM[cur] || cur + ' ') + (v >= 1000 ? Math.round(v).toLocaleString('en-US') : (+v).toFixed(2)); }
+  function money(v, from) {
+    if (v == null || isNaN(v)) return '—';
+    from = (from || 'EUR').toUpperCase();
+    var d = toDisp(v, from);
+    if (d == null) return fmtCur(v, from); // no exchange rate: native
+    return from === settings.currency ? fmtCur(d, from) : '<span class="cv" title="' + esc(fmtCur(v, from)) + ' converted at ' + esc(FX_SRC || 'ECB rate') + '">' + fmtCur(d, settings.currency) + '</span>';
+  }
+  function moneyText(v, from) { var d = toDisp(v, from); return d == null ? '—' : fmtCur(d, settings.currency); }
+  function syncCurrencyButtons() { document.querySelectorAll('.cur [data-cur]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.cur === state.currency); }); }
 
   // ---------- loading ----------
   function progress(frac, step, msg) {
@@ -385,7 +758,9 @@ a.ext { color: var(--accent); font-weight: 700 }
         }
         var workers = []; for (var w = 0; w < 6; w++) workers.push(worker());
         return Promise.all(workers).then(function () { return putSets(batch); }).then(function () {
-          return setMeta('setList', sets.map(PTCG.compactSet));
+          return setMeta('setList', sets.map(function (s) { // keep the TCGdex set id the build matched, for live prices
+            var c = PTCG.compactSet(s), old = cat && cat.setById.get(s.id); if (old && old.tx) c.tx = old.tx; return c;
+          }));
         }).then(function () {
           return setMeta('info', { source: 'live', syncedAt: Date.now(), failed: failed });
         }).then(function () { return { updated: todo.length - failed, failed: failed }; });
@@ -428,6 +803,7 @@ a.ext { color: var(--accent); font-weight: 700 }
         meta = { source: 'bundle', commit: d.commit, from: 'page' };
         if (d.meta) AXES = { e: d.meta.eurAxis || [], u: d.meta.usdAxis || [] };
         if (d.meta) DATES = { eur: d.meta.eurDate || '', usd: d.meta.usdDate || '', ja: String(d.meta.jaEurDate || '').slice(0, 10) };
+        if (d.meta && d.meta.fx) { FX = d.meta.fx; FX_SRC = 'ECB ' + d.meta.fxDate + ' (page build)'; }
         return d;
       });
     }).then(function (data) {
@@ -437,7 +813,13 @@ a.ext { color: var(--accent); font-weight: 700 }
         cat = new PTCG.Catalog(data.setList, data.records);
         meta.loadMs = performance.now() - t0;
         progress(1, 'Ready');
-        buildFilters(); run(); status(); probeImages();
+        idIx = new Map(cat.cards.map(function (t, i) { return [t[0], i]; }));
+        buildBundles(data.bundles); $('fBundle').checked = settings.bundle;
+        applyAll(); buildFilters(); syncCurrencyButtons(); run(); status(); probeImages();
+        // newer data in steps: saved live checks and the saved price store, then the network store and a live exchange rate
+        Promise.all([liveLoad(), loadHourlyCached()]).then(function () { applyAll(); run(); liveStatus(); status(); })
+          .then(function () { return Promise.all([loadHourly(), liveFx()]); })
+          .then(function (x) { if (x[0] || x[1]) { applyAll(); run(); } status(); scheduleRefresh(); });
       });
     }).catch(function (e) {
       $('loadMsg').textContent = 'The catalog could not be loaded. Reload the page to try again.';
@@ -477,6 +859,13 @@ a.ext { color: var(--accent); font-weight: 700 }
     $('fSeries').innerHTML = '<option value="">All series</option>' + Array.from(new Set(Array.from(bySeries.keys()).map(function (k) { return k.split('|')[1]; }))).map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
     var rar = Array.from(cat.facets.rarity.entries()).map(function (e) { return [e[0], PTCGpop(e[1])]; }).sort(function (a, b) { return b[1] - a[1]; });
     $('fRarity').innerHTML = '<option value="">Any rarity</option>' + rar.map(function (r) { return '<option value="' + esc(r[0]) + '">' + esc(r[0]) + ' (' + fmt(r[1]) + ')</option>'; }).join('');
+    $('fCov').innerHTML = [''].concat([1, 2, 3, 4, 5, 6]).map(function (k) {
+      return '<button type="button" class="chip plain" data-cov="' + k + '" aria-pressed="' + (String(state.cov) === String(k)) + '"' + (k ? ' title="' + k + ' or more of the 6 price-data methods"' : '') + '>' +
+        (k ? '<span class="cov c' + k + '">' + [1, 2, 3, 4, 5, 6].map(function (x) { return '<i' + (x <= k ? ' class="on"' : '') + '></i>'; }).join('') + '</span> ' + PRICES.TIERS[k] : 'Any') + ' <span class="n" data-cnt></span></button>';
+    }).join('');
+    $('fPriced').innerHTML = [['', 'All'], ['yes', 'Priced'], ['no', 'No price']].map(function (p) {
+      return '<button type="button" class="chip" data-priced="' + p[0] + '" aria-pressed="' + (state.priced === p[0]) + '"><span>' + p[1] + '</span><span class="n" data-cnt></span></button>';
+    }).join('');
     $('fReg').innerHTML = Array.from(cat.facets.reg.keys()).sort().map(function (r) { return '<button type="button" class="chip plain mono" data-reg="' + esc(r) + '" aria-pressed="false">' + esc(r) + '</button>'; }).join('');
   }
   function PTCGpop(b) { var n = 0; for (var i = 0; i < b.length; i++) { var x = b[i]; while (x) { x &= x - 1; n++; } } return n; }
@@ -487,7 +876,13 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (!cat) return;
     cancelAnimationFrame(pending);
     pending = requestAnimationFrame(function () {
-      results = cat.search(state.q, state, state.sort);
+      results = bundleResults(cat.search(state.q, state, state.sort));
+      results.cut = -1; // price sorts: index of the first card without a price in the chosen currency
+      if (state.sort === 'price' || state.sort === 'priceAsc') {
+        var px = cat[state.currency];
+        for (var i = 0; i < results.ids.length; i++) if (isNaN(px[results.ids[i]])) { results.cut = i; break; }
+      }
+      live.eurQ.length = 0; live.usdQ.length = 0; // re-queue from what is visible now
       shown = 0; render(false); updateFacetCounts();
     });
   }
@@ -504,7 +899,13 @@ a.ext { color: var(--accent); font-weight: 700 }
     document.querySelectorAll('#fSuper [data-super]').forEach(function (el) {
       var v = el.dataset.super; el.querySelector('[data-cnt]').textContent = fmt(v ? (c.supertype[v] || 0) : allSup);
     });
-    var active = (state.lang ? 1 : 0) + state.type.size + (state.supertype ? 1 : 0) + (state.set ? 1 : 0) + (state.series ? 1 : 0) + (state.rarity ? 1 : 0) + state.reg.size + state.legal.size;
+    document.querySelectorAll('#fPriced [data-priced]').forEach(function (el) {
+      var v = el.dataset.priced; el.querySelector('[data-cnt]').textContent = fmt(v ? c.priced[v] : c.priced.yes + c.priced.no);
+    });
+    document.querySelectorAll('#fCov [data-cov]').forEach(function (el) {
+      var k = +el.dataset.cov || 0, n = 0; for (var j = k; j <= 6; j++) n += c.cov[j]; el.querySelector('[data-cnt]').textContent = fmt(n);
+    });
+    var active = (state.lang ? 1 : 0) + (state.priced ? 1 : 0) + (state.cov ? 1 : 0) + state.type.size + (state.supertype ? 1 : 0) + (state.set ? 1 : 0) + (state.series ? 1 : 0) + (state.rarity ? 1 : 0) + state.reg.size + state.legal.size;
     $('fcount').hidden = !active; $('fcount').textContent = active;
   }
 
@@ -515,13 +916,27 @@ a.ext { color: var(--accent); font-weight: 700 }
     for (var i = 0; i < r.ids.length; i++) { var x = r.ids[i]; if (jb && (jb[x >>> 5] >>> (x & 31)) & 1) ja++; else en++; }
     return { en: en, ja: ja };
   }
-  function money(v, cur) { if (v == null || isNaN(v)) return '—'; var sym = cur === 'usd' ? '$' : '€'; return sym + (v >= 1000 ? Math.round(v).toLocaleString('en-US') : (+v).toFixed(2)); }
-  function headPrice(t) {
-    var p = t[21]; if (!p) return { txt: '—', cls: 'none' };
-    if (state.currency === 'usd') return p.uh != null ? { txt: money(p.uh, 'usd'), cls: '' } : { txt: p.eh != null ? money(p.eh, 'eur') : '—', cls: 'none' };
-    if (p.eh != null) return { txt: (p.et ? '~' : '') + money(p.eh, 'eur'), cls: p.et ? 'thin' : '' };
-    return { txt: p.uh != null ? money(p.uh, 'usd') : '—', cls: 'none' };
+  // the headline in the display currency (green dot = from the hourly store or a live check), or a dashed "No price" pill
+  function priceTag(i, o) {
+    o = o || priceOf(i);
+    if (!o.head) return '<span class="px none" title="' + (o.busy ? 'Checking live sources' : 'No source has price data for this card') + '">' + (o.busy ? 'Checking…' : 'No price') + '</span>';
+    var thin = o.head.src === 'thin', label = HEAD_LABEL[o.head.src] + (o.head.src === 'listings' ? ' (' + PRICES.LANGS[o.lang] + ', ' + settings.cond + ' or better)' : '');
+    return '<span class="px' + (thin ? ' thin' : '') + '" title="' + esc(label + (o.head.fresh ? ' · updated' : ' · snapshot')) + '">' +
+      (o.head.fresh ? '<i class="ld"></i>' : '') + (thin ? '~' : '') + moneyText(o.head.eur, 'EUR') + '</span>';
   }
+  // price-data label: six pips, one per method (src/prices.js METHODS), coloured by tier
+  function covHTML(cov, big) {
+    var tip = 'Price data: ' + cov.tier + ' (' + cov.n + ' of 6) — ' + PRICES.METHODS.map(function (m, k) { return (cov.flags[k] ? '✓ ' : '✗ ') + m[1]; }).join(', ');
+    return '<span class="cov c' + cov.n + (big === 'tag' ? ' tag' : big ? ' big' : '') + '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
+      cov.flags.map(function (f) { return '<i' + (f ? ' class="on"' : '') + '></i>'; }).join('') + (big ? '<b>' + esc(cov.tier) + '</b>' : '') + '</span>';
+  }
+  // the same finish twice means two TCGplayer products for one card: name them apart
+  function tcgRows(t) {
+    var seen = {};
+    t.forEach(function (x) { seen[x[1]] = (seen[x[1]] || 0) + 1; });
+    return t.map(function (x) { return [x[1] + (seen[x[1]] > 1 ? ' · product ' + x[0] : ''), x[2], x[3], x[4], x[5], x[0]]; });
+  }
+  function whenText(at) { at = String(at || ''); return at.length > 10 ? fmtDate(at.slice(0, 10)) + ' ' + at.slice(11, 16) + ' UTC' : fmtDate(at) || 'unknown date'; }
   function numLabel(t, set) {
     var n = String(t[8] || '');
     if (/^\d+$/.test(n) && set.pt) { var w = String(set.pt).length; while (n.length < w) n = '0' + n; return n + '/' + set.pt; }
@@ -542,12 +957,12 @@ a.ext { color: var(--accent); font-weight: 700 }
   }
 
   function tileHTML(id) {
-    var t = cat.cards[id], set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(t[11]), hp = headPrice(t);
-    var cv = cat.chg[state.currency][id], cp = cat[state.currency][id];
- var chg = !isNaN(cv) && cp >= 2 && Math.abs(cv) >= 1 ? '<span class="chg ' + (cv > 0 ? 'up">▲' : 'down">▼') + Math.abs(cv).toFixed(0) + '%</span>' : '';
-    return '<button type="button" class="tile" data-id="' + id + '"><div class="face">' + dataFace(t, false) +
-      (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + (t[22] === 'ja' ? '<span class="lang">JP</span>' : '') + '</div>' +
-      '<div class="cap"><div class="row2"><span class="n1">' + esc(t[1]) + '</span><span class="px ' + hp.cls + '">' + hp.txt + '</span></div><div class="row2"><span class="n2">' + esc(set.c || set.id.toUpperCase()) + ' · ' + esc(numLabel(t, set)) + (t[6] ? ' · ' + esc(t[6]) : '') + '</span>' + chg + '</div></div></button>';
+    var t = cat.cards[id], set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(t[11]), o = priceOf(id);
+    var cv = cat.chg.any[id], cp = cat.eur[id];
+    var chg = !isNaN(cv) && cp >= 2 && Math.abs(cv) >= 1 ? '<span class="chg ' + (cv > 0 ? 'up">▲' : 'down">▼') + Math.abs(cv).toFixed(0) + '%</span>' : '';
+    return '<button type="button" class="tile' + (o.known ? '' : ' unpriced') + '" data-id="' + id + '"><div class="face">' + dataFace(t, false) +
+      (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + langBadge(id) + covHTML(o.cov, 'tag') + '</div>' +
+      '<div class="cap"><div class="row2"><span class="n1">' + esc(t[1]) + '</span>' + priceTag(id, o) + '</div><div class="row2"><span class="n2">' + esc(set.c || set.id.toUpperCase()) + ' · ' + esc(numLabel(t, set)) + (t[6] ? ' · ' + esc(t[6]) : '') + '</span>' + chg + '</div></div></button>';
   }
 
   var io = null;
@@ -555,34 +970,92 @@ a.ext { color: var(--accent); font-weight: 700 }
     var box = $('results');
     if (!keep) shown = 0;
     var r = results, note = r.notes.length ? '<span class="note">No exact match for “' + esc(r.notes[0].from) + '”, showing “' + esc(r.notes[0].to) + '”</span>' : '';
-    var head = '<div class="resbar"><span class="count">' + fmt(r.total) + ' <span style="font-size:15px;font-weight:600">' + (r.total === 1 ? 'card' : 'cards') + '</span></span><span class="ms">found in ' + r.ms.toFixed(1) + ' ms</span>' + note + '</div>';
+    var head = '<div class="resbar"><span class="count">' + fmt(r.total) + ' <span style="font-size:15px;font-weight:600">' + (r.total === 1 ? 'card' : 'cards') + '</span></span>' + (r.prints !== r.total ? '<span class="ms" title="Prints of the same card in other languages are bundled into one tile">' + fmt(r.prints) + ' prints</span>' : '') + pkHTML(r.counts.priced) + '<span class="ms">found in ' + r.ms.toFixed(1) + ' ms</span>' + note + '</div>';
     if (!r.total) {
       box.innerHTML = head + '<div class="empty"><b>No cards match.</b> Try fewer words, remove a filter, or use a prefix such as <span class="mono">char</span>. Field searches look like <span class="mono">artist:sugimori</span>.</div>';
       return;
     }
     var n = keep ? Math.max(shown, PAGE) : PAGE;
     shown = Math.min(n, r.total);
-    var html = '';
-    for (var i = 0; i < shown; i++) html += tileHTML(r.ids[i]);
-    box.innerHTML = head + '<div class="grid" id="grid">' + html + '</div><div class="sentinel" id="sent"></div>' + (shown < r.total ? '<button class="more" id="more" type="button">Show more</button>' : '');
-    observe();
+    box.innerHTML = head + '<div class="grid" id="grid">' + tiles(0, shown) + '</div><div class="sentinel" id="sent"></div>' + (shown < r.total ? '<button class="more" id="more" type="button">Show more</button>' : '');
+    observe(); watchTiles();
+  }
+  function pkHTML(pc) {
+    return state.priced ? '<span class="pk"><button type="button" data-priced="">show priced and unpriced</button></span>'
+      : '<span class="pk"><button type="button" data-priced="yes">' + fmt(pc.yes) + ' priced</button>·<button type="button" class="no" data-priced="no">' + fmt(pc.no) + ' without a price</button></span>';
+  }
+  // a live price turned an unpriced card priced: refresh the counts, but leave the grid order alone
+  function recount() {
+    if (!results) return;
+    var r = bundleResults(cat.search(state.q, state, 'newest'));
+    results.counts = r.counts;
+    updateFacetCounts();
+    var ce = document.querySelector('.resbar .count'); if (ce) ce.firstChild.nodeValue = fmt(r.total) + ' '; // a price filter may now match fewer cards
+    var pk = document.querySelector('.resbar .pk'); if (pk) pk.outerHTML = pkHTML(results.counts.priced);
+  }
+  function tiles(a, b) {
+    var r = results, html = '';
+    for (var i = a; i < b; i++) {
+      if (i === r.cut) html += '<div class="cut"><b>No price</b><span>The cards below had no price from any source when sorted; live checks fill some in as they scroll into view (green dot).</span></div>';
+      html += tileHTML(r.ids[i]);
+    }
+    return html;
   }
   function more() {
-    var r = results, start = shown, end = Math.min(r.total, shown + PAGE * 2), html = '';
-    for (var i = start; i < end; i++) html += tileHTML(r.ids[i]);
+    var r = results, start = shown, end = Math.min(r.total, shown + PAGE * 2);
     shown = end;
-    $('grid').insertAdjacentHTML('beforeend', html);
+    $('grid').insertAdjacentHTML('beforeend', tiles(start, end));
     if (shown >= r.total && $('more')) $('more').remove();
+    watchTiles();
   }
   function observe() {
     if (io) io.disconnect();
+    if (tio) tio.disconnect();
     if (!('IntersectionObserver' in window)) return;
     io = new IntersectionObserver(function (es) { if (es[0].isIntersecting && results && shown < results.total) more(); }, { rootMargin: '900px' });
     var s = $('sent'); if (s) io.observe(s);
   }
+  // tiles that scroll into view get queued for a live price check
+  var tio = null;
+  function watchTiles() {
+    if (!('IntersectionObserver' in window)) return;
+    if (!tio) tio = new IntersectionObserver(function (es) {
+      var ids = [];
+      es.forEach(function (e) { if (e.isIntersecting) { ids.push(+e.target.dataset.id); tio.unobserve(e.target); } });
+      if (ids.length) liveWant(ids);
+    }, { rootMargin: '150px' });
+    document.querySelectorAll('#grid .tile:not([data-w])').forEach(function (el) { el.setAttribute('data-w', ''); tio.observe(el); });
+  }
 
   // ---------- detail ----------
   function pips(list) { return (list || []).map(function (c) { return '<span class="pip sm t-' + esc(c) + '" title="' + esc(c) + '">' + (LETTER[c] || '') + '</span>'; }).join(''); }
+  // ---------- language bundles (built by scripts/build-catalog.js: Cardmarket metacard or Pokémon + HP + illustrator) ----------
+  var bundleOf = null, BUNDLES = [];
+  function buildBundles(list) {
+    bundleOf = new Int32Array(cat.N).fill(-1); BUNDLES = [];
+    (list || []).forEach(function (g) {
+      var ids = g.map(function (id) { return idIx.get(id); }).filter(function (i) { return i != null; });
+      if (ids.length < 2) return;
+      ids.forEach(function (i) { bundleOf[i] = BUNDLES.length; }); BUNDLES.push(ids);
+    });
+  }
+  function bundleIds(i) { return bundleOf && bundleOf[i] >= 0 ? BUNDLES[bundleOf[i]] : [i]; }
+  // one tile per bundle: the first print in result order stands for the others
+  function bundleResults(r) {
+    r.prints = r.ids.length;
+    if (!settings.bundle || !bundleOf) return r;
+    var seen = new Set(), out = [];
+    for (var k = 0; k < r.ids.length; k++) { var x = r.ids[k], b = bundleOf[x]; if (b >= 0) { if (seen.has(b)) continue; seen.add(b); } out.push(x); }
+    r.ids = out; r.total = out.length;
+    return r;
+  }
+  function langOf(i) { return cat.cards[i][22] === 'ja' ? 'JP' : 'EN'; }
+  function langBadge(i) {
+    var ids = bundleIds(i), langs = [];
+    ids.forEach(function (x) { var l = langOf(x); if (langs.indexOf(l) < 0) langs.push(l); });
+    if (ids.length === 1) return langOf(i) === 'JP' ? '<span class="lang">JP</span>' : '';
+    return '<span class="lang multi" title="' + ids.length + ' prints: ' + esc(ids.map(function (x) { var s = cat.sets[cat.setIx[x]]; return langOf(x) + ' ' + (s.ne || s.n) + ' #' + cat.cards[x][8]; }).join(', ')) + '">' + langs.join(' · ') + (ids.length > langs.length ? ' · ' + ids.length : '') + '</span>';
+  }
   function openCard(id) {
     var t = cat.cards[id], c = PTCG.expand(t), set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(c.img);
     var h = '<button class="close" type="button" id="dclose" aria-label="Close">×</button>';
@@ -597,7 +1070,8 @@ a.ext { color: var(--accent); font-weight: 700 }
       h += '<div class="wrr"><div><span>Weakness</span><em>' + wr(c.weaknesses) + '</em></div><div><span>Resistance</span><em>' + wr(c.resistances) + '</em></div><div><span>Retreat</span><em>' + (c.retreat ? pips(new Array(c.retreat).fill('Colorless')) : '—') + '</em></div></div>';
     }
     if (c.flavor) h += '<p class="flavor">' + esc(c.flavor) + '</p>';
-    h += priceBlock(c, set);
+    sel = null; cmArticles = null; ebayData = null; openHist = null;
+    h += '<div id="pnow">' + pricePart(id, c) + '</div>' + gradedBlock(c) + listsPart(id, c);
     h += '<dl class="meta">' +
       '<dt>Set</dt><dd><button class="link" data-set="' + esc(set.id) + '">' + esc(set.n) + '</button> <span class="mono" style="color:var(--muted)">' + esc(set.c || set.id) + ' · ' + esc(set.d) + '</span></dd>' +
       '<dt>Number</dt><dd class="mono">' + esc(numLabel(t, set)) + '</dd>' +
@@ -614,37 +1088,288 @@ a.ext { color: var(--accent); font-weight: 700 }
     var d = $('dlg');
     if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute('open', '');
     $('sheet').scrollTop = 0;
+    openId = id; liveWant([id], true); loadDetail(id, c, set);
   }
   function ptable(heads, rows, hlIdx) {
     return '<div class="ptable"><table><thead><tr>' + heads.map(function (x) { return '<th>' + x + '</th>'; }).join('') + '</tr></thead><tbody>' +
       rows.map(function (r) { return '<tr>' + r.map(function (v, i) { return '<td' + (i === hlIdx ? ' class="hl"' : '') + '>' + v + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
   }
-  function priceBlock(c, set) {
-    var p = c.price, h = '<div class="prices">';
-    var cmName = c.lang === 'ja' ? (c.alias || c.name) : c.name;
-    var cmLink = '<a class="ext" target="_blank" rel="noopener" href="https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(cmName) + '">Cardmarket</a>';
-    if (p && p.e) {
-      h += '<div><h4>Cardmarket · euro</h4><p class="src">' + (c.lang === 'ja'
-        ? 'Japanese-language copies only. Cardmarket lists Japanese prints as separate products.'
-        : 'European market. Cardmarket pools every European language (EN, DE, FR, IT, ES, PT…) into one figure, so a single language can sell higher or lower.') +
-        (p.et ? ' Few recent sales: treat as a rough guide.' : '') + ' Snapshot ' + esc(c.lang === 'ja' ? DATES.ja : DATES.eur) + '.</p>';
-      h += ptable(['Variant', 'Trend', 'From', '1-day', '7-day', '30-day'], p.e.map(function (r) { return [esc(r[0]), money(r[1]), money(r[2]), money(r[3]), money(r[4]), money(r[5])]; }), 1) + '</div>';
-    }
-    if (p && p.u) {
-      h += '<div><h4>TCGplayer · US dollar</h4><p class="src">US market, English-language copies only. Snapshot ' + esc(DATES.usd) + '.</p>';
-      h += ptable(['Variant', 'Market', 'Low', 'Mid', 'High'], p.u.map(function (r) { return [esc(r[0]), money(r[1], 'usd'), money(r[2], 'usd'), money(r[3], 'usd'), money(r[4], 'usd')]; }), 1) + '</div>';
-    }
-    if (c.hist && c.hist.e) h += spark(c.hist.e, AXES.e, 'eur', 'Cardmarket trend' + (c.lang === 'ja' ? ' (Japanese copies)' : ''));
-    if (c.hist && c.hist.u) h += spark(c.hist.u, AXES.u, 'usd', 'TCGplayer market price');
-    if (!p) h += '<p class="nolang">No price data for this card yet.</p>';
-    if (c.lang === 'ja') h += '<p class="nolang">No US-dollar price: TCGplayer\'s Japanese catalogue isn\'t in this snapshot.</p>';
-    else if (p && !p.u) h += '<p class="nolang">No TCGplayer match for this card.</p>';
-    return h + '</div>' + salesBlock(c) + markets(c, set);
+  // ---------- evidence: a link to where every figure comes from ----------
+  function A(href, txt) { return '<a target="_blank" rel="noopener" href="' + esc(href) + '">' + esc(txt) + '&nbsp;↗</a>'; }
+  function ev(links) { links = links.filter(Boolean); return links.length ? '<p class="ev"><b>Evidence</b>' + links.join('') + '</p>' : ''; }
+  var ECB = 'https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html';
+  var GUIDE_FILE = 'https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_6.json';
+  var EBAY_HOST = { EBAY_US: 'www.ebay.com', EBAY_GB: 'www.ebay.co.uk', EBAY_DE: 'www.ebay.de', EBAY_FR: 'www.ebay.fr', EBAY_IT: 'www.ebay.it', EBAY_ES: 'www.ebay.es', EBAY_AT: 'www.ebay.at' };
+  // Cardmarket page: pokemontcg.io redirects an English card id to its exact Cardmarket product; Japanese prints get a search
+  function cmLink(i, short) {
+    var t = cat.cards[i];
+    if (t[22] !== 'ja') return A('https://prices.pokemontcg.io/cardmarket/' + encodeURIComponent(t[0]), short ? 'product' : 'Cardmarket product page');
+    var q = ((t[24] || '') + ' ' + ((String(t[1]).match(/[A-Za-z][A-Za-z.\-]*$/) || [''])[0])).trim() || t[1];
+    return A('https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(q), short ? 'search' : 'Cardmarket search “' + q + '” (Japanese print)');
   }
+  function tcgdexUrl(i) {
+    var t = cat.cards[i], s = cat.sets[cat.setIx[i]];
+    return t[22] === 'ja' ? TCGDEX + 'ja/cards/' + encodeURIComponent(t[0].slice(3)) : s.tx && tcgdexNo(i) ? TCGDEX + 'en/sets/' + encodeURIComponent(s.tx) + '/' + encodeURIComponent(tcgdexNo(i)) : '';
+  }
+  function storeRel(kind, i) { var s = cat.sets[cat.setIx[i]]; return 'listings/' + kind + '/' + safeName(s.id) + '/' + safeName(cat.cards[i][0]) + '.json'; }
+  function storeLink(rel, txt) { return HOURLY ? A(PRICES_URL + rel, txt) : ''; }
+  function guideEvidence(i, o) {
+    var t = cat.cards[i], hz = HOURLY && HOURLY.cards[t[0]], src = o.guide && o.guide.src;
+    return ev([cmLink(i),
+      src === 'live' && tcgdexUrl(i) ? A(tcgdexUrl(i), 'TCGdex API response (live check)') : '',
+      src === 'hourly' && hz && hz.g ? A(GUIDE_FILE, 'Cardmarket price guide file, idProduct ' + hz.g.map(function (g) { return g[0]; }).join(', ')) : '',
+      src === 'hourly' ? storeLink('summary.json.gz', 'price store summary') : '',
+      src === 'snapshot' ? A(t[22] === 'ja' ? 'https://github.com/ZyzyThePizi/pokemon-price-data' : 'https://github.com/kazant/pokedex-scanner-data', 'snapshot source data') : '']);
+  }
+  function tcgEvidence(i, o) {
+    var t = cat.cards[i], p = t[21] || {};
+    return ev([t[22] !== 'ja' ? A('https://prices.pokemontcg.io/tcgplayer/' + encodeURIComponent(t[0]), 'TCGplayer product page') : '',
+      p.tp ? A('https://www.tcgplayer.com/product/' + p.tp, 'TCGplayer product #' + p.tp) : '',
+      o.tcg && o.tcg.src === 'live' ? A(PTCGIO + '/' + encodeURIComponent(t[0]), 'pokemontcg.io API response (live check)') : '',
+      o.tcg && o.tcg.src === 'hourly' ? A('https://tcgcsv.com', 'tcgcsv.com (TCGplayer API dumps)') : '',
+      o.tcg && o.tcg.src === 'snapshot' ? A('https://github.com/psvanzyl/pokemon-tcg', 'snapshot source data') : '']);
+  }
+  function ebayEvidence(i, sold) {
+    var q = (ebayData && ebayData.queries) || {}, links = Object.keys(q).map(function (mp) {
+      return A('https://' + (EBAY_HOST[mp] || 'www.ebay.com') + '/sch/i.html?_nkw=' + encodeURIComponent(q[mp]) + '&_sacat=183454' + (sold ? '&LH_Sold=1&LH_Complete=1' : ''), (mp || '').replace('EBAY_', 'eBay ') + ' “' + q[mp] + '”');
+    });
+    if (ebayData && ebayData.at) links.push(storeLink(storeRel('ebay', i), 'collected items (store file)'));
+    var x = cat.cards[i][26]; if (sold && x && x.pc) links.push(A(x.pc, 'PriceCharting sales history'));
+    return ev(links);
+  }
+
+  function srcLine(src, at, api) {
+    return src === 'snapshot' ? 'Snapshot of ' + esc(whenText(at)) + '.' : '<span class="lv">● ' + (src === 'hourly' ? 'Hourly' : 'Live') + '</span> from ' + (src === 'hourly' ? 'the price store' : api) + ', source updated ' + esc(whenText(at)) + '.';
+  }
+  // why a store-only section is empty: store unreachable, source switched off (e.g. no API keys), or not this card's turn yet
+  function notCollected(source) {
+    if (!HOURLY) return '<p class="nolang">The hourly price store isn\'t available' + (hourlyErr ? ' (' + esc(hourlyErr) + ')' : '') + '.</p>';
+    var s = HOURLY.sources && HOURLY.sources[source];
+    if (s && !s.ok) return '<p class="nolang">Not collected: ' + esc(s.note || 'source unavailable') + '.</p>';
+    return '<p class="nolang">Not collected for this card yet. The collector refreshes valuable cards every run, others daily or weekly.</p>';
+  }
+  var FLAG_NAMES = { f: 'reverse holo', 1: '1st edition', s: 'signed', a: 'altered' };
+  function flagText(f) { return (f || '').split('').map(function (x) { return FLAG_NAMES[x]; }).join(', '); }
+  var HEAD_SECTION = { trend: 'Cardmarket price guide', thin: 'Cardmarket price guide', listings: 'Cardmarket listings', tcg: 'TCGplayer', sold: 'Sold', graded: 'Graded prices' };
+  // price-store history of one column (2 trend, 3 listing average, 4 TCGplayer, 5 sold median), drawn inside its section
+  function hh(col, label) { return '<div class="hh" data-col="' + col + '" data-label="' + esc(label) + '"></div>'; }
+
+  function pricePart(id, c) {
+    var o = priceOf(id), h = '<div class="prices">';
+    var liveMsg = !live.on ? 'Live checks are paused.' : o.busy ? 'Checking live sources…' : o.err ? 'A live check failed (offline?).' : o.checked ? 'Checked live ' + ago(o.checked) + '.' : '';
+    var checklist = '<ul class="cl">' + PRICES.METHODS.map(function (m, k) { return '<li class="' + (o.cov.flags[k] ? 'y' : 'n') + '">' + esc(m[1]) + '</li>'; }).join('') + '</ul>';
+    if (o.head) {
+      h += '<div class="pstat known"><div class="hl"><b>' + (o.head.src === 'thin' ? '~' : '') + moneyText(o.head.eur, 'EUR') + '</b><span>' + esc(HEAD_LABEL[o.head.src]) +
+        (o.head.src === 'listings' ? ' (' + esc(PRICES.LANGS[o.lang]) + ', ' + settings.cond + ' or better)' : '') + ' · ' + (o.head.fresh ? 'updated' : 'snapshot') + '</span></div>' +
+        covHTML(o.cov, true) + checklist + '<span class="nolang">' + esc(liveMsg) + ' Source and evidence: the “' + HEAD_SECTION[o.head.src] + '” section below.</span>' +
+        ev([FX_SRC ? A(ECB, 'exchange rate: ' + FX_SRC) : '', FX_SRC ? A('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', 'rate API') : '']) + '</div>';
+    } else {
+      h += '<div class="pstat unknown"><b>No price known</b>' + covHTML(o.cov, true) + checklist + '<span>No source has price data for this ' + (c.lang === 'ja' ? 'Japanese ' : '') + 'print' +
+        (o.busy ? '. Checking live sources…' : o.checked ? ', checked live ' + ago(o.checked) + '.' : '.') + '</span></div>';
+    }
+    h += bundlePart(id);
+    // Cardmarket price guide, with its history graphs
+    h += '<details class="sec" data-k="guide" open><summary><h4>Cardmarket price guide</h4><span>' + (o.guide && o.guide.trend != null ? 'trend ' + moneyText(o.guide.trend, 'EUR') : 'none') + '</span></summary>';
+    if (o.guide) {
+      h += '<p class="src">' + (c.lang === 'ja' ? 'Japanese-language copies only (separate Cardmarket products).' : 'All European languages pooled into one figure.') +
+        (o.guide.thin ? ' Few recent sales: a rough guide.' : '') + ' ' + srcLine(o.guide.src, o.guide.at, 'api.tcgdex.net') + '</p>';
+      h += ptable(['Variant', 'Trend', 'From', '1-day', '7-day', '30-day'], o.guide.rows.map(function (r) { return [esc(r[0]), money(r[1]), money(r[2]), money(r[3]), money(r[4]), money(r[5])]; }), 1);
+    } else h += '<p class="nolang">No Cardmarket price guide entry for this card.</p>';
+    h += guideEvidence(id, o);
+    if (c.hist && c.hist.e) h += spark(c.hist.e, AXES.e, 'EUR', 'Cardmarket trend, snapshot history' + (c.lang === 'ja' ? ' (Japanese copies)' : ''));
+    h += hh(2, 'Cardmarket trend, price store history') + '</details>';
+    // Cardmarket listings by language and condition, every listing, history
+    h += '<details class="sec" data-k="listings" open><summary><h4>Cardmarket listings</h4><span>' + (o.listings ? fmt(o.listings.n) + ' listed' : 'not collected') + '</span></summary>' + listingMatrix(o);
+    if (o.listings) h += '<details class="sub" data-k="every"><summary>Every listing (' + fmt(o.listings.n) + ')</summary><div id="cmList">' + (o.listings.n ? '<p class="nolang">Loading…</p>' : '<p class="nolang">No listings on Cardmarket when checked ' + esc(whenText(o.listings.at)) + '.</p>') + '</div></details>';
+    h += ev([cmLink(id), o.listings && o.listings.n ? storeLink(storeRel('cardmarket', id), 'all listings as collected (store file)') : '', o.listings ? A('https://api.cardmarket.com/ws/documentation/API_2.0:Articles', 'Cardmarket API: articles') : '']);
+    h += hh(3, 'Listing average (' + (PRICES.LANGS[o.lang] || '') + ', ' + settings.cond + ' or better), price store history') + '</details>';
+    // TCGplayer, with its history graphs
+    h += '<details class="sec" data-k="tcg"' + (o.tcg ? '' : ' open') + '><summary><h4>TCGplayer</h4><span>' + (o.tcg && o.tcg.market != null ? 'market ' + moneyText(o.tcg.market, 'USD') : 'none') + '</span></summary>';
+    if (o.tcg) h += '<p class="src">US market, English copies, US dollar converted. ' + srcLine(o.tcg.src, o.tcg.at, 'api.pokemontcg.io') + '</p>' +
+      ptable(['Finish', 'Market', 'Low', 'Mid', 'High'], o.tcg.rows.map(function (r) { return [r[5] ? A('https://www.tcgplayer.com/product/' + r[5], r[0]) : esc(r[0]), money(r[1], 'USD'), money(r[2], 'USD'), money(r[3], 'USD'), money(r[4], 'USD')]; }), 1);
+    else h += '<p class="nolang">' + (c.lang === 'ja' ? 'TCGplayer prices are only matched for English prints.' : 'No TCGplayer price for this card.') + '</p>';
+    if (c.lang !== 'ja') h += tcgEvidence(id, o);
+    if (c.hist && c.hist.u) h += spark(c.hist.u, AXES.u, 'USD', 'TCGplayer market, snapshot history');
+    h += hh(4, 'TCGplayer market, price store history') + '</details>';
+    return h + '</div>';
+  }
+  // re-render the price sections of the open card, keeping which toggles are open and what was loaded
+  var openHist = null;
+  function rerenderPrices() {
+    if (openId < 0 || !$('pnow')) return;
+    var open = {}; document.querySelectorAll('#pnow details[data-k]').forEach(function (d) { open[d.dataset.k] = d.open; });
+    $('pnow').innerHTML = pricePart(openId, PTCG.expand(cat.cards[openId]));
+    document.querySelectorAll('#pnow details[data-k]').forEach(function (d) { if (d.dataset.k in open) d.open = open[d.dataset.k]; });
+    afterPrices();
+  }
+  function afterPrices() { if (cmArticles && $('cmList')) $('cmList').innerHTML = articleList(); fillHist(); }
+  function fillHist() {
+    document.querySelectorAll('#sheet .hh').forEach(function (el) {
+      var col = +el.dataset.col, pts = (openHist || []).filter(function (p) { return p[col] != null; });
+      el.innerHTML = pts.length >= 2 ? spark([0].concat(pts.map(function (p) { return p[col]; })), pts.map(function (p) { return p[0]; }), 'EUR', el.dataset.label) : '';
+    });
+  }
+
+  // ---- all languages of this card: every print, and Cardmarket listings per language across all of them ----
+  function bundlePart(id) {
+    var ids = bundleIds(id); if (ids.length < 2) return '';
+    var merged = {};
+    var rows = ids.map(function (i) {
+      var t = cat.cards[i], s = cat.sets[cat.setIx[i]], o = priceOf(i);
+      if (o.listings && o.listings.groups) for (var k in o.listings.groups) {
+        var g = o.listings.groups[k], m = merged[k];
+        merged[k] = m ? [m[0] + g[0], Math.min(m[1], g[1]), null, (m[3] * m[0] + g[3] * g[0]) / (m[0] + g[0]), Math.max(m[4], g[4])] : g.slice();
+      }
+      return '<tr' + (i === id ? ' class="here"' : '') + '><td><span class="lb">' + langOf(i) + '</span></td><td>' + (i === id ? '<b>' + esc(s.ne || s.n) + ' #' + esc(t[8]) + '</b>' : '<button type="button" class="link" data-open="' + i + '">' + esc(s.ne || s.n) + ' #' + esc(t[8]) + '</button>') +
+        '<small>' + esc(t[1]) + (t[6] ? ' · ' + esc(t[6]) : '') + '</small></td><td class="hl">' + (o.head ? moneyText(o.head.eur, 'EUR') : '—') + '</td><td>' + (o.guide && o.guide.trend != null ? moneyText(o.guide.trend, 'EUR') : '—') +
+        '</td><td>' + (o.tcg && o.tcg.market != null ? moneyText(o.tcg.market, 'USD') : '—') + '</td><td>' + covHTML(o.cov) + '</td><td>' + cmLink(i, true) + '</td></tr>';
+    });
+    var langs = {}; Object.keys(merged).forEach(function (k) { langs[k.split('|')[0]] = 1; });
+    var lt = Object.keys(langs).map(function (l) { var a = PRICES.listingAvg(merged, +l, settings.cond); return a ? [+l, a] : null; }).filter(Boolean).sort(function (a, b) { return b[1].n - a[1].n; });
+    var h = '<details class="sec" data-k="langs" open><summary><h4>All languages</h4><span>' + ids.length + ' prints</span></summary><p class="src">The same card in other languages and same-art reprints, matched by Cardmarket’s card id (metacard) and illustrator. Open any print for its own prices and evidence.</p>' +
+      '<div class="ptable"><table class="bt"><thead><tr><th>Lang</th><th>Print</th><th>Price</th><th>CM trend</th><th>TCGplayer</th><th>Data</th><th>Cardmarket</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+    if (lt.length) h += '<h5 class="subh">Cardmarket listings per language, all prints together, ' + settings.cond + ' or better</h5><div class="ptable"><table><thead><tr><th>Language</th><th>Copies</th><th>Average</th><th>From</th></tr></thead><tbody>' +
+      lt.map(function (x) { return '<tr><td>' + esc(PRICES.LANGS[x[0]] || x[0]) + '</td><td>' + x[1].n + '</td><td class="hl">' + moneyText(x[1].avg, 'EUR') + '</td><td>' + moneyText(x[1].min, 'EUR') + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    else h += '<p class="nolang">No Cardmarket listings collected for these prints yet' + (HOURLY && HOURLY.sources && HOURLY.sources.listings && !HOURLY.sources.listings.ok ? ' (' + esc(HOURLY.sources.listings.note) + ')' : '') + '.</p>';
+    return h + '</details>';
+  }
+  // ---- Cardmarket listings: language x condition matrix and a calculator for any language / condition ----
+  var sel = null, cmArticles = null; // current selection and the loaded listing file of the open card
+  function listingMatrix(o) {
+    if (!o.listings) return notCollected('listings');
+    if (!o.listings.groups) return '<p class="nolang">No listings on Cardmarket when checked ' + esc(whenText(o.listings.at)) + '.</p>';
+    var rows = new Map(), conds = {};
+    Object.keys(o.listings.groups).forEach(function (k) {
+      var p = k.split('|'), rk = p[0] + '|' + p[2];
+      if (!rows.has(rk)) rows.set(rk, { lang: +p[0], flags: p[2], cells: {}, n: 0 });
+      var r = rows.get(rk); r.cells[p[1]] = o.listings.groups[k]; r.n += o.listings.groups[k][0]; conds[p[1]] = 1;
+    });
+    var cs = PRICES.CONDS.filter(function (x) { return conds[x]; });
+    var list = Array.from(rows.values()).sort(function (a, b) { return (b.lang === o.lang) - (a.lang === o.lang) || (a.flags ? 1 : 0) - (b.flags ? 1 : 0) || b.n - a.n; });
+    var h = '<p class="src">Average asking price per language and condition (outer 10% trimmed), number of copies below. Checked ' + esc(whenText(o.listings.at)) + '. Pick a cell or use the calculator.</p>';
+    h += '<div class="ptable"><table class="lm"><thead><tr><th>Language</th>' + cs.map(function (x) { return '<th title="' + PRICES.COND_NAMES[x] + '">' + x + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      list.map(function (r) {
+        return '<tr><td>' + esc(PRICES.LANGS[r.lang] || 'Language ' + r.lang) + (r.flags ? ' <small>' + esc(flagText(r.flags)) + '</small>' : '') + '</td>' + cs.map(function (x) {
+          var s = r.cells[x]; if (!s) return '<td class="e">·</td>';
+          var on = sel && sel.lang === r.lang && sel.cond === x && sel.flags === r.flags && !sel.better;
+          return '<td><button type="button" class="lc' + (on ? ' on' : '') + '" data-lang="' + r.lang + '" data-cond="' + x + '" data-flags="' + r.flags + '" title="' + s[0] + ' copies · min ' + esc(moneyText(s[1], 'EUR')) + ' · median ' + esc(moneyText(s[2], 'EUR')) + ' · max ' + esc(moneyText(s[4], 'EUR')) + '">' + moneyText(s[3], 'EUR') + '<small>' + s[0] + '</small></button></td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+    var langs = Array.from(new Set(list.map(function (r) { return r.lang; })));
+    if (!sel) sel = { lang: langs.indexOf(o.lang) >= 0 ? o.lang : langs[0], cond: settings.cond, better: true, flags: '' };
+    h += '<div class="calc"><label>Language <select data-sel="lang">' + langs.map(function (l) { return '<option value="' + l + '"' + (l === sel.lang ? ' selected' : '') + '>' + esc(PRICES.LANGS[l] || l) + '</option>'; }).join('') + '</select></label>' +
+      '<label>Condition <select data-sel="cond">' + PRICES.CONDS.map(function (x) { return '<option value="' + x + '"' + (x === sel.cond ? ' selected' : '') + '>' + x + ' · ' + PRICES.COND_NAMES[x] + '</option>'; }).join('') + '</select></label>' +
+      '<label class="check"><input type="checkbox" data-sel="better"' + (sel.better ? ' checked' : '') + '> or better</label>' +
+      '<label class="check"><input type="checkbox" data-sel="flags"' + (sel.flags === 'f' ? ' checked' : '') + '> reverse holo</label>' +
+      '<div class="calcout" id="calcOut">' + calcText(o) + '</div></div>';
+    return h;
+  }
+  function selMatch(lang, cond, flags) {
+    if (lang !== sel.lang || flags !== sel.flags) return false;
+    var a = PRICES.CONDS.indexOf(cond), b = PRICES.CONDS.indexOf(sel.cond);
+    return sel.better ? a <= b : a === b;
+  }
+  // exact statistics from the listing file once loaded, otherwise combined from the stored groups
+  function calcText(o) {
+    var what = esc(PRICES.LANGS[sel.lang] || sel.lang) + ', ' + sel.cond + (sel.better ? ' or better' : '') + (sel.flags ? ', ' + esc(flagText(sel.flags)) : '');
+    var s = null, exact = false;
+    if (cmArticles) {
+      var vals = [];
+      cmArticles.forEach(function (a) { var f = (a[5] ? 'f' : '') + (a[7] ? '1' : '') + (a[6] ? 's' : '') + (a[8] ? 'a' : ''); if (selMatch(a[1], a[2], f)) for (var q = 0; q < Math.min(4, a[4] || 1); q++) vals.push(a[3]); });
+      s = PRICES.stats(vals); exact = true;
+    } else if (o.listings && o.listings.groups) {
+      var n = 0, sum = 0, mn = null, mx = null;
+      Object.keys(o.listings.groups).forEach(function (k) {
+        var p = k.split('|'), g = o.listings.groups[k];
+        if (!selMatch(+p[0], p[1], p[2])) return;
+        n += g[0]; sum += g[3] * g[0]; mn = mn == null ? g[1] : Math.min(mn, g[1]); mx = mx == null ? g[4] : Math.max(mx, g[4]);
+      });
+      if (n) s = [n, mn, null, sum / n, mx];
+    }
+    if (!s) return 'No listings for ' + what + '.';
+    return '<b>' + moneyText(s[3], 'EUR') + '</b> average for ' + what + ' · ' + s[0] + (s[0] === 1 ? ' copy' : ' copies') + ' · from ' + moneyText(s[1], 'EUR') +
+      (s[2] != null ? ' · median ' + moneyText(s[2], 'EUR') : '') + ' · up to ' + moneyText(s[4], 'EUR') + (exact ? '' : ' <small>(combined groups; open “Every listing” for exact median)</small>');
+  }
+  function refreshCalc() {
+    if (openId < 0) return;
+    var o = priceOf(openId), out = $('calcOut'); if (out) out.innerHTML = calcText(o);
+    document.querySelectorAll('#sheet .lc').forEach(function (b) { b.classList.toggle('on', +b.dataset.lang === sel.lang && b.dataset.cond === sel.cond && b.dataset.flags === sel.flags && !sel.better); });
+    if (cmArticles) $('cmList').innerHTML = articleList();
+  }
+  function articleList() {
+    var rows = cmArticles.filter(function (a) { return selMatch(a[1], a[2], (a[5] ? 'f' : '') + (a[7] ? '1' : '') + (a[6] ? 's' : '') + (a[8] ? 'a' : '')); }).sort(function (a, b) { return a[3] - b[3]; });
+    if (!rows.length) return '<p class="nolang">No listings match the selection above (' + fmt(cmArticles.length) + ' listings in total).</p>';
+    return '<p class="src">' + fmt(rows.length) + ' of ' + fmt(cmArticles.length) + ' listings match the selection above, cheapest first.</p><div class="ptable"><table><thead><tr><th>Price</th><th>Qty</th><th>Cond.</th><th>Language</th><th>Extras</th><th>Seller</th><th>Comment</th></tr></thead><tbody>' +
+      rows.slice(0, 300).map(function (a) {
+        return '<tr><td class="hl">' + money(a[3], 'EUR') + '</td><td>' + a[4] + '</td><td title="' + PRICES.COND_NAMES[a[2]] + '">' + esc(a[2]) + '</td><td>' + esc(PRICES.LANGS[a[1]] || a[1]) + '</td><td>' + esc(flagText((a[5] ? 'f' : '') + (a[7] ? '1' : '') + (a[6] ? 's' : '') + (a[8] ? 'a' : ''))) + '</td><td>' + (a[10] ? A('https://www.cardmarket.com/en/Pokemon/Users/' + encodeURIComponent(a[10]), a[10]) : '') + ' <small>' + esc(a[9]) + '</small></td><td class="cm">' + esc(a[11]) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' + (rows.length > 300 ? '<p class="nolang">Showing the 300 cheapest.</p>' : '');
+  }
+
+  // ---- lists: eBay for sale, sold (eBay + PriceCharting), each with its evidence and history ----
+  function listsPart(id, c) {
+    var o = priceOf(id), en = o.ebay ? o.ebay.en : [0, 0], pcSold = c.sales && c.sales.s ? c.sales.s.length : 0;
+    return '<div class="prices lists">' +
+      '<details class="sec" data-k="eba"><summary><h4>eBay · for sale</h4><span>' + (o.ebay ? fmt(en[0]) : '—') + '</span></summary><div id="ebActive">' + (o.ebay ? '<p class="nolang">Loading…</p>' : notCollected('ebay')) + '</div><div id="ebEvA"></div></details>' +
+      '<details class="sec" data-k="ebs"><summary><h4>Sold</h4><span>' + (o.ebay || pcSold ? fmt(en[1] + pcSold) : '—') + '</span></summary><div id="ebSold">' + (o.ebay || pcSold ? '<p class="nolang">Loading…</p>' : notCollected('ebay')) + '</div><div id="ebEvS"></div>' +
+      hh(5, 'Sold median (raw copies), price store history') + '</details></div>';
+  }
+  var fileCache = new Map();
+  function storeFile(rel) { if (!fileCache.has(rel)) fileCache.set(rel, storeGet(rel).catch(function (e) { fileCache.delete(rel); throw e; })); return fileCache.get(rel); }
+  function safeName(s) { return String(s).replace(/[^A-Za-z0-9._-]/g, '_'); }
+  var ebayFilter = 'all';
+  function itemRows(items, kind) {
+    var list = items.filter(function (r) { return ebayFilter === 'all' || (ebayFilter === 'graded') === !!r[12]; });
+    list.sort(kind === 'sold' ? function (a, b) { return a[6] < b[6] ? 1 : -1; } : function (a, b) { return (toDisp(a[2], a[3]) || 0) - (toDisp(b[2], b[3]) || 0); });
+    var seg = '<div class="seg3 fseg">' + [['all', 'All'], ['raw', 'Raw'], ['graded', 'Graded']].map(function (f) { return '<button type="button" class="chip plain" data-ebf="' + f[0] + '" aria-pressed="' + (ebayFilter === f[0]) + '">' + f[1] + ' <span class="n">' + items.filter(function (r) { return f[0] === 'all' || (f[0] === 'graded') === !!r[12]; }).length + '</span></button>'; }).join('') + '</div>';
+    if (!list.length) return seg + '<p class="nolang">Nothing in this filter.</p>';
+    var st = PRICES.stats(list.map(function (r) { return toDisp(r[2], r[3]); }));
+    return seg + '<p class="src">' + list.length + ' items · median ' + fmtCur(st[2], settings.currency) + ' · average ' + fmtCur(st[3], settings.currency) + ' (outer 10% trimmed)</p><div class="items">' + list.map(function (r) {
+      var extra = [r[4], r[5] === 'PriceCharting' ? 'PriceCharting' : (r[5] || '').replace('EBAY_', 'eBay '), r[11], r[6] ? fmtDate(r[6].slice(0, 10)) : '', r[9] === 'AUCTION' ? 'auction · ' + r[10] + ' bids' : r[9] === 'SOLD' && r[10] > 1 ? r[10] + ' sold' : ''].filter(Boolean);
+      return '<div class="item">' + (r[7] ? '<img loading="lazy" alt="" src="' + esc(r[7]) + '">' : '<span class="noimg"></span>') + '<div class="it">' +
+        (r[8] ? '<a target="_blank" rel="noopener" href="' + esc(r[8]) + '">' + esc(r[1]) + '</a>' : '<span>' + esc(r[1]) + '</span>') +
+        '<div class="im"><b>' + money(r[2], r[3]) + '</b>' + (r[12] ? '<span class="gr">graded</span>' : '') + extra.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div></div></div>';
+    }).join('') + '</div>';
+  }
+  var ebayData = null;
+  function renderEbay() {
+    if (!ebayData) return;
+    if ($('ebActive') && ebayData.active) $('ebActive').innerHTML = ebayData.active.length ? itemRows(ebayData.active, 'active') : '<p class="nolang">No matching listings for sale when checked ' + esc(whenText(ebayData.at)) + '.</p>';
+    if ($('ebSold')) $('ebSold').innerHTML = ebayData.sold.length ? itemRows(ebayData.sold, 'sold') : '<p class="nolang">No sold items found.</p>';
+    if ($('ebEvA') && ebayData.active) $('ebEvA').innerHTML = ebayEvidence(openId, false);
+    if ($('ebEvS')) $('ebEvS').innerHTML = ebayEvidence(openId, true);
+  }
+  // loads the open card's files from the price store: listings, eBay items, hourly history
+  function loadDetail(id, c, set) {
+    var o = priceOf(id), t = cat.cards[id], pcSold = (c.sales && c.sales.s || []).map(function (r) {
+      return [null, r[2], r[3], 'USD', r[1], 'PriceCharting', r[0], '', r[4], 'SOLD', 1, '', /ungraded/i.test(r[1]) ? 0 : 1];
+    });
+    cmArticles = null; ebayData = null;
+    if (o.listings && o.listings.n) storeFile('listings/cardmarket/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(function (f) {
+      if (openId !== id) return;
+      cmArticles = f ? f.products.reduce(function (a, p) { return a.concat(p.articles); }, []) : [];
+      $('cmList').innerHTML = cmArticles.length ? articleList() : '<p class="nolang">The listing file is missing from the store.</p>';
+      refreshCalc();
+    }, function (e) { if ($('cmList')) $('cmList').innerHTML = '<p class="nolang">Could not load the listings (' + esc(e.message) + ').</p>'; });
+    else if (o.listings && $('cmList')) $('cmList').innerHTML = '<p class="nolang">No listings on Cardmarket when checked ' + esc(whenText(o.listings.at)) + '.</p>';
+    var ebDone = function (f) {
+      if (openId !== id) return;
+      ebayData = { at: f ? f.at : '', queries: f ? f.queries : null, active: f ? f.active : null, sold: (f ? f.sold : []).concat(pcSold) };
+      if (!f && $('ebActive')) $('ebActive').innerHTML = notCollected('ebay');
+      renderEbay();
+    };
+    if (o.ebay) storeFile('listings/ebay/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(ebDone, function () { ebDone(null); });
+    else if (pcSold.length) ebDone(null);
+    if (HOURLY && HOURLY.cards[t[0]]) storeFile('history/' + safeName(set.id) + '.json.gz').then(function (hist) {
+      if (openId !== id) return;
+      openHist = (hist && hist[t[0]]) || null; fillHist();
+    }, function () {});
+  }
+
   function spark(h, axis, cur, label) {
     var st = h[0], vals = h.slice(1), pts = [];
     var ok = vals.filter(function (v) { return v != null; }).sort(function (a, b) { return a - b; }), md = ok[ok.length >> 1];
-    vals.forEach(function (v, i) { if (v != null && v > md / 8 && v < md * 8) pts.push([st + i, v]); });
+    vals.forEach(function (v, i) { if (v != null && v > md / 8 && v < md * 8) pts.push([st + i, toDisp(v, cur)]); });
+    pts = pts.filter(function (p) { return p[1] != null; });
     if (pts.length < 2) return '';
     var W = 300, H = 84, pad = 4, x0 = pts[0][0], x1 = pts[pts.length - 1][0];
     var lo = Math.min.apply(null, pts.map(function (p) { return p[1]; })), hi = Math.max.apply(null, pts.map(function (p) { return p[1]; }));
@@ -655,62 +1380,24 @@ a.ext { color: var(--accent); font-weight: 700 }
     var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1); }).join(' ');
     var area = line + ' L' + X(x1).toFixed(1) + ' ' + H + ' L' + X(x0).toFixed(1) + ' ' + H + ' Z';
     var first = pts[0][1], last = pts[pts.length - 1][1], pc = first > 0 ? (last - first) / first * 100 : 0;
-    var col = pc >= 0 ? 'var(--up)' : 'var(--down)', lp = pts[pts.length - 1];
+    var col = pc >= 0 ? 'var(--up)' : 'var(--down)', lp = pts[pts.length - 1], disp = function (v) { return fmtCur(v, settings.currency); };
     var grid = [0.25, 0.5, 0.75].map(function (g) { return '<line x1="0" x2="' + W + '" y1="' + (pad + g * (H - pad * 2)) + '" y2="' + (pad + g * (H - pad * 2)) + '" stroke="var(--line)" stroke-width="1"/>'; }).join('');
-    return '<div class="spark"><div class="big">' + money(last, cur) + ' <span class="chg ' + (pc >= 0 ? 'up">▲' : 'down">▼') + Math.abs(pc).toFixed(1) + '% since ' + esc(fmtDate(axis[x0])) + '</span></div>' +
+    return '<div class="spark"><div class="big">' + disp(last) + ' <span class="chg ' + (pc >= 0 ? 'up">▲' : 'down">▼') + Math.abs(pc).toFixed(1) + '% since ' + esc(fmtDate(axis[x0])) + '</span></div>' +
       '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(label) + ' history">' + grid +
       '<path d="' + area + '" fill="' + col + '" fill-opacity=".12"/><path d="' + line + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round"/>' +
       '<circle cx="' + X(lp[0]).toFixed(1) + '" cy="' + Y(lp[1]).toFixed(1) + '" r="3.5" fill="' + col + '"/></svg>' +
       '<div class="lbl"><span>' + esc(fmtDate(axis[x0])) + '</span><span>' + esc(fmtDate(axis[x1])) + '</span></div>' +
-      '<div class="lbl"><span>' + esc(label) + '</span><span>low ' + money(rlo, cur) + ' · high ' + money(rhi, cur) + '</span></div></div>';
+      '<div class="lbl"><span>' + esc(label) + '</span><span>low ' + disp(rlo) + ' · high ' + disp(rhi) + '</span></div></div>';
   }
-  function salesBlock(c) {
-    var x = c.sales; if (!x) return '';
+  function gradedBlock(c) {
+    var x = c.sales; if (!x || !x.g.some(function (v) { return v != null; })) return '';
     var G = ['Ungraded', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 9.5', 'PSA 10'];
-    var h = '<div class="prices"><div><h4>Graded prices &amp; recent sales</h4><p class="src">PriceCharting, US dollar' + (c.lang === 'ja' ? ', Japanese copies' : '') + '. Grades 7–9.5 combine PSA, CGC and BGS sales. Retrieved 22 Oct 2026.</p>';
-    h += '<div class="grades">' + G.map(function (g, i) { return '<div><span>' + g + '</span><b>' + money(x.g[i], 'usd') + '</b></div>'; }).join('') + '</div></div>';
-    if (x.s.length) {
-      h += '<div><h4 style="font-size:14px">Recent sold listings</h4><div class="sold">' +
-        x.s.map(function (r) {
-          var t = esc(r[2]), where = r[4] ? (/ebay/.test(r[4]) ? 'eBay' : /tcgplayer/.test(r[4]) ? 'TCGplayer' : 'Link') : 'Auction house';
-          return '<div class="srow"><div class="sl"><b>' + money(r[3], 'usd') + '</b><span>' + esc(r[1]) + '</span><span>' + esc(fmtDate(r[0])) + ' · ' + where + '</span></div>' +
-            (r[4] ? '<a class="ext" target="_blank" rel="noopener" href="' + esc(r[4]) + '">' + t + '</a>' : '<span>' + t + '</span>') + '</div>';
-        }).join('') + '</div></div>';
-    }
-    h += '<p class="nolang"><a class="ext" target="_blank" rel="noopener" href="' + esc(x.pc) + '">Full sales history on PriceCharting</a></p>';
-    return h + '</div>';
+    return '<div class="prices"><details class="sec" data-k="graded" open><summary><h4>Graded prices</h4><span>PSA 10 ' + moneyText(x.g[5], 'USD') + '</span></summary><p class="src">PriceCharting, US dollar converted' + (c.lang === 'ja' ? ', Japanese copies' : '') + '. Grades 7–9.5 combine PSA, CGC and BGS sales. ' + (x.at ? 'Refreshed ' + esc(whenText(x.at)) + '.' : 'Retrieved 22 Oct 2026.') + '</p>' +
+      '<div class="grades">' + G.map(function (g, i) { return '<div><span>' + g + '</span><b>' + money(x.g[i], 'USD') + '</b></div>'; }).join('') + '</div>' +
+      ev([x.pc ? A(x.pc, 'PriceCharting page') : '', x.at ? A('https://www.pricecharting.com/api-documentation', 'PriceCharting API') : '']) + '</details></div>';
   }
   function fmtDate(d) { if (!d) return ''; var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return +d.slice(8, 10) + ' ' + m[+d.slice(5, 7) - 1]; }
-  function L(href, txt, cls) { return '<a target="_blank" rel="noopener"' + (cls ? ' class="' + cls + '"' : '') + ' href="' + esc(href) + '">' + txt + '</a>'; }
-  function ebay(host, q) {
-    var b = 'https://' + host + '/sch/i.html?_nkw=' + encodeURIComponent(q);
-    return L(b + '&LH_Sold=1&LH_Complete=1', 'eBay sold', 'sold') + L(b + '&_sop=15', 'eBay for sale');
-  }
-  var EBAY = { en: ['www.ebay.com', 'English'], uk: ['www.ebay.co.uk', 'English · UK'], de: ['www.ebay.de', 'Deutsch'], fr: ['www.ebay.fr', 'Français'], it: ['www.ebay.it', 'Italiano'], es: ['www.ebay.es', 'Español'], nl: ['www.ebay.nl', 'Nederlands'] };
-  function markets(c, set) {
-    var num = c.number && set.pt && /^\d+$/.test(c.number) ? c.number.replace(/^0+/, '') + '/' + set.pt : c.number;
-    var enName = c.lang === 'ja' ? (c.alias || c.name) : c.name;
-    var setEn = set.ne || set.n;
-    var rows = [];
-    if (c.lang === 'ja') {
-      var jq = c.name + ' ' + set.c + ' ' + c.number;
-      rows.push(['Japanese', c.name, L('https://auctions.yahoo.co.jp/closedsearch/closedsearch?p=' + encodeURIComponent(jq), 'Yahoo! sold', 'sold') + L('https://jp.mercari.com/search?keyword=' + encodeURIComponent(jq), 'Mercari') + L('https://snkrdunk.com/search?keywords=' + encodeURIComponent(jq), 'SNKRDUNK') + ebay('www.ebay.com', enName + ' ' + set.c + ' ' + c.number + ' japanese')]);
-      rows.push(['Guides', '', L('https://www.pricecharting.com/search-products?type=prices&q=' + encodeURIComponent(enName + ' japanese ' + setEn + ' ' + c.number), 'PriceCharting (graded)', 'sold') + L('https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(enName), 'Cardmarket')]);
-    } else {
-      var names = c.names || {};
-      rows.push(['English', c.name, ebay(EBAY.en[0], c.name + ' ' + num + ' ' + setEn) + L('https://www.tcgplayer.com/' + (c.price && c.price.tp ? 'product/' + c.price.tp : 'search/pokemon/product?q=' + encodeURIComponent(c.name + ' ' + setEn)), 'TCGplayer')]);
-      rows.push(['UK', c.name, ebay(EBAY.uk[0], c.name + ' ' + num + ' ' + setEn)]);
-      ['de', 'fr', 'it', 'es'].forEach(function (l) {
-        var nm = names[l] || c.name;
-        rows.push([EBAY[l][1], nm, ebay(EBAY[l][0], nm + ' ' + num)]);
-      });
-      rows.push(['Belgium · NL', c.name, ebay('www.benl.ebay.be', c.name + ' ' + num)]);
-      rows.push(['Guides', '', L('https://www.pricecharting.com/search-products?type=prices&q=' + encodeURIComponent(c.name + ' ' + setEn + ' ' + num), 'PriceCharting (graded)', 'sold') + L('https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(c.name), 'Cardmarket')]);
-    }
-    return '<div class="markets"><h4>Live prices & sold listings</h4><p class="nolang">Each language is searched on its own market with its own card name. Green buttons show completed sales.</p>' +
-      rows.map(function (r) { return '<div class="mrow"><div class="who">' + esc(r[0]) + (r[1] ? '<b>' + esc(r[1]) + '</b>' : '') + '</div><div class="mlinks">' + r[2] + '</div></div>'; }).join('') + '</div>';
-  }
-  function closeCard() { var d = $('dlg'); if (d.close) d.close(); else d.removeAttribute('open'); }
+  function closeCard() { var d = $('dlg'); openId = -1; if (d.close) d.close(); else d.removeAttribute('open'); }
 
   // ---------- status ----------
   function ago(ts) { var s = (Date.now() - ts) / 1000; return s < 60 ? 'just now' : s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; }
@@ -719,13 +1406,17 @@ a.ext { color: var(--accent); font-weight: 700 }
     var parts = [fmt(st.cards) + ' cards', st.sets + ' sets', fmt(st.terms) + ' search terms', fmt(st.postings) + ' postings', 'index built in ' + Math.round(st.buildMs) + ' ms',
       (meta.from === 'device' ? 'opened from this device' : 'loaded') + ' in ' + Math.round(meta.loadMs) + ' ms',
       'data ' + (meta.source === 'live' ? 'synced ' + ago(meta.syncedAt) : 'snapshot of ' + String(meta.commit || '').slice(0, 10)),
-      'prices: Cardmarket ' + (DATES.eur || '—') + ', TCGplayer ' + (DATES.usd || '—')];
+      'snapshot prices: Cardmarket ' + (DATES.eur || '—') + ', TCGplayer ' + (DATES.usd || '—'),
+      HOURLY ? 'price store: run ' + ago(Date.parse(HOURLY.at)) + ', refresh every ' + settings.interval + ' min' : 'price store: ' + (hourlyErr || 'loading'),
+      'prices in ' + settings.currency + (FX.USD ? ' (1 USD = ' + FX.USD.toFixed(4) + ' EUR)' : '')];
     var html = parts.map(function (p) { return '<span>' + esc(p) + '</span>'; }).join('');
+    html += '<span id="liveStat"></span><button type="button" id="liveToggle"></button>';
     html += '<span id="usage"></span>';
     if (mode === 'live') html += '<button type="button" id="sync">Check for new sets</button>';
     html += '<button type="button" id="wipe">Clear saved data</button>';
     $('status').innerHTML = html;
     try { navigator.storage.estimate().then(function (e) { if (e.usage) $('usage').textContent = (e.usage / 1048576).toFixed(1) + ' MB stored'; }); } catch (e) {}
+    liveStatus();
   }
 
   // ---------- events ----------
@@ -733,12 +1424,13 @@ a.ext { color: var(--accent); font-weight: 700 }
   qEl.addEventListener('input', function () { state.q = qEl.value; $('clear').hidden = !qEl.value; run(); });
   $('clear').addEventListener('click', function () { qEl.value = ''; state.q = ''; $('clear').hidden = true; run(); qEl.focus(); });
   $('sort').addEventListener('change', function (e) { state.sort = e.target.value; run(); });
-  document.querySelector('.cur').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-cur]'); if (!b) return;
-    state.currency = b.dataset.cur;
-    this.querySelectorAll('[data-cur]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
-    run();
-  });
+  // display currency: every price on the page converts (EUR <-> USD at the ECB rate)
+  function setCurrency(cur) {
+    settings.currency = cur === 'usd' || cur === 'USD' ? 'USD' : 'EUR'; state.currency = settings.currency.toLowerCase(); saveSettings();
+    syncCurrencyButtons(); run();
+    if (openId >= 0) { rerenderPrices(); renderEbay(); }
+  }
+  document.querySelector('.cur').addEventListener('click', function (e) { var b = e.target.closest('[data-cur]'); if (b) setCurrency(b.dataset.cur); });
   $('hints').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; setQuery(b.textContent); });
   function setQuery(q) { qEl.value = q; state.q = q; $('clear').hidden = !q; run(); window.scrollTo({ top: 0 }); }
   $('filtersBtn').addEventListener('click', function () { var r = $('rail'), o = !r.classList.contains('open'); r.classList.toggle('open', o); this.setAttribute('aria-expanded', o); });
@@ -748,14 +1440,17 @@ a.ext { color: var(--accent); font-weight: 700 }
     else if (b.dataset.lang !== undefined) { state.lang = b.dataset.lang; document.querySelectorAll('#fLang [data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
     else if (b.dataset.super !== undefined) { state.supertype = b.dataset.super; document.querySelectorAll('#fSuper [data-super]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
     else if (b.dataset.reg) { toggle(state.reg, b.dataset.reg, b); }
+    else if (b.dataset.priced !== undefined) { setPriced(b.dataset.priced); }
+    else if (b.dataset.cov !== undefined) { state.cov = b.dataset.cov; document.querySelectorAll('#fCov [data-cov]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
     else if (b.id === 'reset') { resetFilters(); }
     else return;
     run();
   });
   function toggle(set, v, el) { if (set.has(v)) set.delete(v); else set.add(v); el.setAttribute('aria-pressed', set.has(v)); }
+  function setPriced(v) { state.priced = v; document.querySelectorAll('#fPriced [data-priced]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.priced === v); }); }
   function resetFilters() {
-    state.type.clear(); state.reg.clear(); state.legal.clear(); state.supertype = ''; state.lang = ''; state.set = ''; state.series = ''; state.rarity = '';
-    document.querySelectorAll('#rail [aria-pressed]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.super === '' || x.dataset.lang === ''); });
+    state.type.clear(); state.reg.clear(); state.legal.clear(); state.supertype = ''; state.lang = ''; state.set = ''; state.series = ''; state.rarity = ''; state.priced = ''; state.cov = '';
+    document.querySelectorAll('#rail [aria-pressed]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.super === '' || x.dataset.lang === '' || x.dataset.priced === '' || x.dataset.cov === ''); });
     $('fSet').value = ''; $('fSeries').value = ''; $('fRarity').value = ''; $('fStd').checked = false; $('fExp').checked = false; $('fSales').checked = false;
   }
   $('fSet').addEventListener('change', function (e) { state.set = e.target.value; run(); });
@@ -763,21 +1458,80 @@ a.ext { color: var(--accent); font-weight: 700 }
   $('fRarity').addEventListener('change', function (e) { state.rarity = e.target.value; run(); });
   $('fStd').addEventListener('change', function (e) { e.target.checked ? state.legal.add('standard') : state.legal.delete('standard'); run(); });
   $('fSales').addEventListener('change', function (e) { e.target.checked ? state.legal.add('sales') : state.legal.delete('sales'); run(); });
+  $('fBundle').addEventListener('change', function (e) { settings.bundle = e.target.checked; saveSettings(); run(); });
   $('fExp').addEventListener('change', function (e) { e.target.checked ? state.legal.add('expanded') : state.legal.delete('expanded'); run(); });
   $('results').addEventListener('click', function (e) {
     if (e.target.id === 'more') { more(); return; }
+    var pb = e.target.closest('[data-priced]'); if (pb) { setPriced(pb.dataset.priced); run(); return; }
     var t = e.target.closest('.tile'); if (t) openCard(+t.dataset.id);
   });
+  $('dlg').addEventListener('close', function () { openId = -1; });
   $('results').addEventListener('error', function (e) { if (e.target.tagName === 'IMG') e.target.remove(); }, true);
   $('dlg').addEventListener('click', function (e) {
     if (e.target === this || e.target.id === 'dclose') { closeCard(); return; }
     var b = e.target.closest('button'); if (!b) return;
     if (b.dataset.q) { closeCard(); setQuery(b.dataset.q); }
     else if (b.dataset.set) { closeCard(); resetFilters(); state.set = b.dataset.set; $('fSet').value = b.dataset.set; state.sort = 'oldest'; $('sort').value = 'oldest'; setQuery(''); }
+    else if (b.classList.contains('lc')) { sel = { lang: +b.dataset.lang, cond: b.dataset.cond, flags: b.dataset.flags, better: false }; syncCalc(); refreshCalc(); }
+    else if (b.dataset.ebf) { ebayFilter = b.dataset.ebf; renderEbay(); }
+    else if (b.dataset.open) { openCard(+b.dataset.open); }
+  });
+  // listing calculator inputs
+  $('sheet').addEventListener('change', function (e) {
+    var k = e.target.dataset.sel; if (!k || !sel) return;
+    if (k === 'lang') sel.lang = +e.target.value; else if (k === 'cond') sel.cond = e.target.value;
+    else if (k === 'better') sel.better = e.target.checked; else if (k === 'flags') sel.flags = e.target.checked ? 'f' : '';
+    refreshCalc();
+  });
+  function syncCalc() {
+    var q = function (k) { return document.querySelector('#sheet [data-sel="' + k + '"]'); };
+    if (q('lang')) q('lang').value = sel.lang; if (q('cond')) q('cond').value = sel.cond;
+    if (q('better')) q('better').checked = sel.better; if (q('flags')) q('flags').checked = sel.flags === 'f';
+  }
+
+  // ---------- settings dialog ----------
+  function openSettings() {
+    var s = settings, src = HOURLY && HOURLY.sources || {};
+    $('setForm').innerHTML =
+      '<h2>Settings</h2>' +
+      '<fieldset><legend>Show every price in</legend><label class="check"><input type="radio" name="cur" value="EUR"' + (s.currency === 'EUR' ? ' checked' : '') + '> Euro (dollar prices converted)</label>' +
+      '<label class="check"><input type="radio" name="cur" value="USD"' + (s.currency === 'USD' ? ' checked' : '') + '> US dollar (euro prices converted)</label></fieldset>' +
+      '<label class="fld">Refresh prices every <span><input type="number" name="interval" min="5" max="1440" step="5" value="' + s.interval + '"> minutes</span></label>' +
+      '<label class="fld">Headline price <select name="headline"><option value="trend"' + (s.headline === 'trend' ? ' selected' : '') + '>Cardmarket trend (sales)</option><option value="listings"' + (s.headline === 'listings' ? ' selected' : '') + '>Cardmarket listing average (asking prices)</option></select></label>' +
+      '<label class="fld">Listing average uses condition <select name="cond">' + PRICES.CONDS.map(function (x) { return '<option value="' + x + '"' + (s.cond === x ? ' selected' : '') + '>' + x + ' · ' + PRICES.COND_NAMES[x] + ' or better</option>'; }).join('') + '</select></label>' +
+      '<label class="check"><input type="checkbox" name="live"' + (s.live ? ' checked' : '') + '> Check cards on screen live from this browser (TCGdex, pokemontcg.io)</label>' +
+      '<h3>Price store</h3><p class="nolang">' + (HOURLY ? 'Last collector run ' + esc(whenText(HOURLY.at)) + ' (' + ago(Date.parse(HOURLY.at)) + '). This page re-reads it every ' + s.interval + ' minutes; last check ' + ago(lastRefresh) + '.' : 'Not reachable' + (hourlyErr ? ': ' + esc(hourlyErr) : '') + '.') + '</p>' +
+      '<ul class="srcs">' + [['fx', 'Exchange rates'], ['guide', 'Cardmarket price guide'], ['tcg', 'TCGplayer'], ['listings', 'Cardmarket listings'], ['ebay', 'eBay']].map(function (k) {
+        var x = src[k[0]]; return '<li class="' + (x ? (x.ok ? 'y' : 'n') : '') + '"><b>' + k[1] + '</b> ' + (x ? esc((x.ok ? 'ok' : 'off') + (x.note ? ' · ' + x.note : '') + (x.count != null ? ' · ' + fmt(x.count) + ' cards' : '')) : '—') + '</li>';
+      }).join('') + '</ul>' +
+      '<div class="row"><button type="button" class="btn ghost" data-act="refresh">Refresh now</button><button type="submit" class="btn">Save</button><button type="button" class="btn ghost" data-act="close">Close</button></div>';
+    $('settings').showModal();
+  }
+  $('setBtn').addEventListener('click', openSettings);
+  $('setForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target, before = settings.headline + settings.cond;
+    settings.interval = Math.max(5, Math.min(1440, +f.interval.value || 60));
+    settings.headline = f.headline.value; settings.cond = f.cond.value;
+    live.on = settings.live = f.live.checked;
+    saveSettings(); scheduleRefresh(); liveStatus(); $('settings').close();
+    if (before !== settings.headline + settings.cond) { applyAll(); run(); }
+    setCurrency(f.querySelector('[name=cur]:checked').value);
+  });
+  $('setForm').addEventListener('click', function (e) {
+    var a = e.target.dataset.act;
+    if (a === 'close') $('settings').close();
+    else if (a === 'refresh') { e.target.textContent = 'Refreshing…'; refreshCycle().then(function (ch) { e.target.textContent = ch ? 'Updated' : 'Up to date'; }); }
   });
   $('sheet').addEventListener('error', function (e) { if (e.target.tagName === 'IMG') e.target.remove(); }, true);
   $('status').addEventListener('click', function (e) {
-    if (e.target.id === 'wipe') {
+    if (e.target.id === 'liveToggle') {
+      live.on = !live.on;
+      settings.live = live.on; saveSettings();
+      if (live.on) { document.querySelectorAll('#grid .tile').forEach(function (el) { el.removeAttribute('data-w'); }); watchTiles(); }
+      else { live.eurQ.length = 0; live.usdQ.length = 0; }
+      liveStatus();
+    } else if (e.target.id === 'wipe') {
       if (e.target.dataset.armed) { clearAll().then(function () { location.reload(); }); }
       else { e.target.dataset.armed = '1'; e.target.textContent = 'Tap again to clear'; }
     } else if (e.target.id === 'sync') {

@@ -16,5 +16,10 @@ for(const f of fs.readdirSync(process.argv[2]||'data/pricecharting')){
     else {const o=JSON.parse(line); norm(o.id,o.pc,o);}
   }
 }
+// graded prices refreshed by fetch-pricecharting.js replace the collected ones (sold listings stay)
+const liveF=require('path').join(__dirname,'../data/pricecharting-live.json');
+if(fs.existsSync(liveF)){ let n=0; for(const [id,x] of Object.entries(JSON.parse(fs.readFileSync(liveF)))){ const e=out.get(id); if(!e) continue;
+  e.g=['ungraded','grade7','grade8','grade9','grade9_5','psa10'].map(k=>x.prices[k]==null?null:+x.prices[k]); e.at=x.at; n++; }
+  console.log(n,'graded prices from the PriceCharting API'); }
 fs.writeFileSync(process.argv[3]||'build/pc_data.json',JSON.stringify(Object.fromEntries(out)));
 console.log(out.size,'cards',[...out.values()].reduce((a,x)=>a+x.s.length,0),'sales');

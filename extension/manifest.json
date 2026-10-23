@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "POcKEtMONey capture",
+  "version": "1.0.0",
+  "description": "Save the Cardmarket, eBay and PriceCharting prices you are looking at into your POcKEtMONey price store.",
+  "permissions": ["storage"],
+  "host_permissions": ["http://127.0.0.1:8787/*", "http://localhost:8787/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "POcKEtMONey capture", "default_popup": "popup.html" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.cardmarket.com/*",
+        "https://www.pricecharting.com/*",
+        "https://www.ebay.com/*", "https://www.ebay.co.uk/*", "https://www.ebay.de/*", "https://www.ebay.fr/*",
+        "https://www.ebay.it/*", "https://www.ebay.es/*", "https://www.ebay.at/*", "https://www.ebay.nl/*", "https://*.ebay.be/*"
+      ],
+      "js": ["parsers.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

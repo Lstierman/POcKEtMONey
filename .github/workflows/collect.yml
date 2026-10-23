@@ -1,0 +1,52 @@
+name: Collect prices
+on:
+  schedule:
+    - cron: "11 * * * *"   # every hour; the collector skips a run younger than intervalMinutes (prices.config.json or the PRICE_INTERVAL_MINUTES variable)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Run even if the last run is younger than the interval
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: prices
+  cancel-in-progress: false
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node --test test/collect.test.js
+      - name: Check out the price store (branch "prices")
+        run: |
+          if git ls-remote --exit-code --heads origin prices >/dev/null; then
+            git fetch -q --depth 1 origin prices && git worktree add -q store FETCH_HEAD
+          else
+            mkdir store && git -C store init -q
+          fi
+      - name: Collect
+        run: node scripts/collect.js store ${{ inputs.force && '--force' || '' }}
+        env:
+          PRICE_INTERVAL_MINUTES: ${{ vars.PRICE_INTERVAL_MINUTES }}
+          CARDMARKET_APP_TOKEN: ${{ secrets.CARDMARKET_APP_TOKEN }}
+          CARDMARKET_APP_SECRET: ${{ secrets.CARDMARKET_APP_SECRET }}
+          CARDMARKET_ACCESS_TOKEN: ${{ secrets.CARDMARKET_ACCESS_TOKEN }}
+          CARDMARKET_ACCESS_SECRET: ${{ secrets.CARDMARKET_ACCESS_SECRET }}
+          CARDTRADER_TOKEN: ${{ secrets.CARDTRADER_TOKEN }}
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+      # The collector exits non-zero if any written file fails re-validation, so a broken store is never published.
+      # The branch is one commit, replaced every run: history lives inside history/*.json.gz, not in git.
+      - name: Publish the store
+        working-directory: store
+        run: |
+          git add -A
+          if git diff --cached --quiet && git rev-parse -q --verify HEAD >/dev/null; then echo "nothing new"; exit 0; fi
+          git checkout -q --orphan snapshot
+          git -c user.name=price-bot -c user.email=actions@users.noreply.github.com commit -q -m "Prices $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" snapshot:prices

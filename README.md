@@ -4,6 +4,8 @@ Every English and Japanese Pokémon TCG card in one page that works offline, sea
 
 - **33,641 cards**: 20,635 English (Base Set through *30th Celebration*) and 13,006 Japanese prints, each language as its own card with its own prices.
 - **Prices**: Cardmarket (EUR, per variant, 6 weeks of history), TCGplayer (USD, per variant, 2 weeks of history), and PriceCharting graded prices with recent sold listings (linked) for the cards in `data/pricecharting/`.
+- **Hourly prices**: a collector refreshes Cardmarket (price guide and every individual listing, averaged per language and condition), TCGplayer and eBay (for sale and sold) every hour into a separate price store. The cards on screen are also checked live from the browser.
+- **Price data label** on every card, from *No data* to *Complete* (all six methods), and **one currency** for everything: euro or dollar, converted at the ECB rate.
 - **Search**: names in English, Japanese, German, French, Spanish, Italian and Portuguese (`glurak` finds Charizard), typo-tolerant (`charzard`), plus field queries.
 
 Open `index.html` in a browser. Served from GitHub Pages, card images load as well.
@@ -19,7 +21,92 @@ Open `index.html` in a browser. Served from GitHub Pages, card images load as we
 | `price>50`, `eur<5`, `usd>=100` | price, in the selected currency |
 | `lang:ja pikachu` | Japanese prints only |
 | `has:sales` | cards with graded prices and sold listings |
+| `has:price`, `-has:price` | cards with / without any known price |
+| `data>=4` | cards with at least 4 of the 6 price-data methods |
 | `-supporter` | excludes a word |
+
+## Prices
+
+Every card's price comes from three layers. For each source the newest copy wins:
+
+1. **Snapshot** built into `index.html` by the daily build (works offline).
+2. **Price store**: the `prices` branch, refreshed by the hourly collector (`scripts/collect.js`, workflow *Collect prices*). The page reads it on open and again every refresh interval.
+3. **Live checks** from the browser for the cards on screen: Cardmarket via `api.tcgdex.net`, TCGplayer via `api.pokemontcg.io`.
+
+### What the collector fetches
+
+| Source | Data | Needs |
+|---|---|---|
+| ECB exchange rates (frankfurter.dev) | EUR per USD, GBP, … | nothing |
+| Cardmarket price guide | trend, low, 1/7/30-day averages per product, all cards | nothing |
+| TCGplayer (tcgcsv.com) | market, low, mid, high per finish | nothing |
+| **Cardmarket listings** (API 2.0) | **every article**: language, condition, price, quantity, reverse holo / 1st edition / signed / altered, seller country, comment | Cardmarket app keys |
+| **eBay for sale** (Browse API) | items per marketplace (DE, US, GB, FR by default), local-language search, other card numbers dropped, graded copies flagged | eBay developer keys |
+| **eBay sold** (Marketplace Insights API) | sold items with date and price | eBay must grant this API to your app |
+
+Cardmarket listings are grouped per **language × condition × extras**, with count, min, median, trimmed average (the outer 10% dropped) and max for each group. The page shows them as a matrix, plus a calculator: pick any language and condition (exact, or "or better", optionally reverse holo) and it computes the average from the stored listings.
+
+Paid and limited APIs are spent within a per-run budget (`prices.config.json`). Valuable cards (≥ €50 by default) and the `always` list are refreshed every run, cards ≥ €5 daily, the rest weekly. The most overdue and most valuable cards go first.
+
+### Setting it up
+
+1. Repository → Settings → Secrets and variables → Actions → add the secrets you have:
+   - `CARDMARKET_APP_TOKEN`, `CARDMARKET_APP_SECRET`, `CARDMARKET_ACCESS_TOKEN`, `CARDMARKET_ACCESS_SECRET` (a *dedicated app* in your Cardmarket account; Cardmarket only gives API access to some accounts)
+   - `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` (developer.ebay.com, production keyset)
+   - `PRICECHARTING_TOKEN` (optional, graded prices in the daily build)
+2. Actions → *Collect prices* → *Run workflow* (tick *force*) for the first run. After that it runs every hour.
+3. The repository must be public so the page can read `raw.githubusercontent.com/<you>/<repo>/prices/…`. To host the store elsewhere, build with `PRICES_URL=https://…/`.
+
+Without keys the collector still runs the free sources, and the page explains for each card why a section is empty.
+
+### Interval
+
+- `intervalMinutes` in `prices.config.json` (default 60), or the repository variable `PRICE_INTERVAL_MINUTES`. The workflow starts hourly and skips a run when the last one is younger than the interval. For intervals under an hour, also change the `cron` line in `.github/workflows/collect.yml`.
+- In the page, ⚙ Settings sets how often this browser re-reads the store and re-checks cards on screen (default: the config value).
+
+### Storage
+
+The `prices` branch is one commit, replaced every run. History lives inside the files, so git doesn't grow:
+
+```
+meta.json                              last run, exchange rates, status of every source
+state.json                             when each card was last fetched, per source
+summary.json.gz                        one entry per card (guide, TCGplayer, listing stats, eBay stats, headline)
+history/<set>.json.gz                  headline, trend, listing average, TCGplayer, sold median (EUR): hourly for 72 h, then daily for 180 days
+listings/cardmarket/<set>/<card>.json  every Cardmarket listing of the card
+listings/ebay/<set>/<card>.json        eBay items for sale and sold
+```
+
+Every file is validated against its schema before it is written. It goes to a temporary file that is renamed into place, so a crash never leaves half a file. After the run every file is read back and validated again; if anything fails, the workflow stops before publishing. `npm test` covers the OAuth signature (RFC 5849 vector), listing statistics, eBay filtering and currency conversion, the store's refusal of bad data, history compaction, and full collector runs against mocked APIs.
+
+### Evidence
+
+Every price section in a card's details ends with an **Evidence** line of links to where its figures come from:
+
+| Section | Links |
+|---|---|
+| Cardmarket price guide | the card's Cardmarket product page (English prints, through pokemontcg.io's redirect; Japanese prints get a Cardmarket search), the TCGdex API response for a live check, Cardmarket's price guide file with the product ids for the hourly figure, the snapshot's source repository |
+| Cardmarket listings | the product page, the stored file with every listing as collected, and per listing the seller's Cardmarket page |
+| TCGplayer | the TCGplayer product page, each finish linked to its product, the pokemontcg.io API response or tcgcsv.com |
+| eBay for sale / Sold | the exact search the collector ran on each eBay site (sold searches filtered to completed sales), the stored item file, each item's own listing, the PriceCharting sales page |
+| Graded prices | the PriceCharting page |
+| Headline | which section it came from, and the ECB exchange rate used for conversion |
+
+Each section also holds its own history graphs: the snapshot history of that source plus the price-store history of that column (Cardmarket trend, listing average, TCGplayer market, sold median).
+
+### Language bundles
+
+The same card printed in different languages is bundled: one tile per card (badge `EN · JP`), with an **All languages** table in the details. The table lists every print with its price, data label and Cardmarket link, plus Cardmarket listings per language across all prints together. Prints are matched at build time when they share Cardmarket's *metacard* (its id for one card's text across all products, from Cardmarket's public product catalog) and the illustrator. For Pokémon without a Cardmarket id, the match uses Pokédex numbers, name suffix (ex, V, GX…), HP, types and illustrator. Groups with two prints in one language are split by rarity class, so a regular card and its full art stay apart. Same-art reprints are included.
+
+5,753 bundles cover 12,580 prints. Cardmarket ids for about 5,800 English cards come from TCGdex (`scripts/fetch-tcgdex-products.js`, cached in `data/tcgdex-products.json`, so only new cards are looked up). The checkbox under *Language* switches bundling off.
+
+### Price data label
+
+Each card carries a label counting which of six methods have data for it: Cardmarket price guide · Cardmarket listings · TCGplayer · eBay for sale · sold listings (eBay or PriceCharting) · graded prices. The tiers run **No data → Thin → Fair → Good → Strong → Rich → Complete**. The label is a chip on the card face, a checklist in the card details, a filter in the side rail, and the `data>=N` query.
+
+### Currency
+
+The € / $ switch in the header (also in ⚙ Settings) shows **every** price in one currency. Dollar figures are converted to euro and back at the ECB reference rate; hover a dotted figure to see the original. The headline price is chosen in this order: Cardmarket trend → Cardmarket listing average (card's language, chosen condition or better) → TCGplayer → eBay sold median → PriceCharting ungraded. Settings can put the listing average first.
 
 ## How the data is stored and searched
 
@@ -35,10 +122,22 @@ index.html                     the built app (open this)
 src/core.js                    storage format, index and search engine
 src/page.html                  UI template (core + data are inlined at build time)
 scripts/fetch-sources.sh       shallow-clones the open data sources
+scripts/fetch-tcgdex-sets.js   TCGdex set and card numbers, for mapping cards to the live API
+scripts/fetch-tcgdex-products.js Cardmarket ids TCGdex knows for English cards (cached, incremental)
+scripts/fetch-pricecharting.js refreshes graded prices from the PriceCharting API (optional token)
+scripts/collect.js             hourly price collector (writes the price store)
+scripts/lib/                   store (schemas, atomic writes, history), public sources, Cardmarket and eBay clients
+src/prices.js                  listing statistics, currency conversion, data-coverage label (page + collector)
+prices.config.json             interval, budgets, marketplaces, schedule
+data/card-map.json.gz          card -> Cardmarket / TCGplayer product ids and names (built daily, read by the collector)
+data/tcgdex-products.json      cache of TCGdex card -> Cardmarket / TCGplayer ids
+test/                          collector tests with mocked APIs (npm test)
+.github/workflows/collect.yml  runs the collector every hour and publishes the prices branch
 scripts/build-catalog.js       builds the compact catalog with prices and history
 scripts/merge-pricecharting.js normalises the PriceCharting sales files
 scripts/assemble.js            inlines everything into index.html
 data/pricecharting/            graded prices and sold listings, one card per line
+data/pricecharting-live.json   graded prices refreshed by the API fetcher (written by the workflow)
 .github/workflows/refresh.yml  rebuilds index.html every day
 ```
 
@@ -47,11 +146,11 @@ data/pricecharting/            graded prices and sold listings, one card per lin
 Requires Node 22 and git.
 
 ```
-npm run refresh   # fetch sources + build index.html
+npm run refresh   # fetch sources + graded prices + build index.html
 npm run build     # rebuild from already-fetched sources
 ```
 
-The **Refresh catalog and prices** workflow runs the same thing daily and commits the new `index.html`. Turn on GitHub Pages (Settings → Pages → Deploy from branch → `main`, `/ (root)`) to get a public link.
+The **Refresh catalog and prices** workflow runs the same thing daily and commits the new `index.html`. To refresh graded prices too, add a PriceCharting API token as the repository secret `PRICECHARTING_TOKEN`. Turn on GitHub Pages (Settings → Pages → Deploy from branch → `main`, `/ (root)`) to get a public link.
 
 ## Adding cards to the sales data
 
@@ -72,6 +171,12 @@ Append one line per card to a file in `data/pricecharting/` (`.jsonl`):
 | Cardmarket prices and history (English cards) | [kazant/pokedex-scanner-data](https://github.com/kazant/pokedex-scanner-data) |
 | TCGplayer prices, translated names | [psvanzyl/pokemon-tcg](https://github.com/psvanzyl/pokemon-tcg) (tcgcsv.com) |
 | TCGplayer price history | [Tbaker-maker/Catchem-data](https://github.com/Tbaker-maker/Catchem-data) |
-| Graded prices, sold listings | [PriceCharting](https://www.pricecharting.com) (collected per card) |
+| Graded prices, sold listings | [PriceCharting](https://www.pricecharting.com) (collected per card; graded prices refreshed via the API when a token is set) |
+| Live Cardmarket prices, card mapping | [TCGdex API](https://tcgdex.dev) |
+| Cardmarket price guide (hourly), Cardmarket listings | [Cardmarket](https://www.cardmarket.com) public price guide; API 2.0 with your app keys |
+| TCGplayer prices (hourly) | [tcgcsv.com](https://tcgcsv.com) |
+| eBay for sale / sold | [eBay Buy APIs](https://developer.ebay.com/api-docs/buy/static/buy-landing.html) (Browse, Marketplace Insights) with your keys |
+| Exchange rates | [ECB reference rates](https://www.ecb.europa.eu) via [frankfurter.dev](https://frankfurter.dev) |
+| Live TCGplayer prices | [Pokémon TCG API](https://pokemontcg.io) |
 
 Cardmarket's public price guide pools all European languages into one figure, so a German or French copy can sell above or below the euro price shown. Japanese prints are separate Cardmarket products with their own prices. Card data and images belong to their respective owners; Pokémon is a trademark of Nintendo, Creatures and GAME FREAK.

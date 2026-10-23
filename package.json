@@ -4,7 +4,14 @@
   "description": "Every English and Japanese Pokémon TCG card in one offline, instantly searchable page, with prices.",
   "scripts": {
     "sources": "bash scripts/fetch-sources.sh build/sources",
-    "build": "mkdir -p build && node scripts/build-catalog.js build/sources build/catalog.json && node scripts/merge-pricecharting.js data/pricecharting build/pc_data.json && node scripts/assemble.js",
-    "refresh": "npm run sources && npm run build"
+    "graded": "node scripts/fetch-pricecharting.js",
+    "build": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && node scripts/build-catalog.js build/sources build/catalog.json && node scripts/fetch-tcgdex-products.js build/sources && node scripts/merge-pricecharting.js data/pricecharting build/pc_data.json && node scripts/assemble.js",
+    "refresh": "npm run sources && npm run graded && npm run build",
+    "collect": "node scripts/collect.js store",
+    "test": "node --test test/collect.test.js",
+    "scrape": "node scripts/scrape.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "23.11.1"
   }
 }
