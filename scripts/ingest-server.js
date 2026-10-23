@@ -3,6 +3,11 @@
 // format as the hourly collector (listings/<site>/<set>/<card>.json, summary.json.gz, history/, validated on write).
 //
 //   npm run ingest -- [--store=store] [--port=8787] [--publish] [--publish-minutes=10]
+//   npm run helper    (the same with --publish --publish-minutes=0: works on a copy of the prices branch, pushes only
+//                      when you click "Push to GitHub" in the scraper extension, or when you stop it with Ctrl+C)
+//
+// The scraper extension (scraper-extension/) also asks it what to visit: GET /sites (when each site was last scraped),
+// GET /queue?site=…&n=…&only=… (the next cards with their URLs, scripts/lib/scrape-plan.js), POST /publish.
 //
 // --publish: the store becomes a worktree of the "prices" branch; every few minutes new captures are pushed. If the
 // hourly collector pushed in between, the store is reset to that version and the captures are replayed on top
@@ -13,17 +18,36 @@ const P = require('../src/prices.js');
 const { Store, SCHEMA } = require('./lib/store.js');
 const { applyCardmarket, applyEbay, finalize } = require('./lib/entries.js');
 const src = require('./lib/sources.js');
+const PLAN = require('./lib/scrape-plan.js'), EBQ = require('./lib/ebay.js');
 
 const root = path.join(__dirname, '..');
 const arg = (n, d) => { const a = process.argv.find(x => x === '--' + n || x.startsWith('--' + n + '=')); return a ? (a.includes('=') ? a.split('=').slice(1).join('=') : true) : d; };
 const dir = path.resolve(root, String(arg('store', 'store'))), port = +arg('port', 8787);
 const journalF = path.join(root, 'build/ingest-journal.jsonl'), debugDir = path.join(root, 'build/ingest-debug');
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
+const every = +arg('publish-minutes', 10); // with --publish: push every N minutes; 0 = only when asked (POST /publish) and on exit
 
 // ---------- card lookup ----------
-const map = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, 'data/card-map.json.gz'))));
-const cards = new Map(map.cards.map(c => [c[0], c])), byCm = new Map(), byPc = new Map();
-for (const c of map.cards) for (const [cm] of c[6]) byCm.set(cm, c[0]);
+// The card map changes with the daily build (cards added or removed): it is re-read whenever the file changes, so a
+// running helper always queues the current cards.
+const mapF = path.join(root, 'data/card-map.json.gz');
+let map, mapMtime = 0;
+const cards = new Map(), byCm = new Map(), byPc = new Map();
+function loadCards() {
+  const m = fs.statSync(mapF).mtimeMs; if (m === mapMtime) return false;
+  map = JSON.parse(zlib.gunzipSync(fs.readFileSync(mapF))); mapMtime = m;
+  cards.clear(); byCm.clear();
+  for (const c of map.cards) { cards.set(c[0], c); for (const [cm] of c[6]) byCm.set(cm, c[0]); }
+  return true;
+}
+loadCards();
+function refreshCards() { // forget scraper bookkeeping for cards that no longer exist
+  if (!loadCards() || !state) return;
+  for (const k of ['misses', 'capture']) for (const site of Object.keys(state[k] || {})) for (const id of Object.keys(state[k][site])) if (!cards.has(id)) delete state[k][site][id];
+  for (const id of Object.keys(state.urls.pricecharting)) if (!cards.has(id)) delete state.urls.pricecharting[id];
+  for (const cm of Object.keys(state.urls.cardmarket)) if (!byCm.has(+cm)) delete state.urls.cardmarket[cm];
+  console.log('card map changed: ' + cards.size + ' cards');
+}
 for (const f of fs.readdirSync(path.join(root, 'data/pricecharting'))) for (const line of fs.readFileSync(path.join(root, 'data/pricecharting', f), 'utf8').split('\n').filter(Boolean)) {
   try { const [id, pc] = f.endsWith('.raw') ? line.split('\t') : [JSON.parse(line).id, JSON.parse(line).pc]; if (pc) byPc.set(pc.split(/[?#]/)[0], id); } catch (e) {}
 }
@@ -51,6 +75,8 @@ function load() {
   store = new Store(dir);
   sum = store.read('summary.json.gz', null); meta = store.read('meta.json', null);
   state = store.read('state.json', { v: SCHEMA, cm: {}, eb: {} }); state.capture = state.capture || {};
+  state.urls = state.urls || {}; state.urls.cardmarket = state.urls.cardmarket || {}; state.urls.pricecharting = state.urls.pricecharting || {};
+  for (const [pc, id] of byPc) if (!state.urls.pricecharting[id]) state.urls.pricecharting[id] = pc;
   if (sum && sum.fx) { fx = sum.fx; fxDate = sum.fxDate; }
 }
 const entries = () => (sum = sum || { v: SCHEMA, at: new Date().toISOString(), sources: {}, cards: {} }).cards;
@@ -65,25 +91,30 @@ function saveAll(ids) {
 
 // one capture -> store; returns a short report. Deterministic, so captures can be replayed from the journal.
 function apply(m, card) {
-  const at = m.at, E = entries(), e = E[card[0]] || (E[card[0]] = {}), d = m.data;
+  const at = m.at, E = entries(), e = E[card[0]] || (E[card[0]] = {}), d = m.data, source = m.via === 'scraper' ? 'scraper' : 'extension';
+  const page = String(m.url || '').split('#')[0];
   if (m.site === 'cardmarket') {
     const rel = store.listingFile('cardmarket', card[1], card[0]), old = store.read(rel, null);
     const products = (old ? old.products : []).filter(p => p.cm !== (d.idProduct || 0));
     const label = (card[6].find(x => x[0] === d.idProduct) || [])[1] || d.title || 'Cardmarket';
     products.push({ cm: d.idProduct || 0, label, articles: d.articles.map(a => (a[12] = d.idProduct || 0, a)) });
-    applyCardmarket(store, e, card, products, at, 'extension');
+    applyCardmarket(store, e, card, products, at, source);
+    if (d.idProduct && /cardmarket\.com\/[a-z]{2}\/Pokemon\/Products\/Singles\//.test(page)) state.urls.cardmarket[d.idProduct] = page.split('?')[0]; // visit directly next time
     return d.articles.length + ' Cardmarket listings' + (d.idProduct ? ' (product ' + d.idProduct + ')' : '');
   }
   if (m.site === 'ebay') {
     const rel = store.listingFile('ebay', card[1], card[0]), old = store.read(rel, null) || { queries: {}, active: [], sold: [] };
     const keep = rows => rows.filter(r => r[5] !== d.mp);
-    const active = d.sold ? old.active : keep(old.active).concat(d.items), sold = d.sold ? keep(old.sold).concat(d.items) : old.sold;
-    applyEbay(store, e, card, active, sold, Object.assign({}, old.queries, { [d.mp]: d.query }), fx, at, 'extension');
-    return d.items.length + ' eBay ' + (d.sold ? 'sold' : 'for-sale') + ' items (' + d.mp.replace('EBAY_', '') + ')';
+    // automated searches keep only items naming this card and its number, like the API collector; manual captures keep all
+    const items = m.via === 'scraper' ? EBQ.relevant(card, d.items) : d.items;
+    const active = d.sold ? old.active : keep(old.active).concat(items), sold = d.sold ? keep(old.sold).concat(items) : old.sold;
+    applyEbay(store, e, card, active, sold, Object.assign({}, old.queries, { [d.mp]: d.query }), fx, at, source);
+    return items.length + (items.length !== d.items.length ? ' of ' + d.items.length : '') + ' eBay ' + (d.sold ? 'sold' : 'for-sale') + ' items (' + d.mp.replace('EBAY_', '') + ')';
   }
   if (m.site === 'pricecharting') {
     const g = ['ungraded', 'grade7', 'grade8', 'grade9', 'grade9_5', 'psa10'].map(k => d.prices[k] == null ? null : +d.prices[k]);
-    store.write(store.listingFile('pricecharting', card[1], card[0]), { v: SCHEMA, id: card[0], at, source: 'extension', url: d.url, g, sold: d.sold }, 'pcListing');
+    store.write(store.listingFile('pricecharting', card[1], card[0]), { v: SCHEMA, id: card[0], at, source, url: d.url, g, sold: d.sold }, 'pcListing');
+    if (d.url) { state.urls.pricecharting[card[0]] = d.url; byPc.set(d.url, card[0]); }
     e.pc = { u: d.url, g, at, n: d.sold.length };
     return 'PriceCharting: ' + g.filter(x => x != null).length + ' graded prices, ' + d.sold.length + ' sales';
   }
@@ -92,7 +123,7 @@ function apply(m, card) {
 
 // ---------- publishing to the prices branch ----------
 const git = (cwd, ...a) => cp.execFileSync('git', a, { cwd, stdio: ['ignore', 'pipe', 'pipe'] }).toString().trim();
-let base = null, pending = 0, publishing = false;
+let base = null, pending = 0, publishing = false, lastPublish = null;
 function pull() {
   git(root, 'fetch', '-q', 'origin', 'prices');
   const head = git(root, 'rev-parse', 'FETCH_HEAD');
@@ -101,7 +132,9 @@ function pull() {
   base = head; load();
 }
 async function publish() {
-  if (publishing || !pending) return; publishing = true;
+  if (publishing) return { ok: false, error: 'already pushing' };
+  if (!pending) return { ok: true, nothing: true };
+  publishing = true;
   try {
     git(root, 'fetch', '-q', 'origin', 'prices');
     const head = git(root, 'rev-parse', 'FETCH_HEAD');
@@ -123,9 +156,10 @@ async function publish() {
     }
     // mark the journal as published
     fs.writeFileSync(journalF, fs.readFileSync(journalF, 'utf8').split('\n').filter(Boolean).map(l => JSON.stringify(Object.assign(JSON.parse(l), { published: true }))).join('\n') + '\n');
-    pending = 0;
-  } catch (e) { console.error('publish failed (will retry): ' + e.message); }
+    pending = 0; lastPublish = { at: new Date().toISOString(), ok: true };
+  } catch (e) { console.error('publish failed (will retry): ' + e.message); lastPublish = { at: new Date().toISOString(), ok: false, error: e.message }; }
   finally { publishing = false; }
+  return lastPublish;
 }
 
 // ---------- http ----------
@@ -139,6 +173,29 @@ async function handle(req, res) {
   const u = new URL(req.url, 'http://x');
   if (req.method === 'OPTIONS') return send(res, 204, '', 'text/plain');
   if (u.pathname === '/status') return send(res, 200, { ok: true, store: dir, publish: !!arg('publish'), pending, cards: Object.keys(entries()).length, fx: fx && fx.USD, scrapedAt: meta && meta.scrapedAt });
+  if (u.pathname === '/sites' || u.pathname === '/queue') refreshCards();
+  if (u.pathname === '/sites') return send(res, 200, {
+    sites: PLAN.siteStatus(state || {}, cards), publish: !!arg('publish'), pending, lastPublish,
+    collectorAt: (meta && meta.at) || null, store: dir });
+  if (u.pathname === '/queue') {
+    const site = u.searchParams.get('site');
+    if (!PLAN.SITES.includes(site)) return send(res, 400, { error: 'site must be one of ' + PLAN.SITES.join(', ') });
+    const n = Math.max(1, Math.min(500, +u.searchParams.get('n') || 20)), only = u.searchParams.get('only') || '';
+    const list = PLAN.pickCards(site, { cards, entries: entries(), state, cfg, n, only });
+    return send(res, 200, { site, items: list.map(c => PLAN.plan(site, c, { cfg, urls: state.urls })), secondsBetweenPages: (cfg.scrape && cfg.scrape.secondsBetweenPages) || 7 });
+  }
+  if (u.pathname === '/skip' && req.method === 'POST') { // the scraper found nothing for this card: don't queue it again for staleHours
+    const m = await body(req);
+    if (!PLAN.SITES.includes(m.site) || !cards.has(m.card)) return send(res, 400, { error: 'site and card required' });
+    state.misses = state.misses || {}; (state.misses[m.site] = state.misses[m.site] || {})[m.card] = new Date().toISOString();
+    store.write('state.json', state, 'state'); store.written = [];
+    console.log(`${new Date().toISOString().slice(11, 19)} ${m.card} ${m.site}: skipped (${String(m.reason || 'no match').slice(0, 120)})`);
+    return send(res, 200, { ok: true });
+  }
+  if (u.pathname === '/publish' && req.method === 'POST') {
+    if (!arg('publish')) return send(res, 400, { error: 'This helper keeps captures in ' + dir + ' only. Restart it with: npm run helper' });
+    return send(res, 200, Object.assign({}, await publish(), { pending }));
+  }
   if (u.pathname === '/cards') return send(res, 200, search(u.searchParams.get('q') || '', 12));
   if (u.pathname === '/resolve') {
     const cm = +u.searchParams.get('cm'), pc = u.searchParams.get('pc');
@@ -153,7 +210,7 @@ async function handle(req, res) {
   if (u.pathname === '/ingest' && req.method === 'POST') {
     const m = await body(req);
     if (!['cardmarket', 'ebay', 'pricecharting'].includes(m.site) || !m.data) return send(res, 400, { error: 'site and data required' });
-    if (!m.data.found) { // nothing recognised: keep a copy of the page so the parser can be fixed
+    if (!m.data.found && !(m.via === 'scraper' && m.empty)) { // nothing recognised (the scraper sends empty: true for a real page with no results): keep a copy of the page so the parser can be fixed
       if (m.html) { fs.mkdirSync(debugDir, { recursive: true }); fs.writeFileSync(path.join(debugDir, m.site + '-' + Date.now() + '.html'), m.html); }
       return send(res, 422, { error: 'no prices recognised on this page' + (m.html ? '; a copy was saved in build/ingest-debug/ for fixing the parser' : '') });
     }
@@ -175,9 +232,9 @@ async function handle(req, res) {
 }
 
 (async () => {
-  if (arg('publish')) { pull(); setInterval(publish, (+arg('publish-minutes', 10)) * 60e3); } else load();
+  if (arg('publish')) { pull(); if (every > 0) setInterval(publish, every * 60e3); } else load();
   if (!fx) try { const r = await src.fx(); fx = r.fx; fxDate = r.date; } catch (e) { console.warn('no exchange rates yet: ' + e.message); }
   http.createServer((q, s) => handle(q, s).catch(e => send(s, 500, { error: e.message }))).listen(port, '127.0.0.1', () =>
-    console.log(`POcKEtMONey capture helper on http://127.0.0.1:${port}  store: ${dir}${arg('publish') ? '  (publishing every ' + arg('publish-minutes', 10) + ' min)' : ''}`));
+    console.log(`POcKEtMONey capture helper on http://127.0.0.1:${port}  store: ${dir}${arg('publish') ? (every > 0 ? '  (pushing every ' + every + ' min)' : '  (pushes when you click Push to GitHub, and on exit)') : ''}`));
   process.on('SIGINT', async () => { if (arg('publish')) { console.log('publishing before exit…'); await publish(); } process.exit(0); });
 })();

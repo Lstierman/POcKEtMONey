@@ -45,6 +45,7 @@
     ],
     "top": 20,
     "staleHours": 12,
+    "missRecheckHours": 168,
     "secondsBetweenPages": 7,
     "ebayMarketplaces": [
       "EBAY_DE",

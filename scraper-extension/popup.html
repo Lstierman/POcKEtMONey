@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>POcKEtMONey scraper</title>
+<style>
+  :root { --ink: #141a24; --mute: #5a6474; --line: #d3d9e2; --bg: #fbfcfd; --soft: #eef2fb; --blue: #2149c4; --ok: #157a3d; --warn: #b45309; --err: #b8322a }
+  * { box-sizing: border-box }
+  body { font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; width: 360px; margin: 0; padding: 14px; color: var(--ink); background: var(--bg) }
+  h1 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px }
+  h1 img { width: 18px; height: 18px }
+  .helper { padding: 7px 10px; border-radius: 8px; background: var(--soft); margin-bottom: 10px; color: var(--mute) }
+  .helper b.ok { color: var(--ok) } .helper b.err { color: var(--err) }
+  code { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px }
+  .site { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line) }
+  .site .name { font-weight: 700 } .site .when { color: var(--mute); font-size: 12px; grid-column: 1 } .site button { grid-row: 1 / span 2; grid-column: 2 }
+  button { height: 30px; border-radius: 8px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 700; padding: 0 12px; cursor: pointer }
+  button.pr { background: var(--blue); border-color: var(--blue); color: #fff }
+  button:disabled { opacity: .45; cursor: default }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 10px }
+  .row label { color: var(--mute); display: flex; gap: 6px; align-items: center }
+  input { height: 28px; border: 1.5px solid var(--line); border-radius: 7px; padding: 0 7px; font: inherit; min-width: 0 }
+  input[type=number] { width: 58px }
+  #only { flex: 1 }
+  .all { width: 100%; margin-top: 10px }
+  .job { margin-top: 12px; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line); background: #fff; display: grid; gap: 6px }
+  .job.waiting { border-color: var(--warn); background: #fffbeb }
+  .bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden } .bar i { display: block; height: 100%; background: var(--blue); width: 0 }
+  .job .msg { font-weight: 700 } .job.waiting .msg { color: var(--warn) }
+  .job .cur, .job .counts { color: var(--mute); font-size: 12px }
+  .log { max-height: 110px; overflow: auto; font: 11px/1.45 ui-monospace, Menlo, Consolas, monospace; color: var(--mute); white-space: pre-wrap }
+  .push { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center }
+  .push .note { color: var(--mute); font-size: 12px }
+  details { margin-top: 10px; color: var(--mute) } summary { cursor: pointer }
+  details .row input { flex: 1 }
+  [hidden] { display: none !important }
+</style>
+<h1><img src="icon32.png" alt="">POcKEtMONey scraper</h1>
+<div class="helper" id="helper">Checking the helper…</div>
+
+<div id="sites"></div>
+
+<div class="row">
+  <label>Cards per site <input type="number" id="n" min="1" max="500" value="20"></label>
+  <input id="only" placeholder="Only: card ids or sets (optional)" spellcheck="false" title="e.g. base1-4, sv3pt5 or a set code. Empty: most valuable cards not scraped recently.">
+</div>
+<button class="pr all" id="all">Scrape all sites</button>
+
+<div class="job" id="job" hidden>
+  <div class="msg" id="msg"></div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="cur" id="cur"></div>
+  <div class="counts" id="counts"></div>
+  <div class="row" style="margin:0"><button id="stop">Stop</button><button id="resume" hidden>Resume</button><button id="clear" hidden>Clear</button></div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="push">
+  <div><b id="pending">0 captures waiting</b><div class="note" id="pushnote"></div></div>
+  <button id="push">Push to GitHub</button>
+</div>
+
+<details>
+  <summary>Settings</summary>
+  <div class="row"><input id="addr" value="http://127.0.0.1:8787" spellcheck="false"><button id="saveaddr">Save</button></div>
+  <p>Pages open in a separate window. Leave it alone; if a site asks for a human check or a login, the window comes to the front and the run waits for you.</p>
+</details>
+<script src="popup.js"></script>
