@@ -151,9 +151,31 @@ let base = null, pending = 0, publishing = false, lastPublish = null;
 function pull() {
   git(root, 'fetch', '-q', 'origin', 'prices');
   const head = git(root, 'rev-parse', 'FETCH_HEAD');
-  if (!fs.existsSync(path.join(dir, '.git'))) git(root, 'worktree', 'add', '-q', '--detach', dir, head);
+  if (!fs.existsSync(path.join(dir, '.git'))) {
+    // a plain store folder (from npm run ingest) is kept under another name; its captures are in the journal and
+    // are replayed on top of the prices branch below
+    if (fs.existsSync(dir) && fs.readdirSync(dir).length) {
+      const aside = dir + '-local-' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      fs.renameSync(dir, aside); console.log('kept your local store as ' + aside);
+    } else if (fs.existsSync(dir)) fs.rmdirSync(dir);
+    git(root, 'worktree', 'prune');
+    git(root, 'worktree', 'add', '-q', '--detach', dir, head);
+  }
   else { git(dir, 'checkout', '-q', '-f', '--detach', head); git(dir, 'clean', '-qfd'); }
   base = head; load();
+}
+// re-applies the captures not pushed yet (build/ingest-journal.jsonl) to the store; returns how many
+function replay() {
+  if (!fs.existsSync(journalF)) return 0;
+  const lines = fs.readFileSync(journalF, 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(j => j && !j.published);
+  const ids = [];
+  for (const j of lines) {
+    const c = cards.get(j.card); if (!c) continue;
+    try { apply(j.m, c); (state.capture[j.m.site] = state.capture[j.m.site] || {})[c[0]] = j.at; ids.push(c[0]); }
+    catch (e) { console.warn('skipped an old capture of ' + j.card + ': ' + e.message); }
+  }
+  if (ids.length) { saveAll(ids); store.written = []; }
+  return ids.length;
 }
 async function publish() {
   if (publishing) return { ok: false, error: 'already pushing' };
@@ -163,11 +185,8 @@ async function publish() {
     git(root, 'fetch', '-q', 'origin', 'prices');
     const head = git(root, 'rev-parse', 'FETCH_HEAD');
     if (head !== base) { // the collector pushed meanwhile: take its version, replay our captures on top
-      const lines = fs.readFileSync(journalF, 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)).filter(j => !j.published);
       pull();
-      const ids = []; for (const j of lines) { const c = cards.get(j.card); if (c) { apply(j.m, c); ids.push(c[0]); } }
-      saveAll(ids);
-      console.log('replayed ' + lines.length + ' captures on top of the collector\'s newer version');
+      console.log('replayed ' + replay() + ' captures on top of the collector\'s newer version');
     }
     const bad = store.verify(); if (bad.length) throw new Error('verify failed: ' + bad.join('; '));
     git(dir, 'add', '-A');
@@ -266,7 +285,12 @@ async function handle(req, res) {
 }
 
 (async () => {
-  if (arg('publish')) { pull(); if (every > 0) setInterval(publish, every * 60e3); } else load();
+  if (arg('publish')) {
+    pull();
+    if (!fx) try { const r = await src.fx(); fx = r.fx; fxDate = r.date; } catch (e) {}
+    pending = replay(); if (pending) console.log(pending + ' captures from earlier runs are waiting to be pushed');
+    if (every > 0) setInterval(publish, every * 60e3);
+  } else load();
   if (!fx) try { const r = await src.fx(); fx = r.fx; fxDate = r.date; } catch (e) { console.warn('no exchange rates yet: ' + e.message); }
   http.createServer((q, s) => handle(q, s).catch(e => send(s, 500, { error: e.message }))).listen(port, '127.0.0.1', () =>
     console.log(`POcKEtMONey capture helper on http://127.0.0.1:${port}  store: ${dir}${arg('publish') ? (every > 0 ? '  (pushing every ' + every + ' min)' : '  (pushes when you click Push to GitHub, and on exit)') : ''}`));
