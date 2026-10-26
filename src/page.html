@@ -975,16 +975,34 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
 
   // ---------- search + render ----------
   var pending = 0;
+  // Every count and filter works on tiles, the way they are shown: with language bundling on, one tile per card, judged
+  // by the print the tile shows (its price, data score, ★). The search engine finds prints for the text, set and
+  // language; price, score, To watch and the price range are applied to the tiles after.
+  var base = [];
+  function searchTiles(lang) {
+    var f = {}; for (var k in state) f[k] = state[k];
+    f.priced = ''; f.cov = ''; if (lang !== undefined) f.lang = lang;
+    return bundleResults(cat.search(state.q, f, state.sort));
+  }
+  function tileFilter(ids, skip) {
+    var px = cat[state.currency], lo = state.min == null ? -Infinity : state.min, hi = state.max == null ? Infinity : state.max, ranged = state.min != null || state.max != null;
+    return ids.filter(function (i) {
+      if (skip !== 'watch' && state.watch && !watchSet.has(cat.cards[i][0])) return false;
+      if (skip !== 'priced' && state.priced && (state.priced === 'yes') !== cat.isPriced(i)) return false;
+      if (skip !== 'cov' && state.cov && cat.cov[i] < +state.cov) return false;
+      if (ranged) { var v = px[i]; if (isNaN(v) || v < lo || v > hi) return false; }
+      return true;
+    });
+  }
   function run() {
     if (!cat) return;
     cancelAnimationFrame(pending);
     pending = requestAnimationFrame(function () {
-      results = bundleResults(cat.search(state.q, state, state.sort));
-      if (state.watch) { results.ids = results.ids.filter(function (i) { return watchSet.has(cat.cards[i][0]); }); results.total = results.ids.length; }
-      if (state.min != null || state.max != null) { // price range, in the display currency
-        var pxr = cat[state.currency], lo = state.min == null ? -Infinity : state.min, hi = state.max == null ? Infinity : state.max;
-        results.ids = results.ids.filter(function (i) { var v = pxr[i]; return !isNaN(v) && v >= lo && v <= hi; }); results.total = results.ids.length;
-      }
+      results = searchTiles(); base = results.ids;
+      results.ids = tileFilter(base); results.total = results.ids.length;
+      // priced / without a price, for the header and the Price chips: tiles that pass every other filter
+      var pb = tileFilter(base, 'priced'), yes = 0; for (var q = 0; q < pb.length; q++) if (cat.isPriced(pb[q])) yes++;
+      results.tiles = { all: pb.length, yes: yes, no: pb.length - yes };
       results.cut = -1; // price sorts: index of the first card without a price in the chosen currency
       if (state.sort === 'price' || state.sort === 'priceAsc') {
         var px = cat[state.currency];
@@ -994,24 +1012,22 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
       shown = 0; render(false); updateFacetCounts();
     });
   }
-
+  // the number next to each option: how many tiles you get when you pick it
+  var countT = 0;
   function updateFacetCounts() {
-    var c = results.counts, langCounts = langTally();
-    document.querySelectorAll('#fLang [data-lang]').forEach(function (el) { var v = el.dataset.lang; el.querySelector('[data-cnt]').textContent = fmt(v ? langCounts[v] : langCounts.en + langCounts.ja); });
-    document.querySelectorAll('#fPriced [data-priced]').forEach(function (el) {
-      var v = el.dataset.priced; el.querySelector('[data-cnt]').textContent = fmt(v ? c.priced[v] : c.priced.yes + c.priced.no);
-    });
-    covOptions(c.cov);
+    var t = results.tiles;
+    document.querySelectorAll('#fPriced [data-priced]').forEach(function (el) { var v = el.dataset.priced; el.querySelector('[data-cnt]').textContent = fmt(v ? t[v] : t.all); });
     var active = (state.watch ? 1 : 0) + (state.lang ? 1 : 0) + (state.priced ? 1 : 0) + (state.cov ? 1 : 0) + (state.set ? 1 : 0) + (state.min != null || state.max != null ? 1 : 0);
     $('reset').hidden = !active;
+    clearTimeout(countT); countT = setTimeout(slowCounts, 120); // the other languages need their own searches: after the results are shown
   }
-
-  function langTally() {
-    var f = {}; for (var k in state) f[k] = state[k]; f.lang = '';
-    var r = state.lang ? cat.search(state.q, f, 'newest') : results, en = 0, ja = 0;
-    var jb = cat.facets.lang.get('ja');
-    for (var i = 0; i < r.ids.length; i++) { var x = r.ids[i]; if (jb && (jb[x >>> 5] >>> (x & 31)) & 1) ja++; else en++; }
-    return { en: en, ja: ja };
+  function slowCounts() {
+    var lc = {};
+    ['', 'en', 'ja'].forEach(function (l) { lc[l] = l === state.lang ? results.total : tileFilter(searchTiles(l).ids).length; });
+    document.querySelectorAll('#fLang [data-lang]').forEach(function (el) { el.querySelector('[data-cnt]').textContent = fmt(lc[el.dataset.lang]); });
+    var cb = tileFilter(base, 'cov'), hist = new Array(21).fill(0);
+    for (var i = 0; i < cb.length; i++) hist[cat.cov[cb[i]]]++;
+    covOptions(hist);
   }
   // the headline in the display currency (green dot = from the hourly store or a live check), or a dashed "No price" pill
   function priceTag(i, o) {
@@ -1073,7 +1089,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
     var box = $('results');
     if (!keep) shown = 0;
     var r = results, note = r.notes.length ? '<span class="note">No exact match for “' + esc(r.notes[0].from) + '”, showing “' + esc(r.notes[0].to) + '”</span>' : '';
-    var head = '<div class="resbar"><span class="count">' + fmt(r.total) + ' <span style="font-size:15px;font-weight:600">' + (r.total === 1 ? 'card' : 'cards') + '</span></span>' + (r.prints !== r.total ? '<span class="ms" title="Prints of the same card in other languages are bundled into one tile">' + fmt(r.prints) + ' prints</span>' : '') + pkHTML(r.counts.priced) + '<span class="ms">found in ' + r.ms.toFixed(1) + ' ms</span>' + note + '</div>';
+    var head = '<div class="resbar"><span class="count">' + fmt(r.total) + ' <span style="font-size:15px;font-weight:600">' + (r.total === 1 ? 'card' : 'cards') + '</span></span>' + (r.prints !== r.total && r.ids.length === base.length ? '<span class="ms" title="Prints of the same card in other languages are bundled into one tile">' + fmt(r.prints) + ' prints</span>' : '') + pkHTML(r.tiles) + '<span class="ms">found in ' + r.ms.toFixed(1) + ' ms</span>' + note + '</div>';
     if (!r.total) {
       box.innerHTML = head + '<div class="empty"><b>No cards match.</b> Try fewer words, remove a filter, or use a prefix such as <span class="mono">char</span>. Field searches look like <span class="mono">artist:sugimori</span>.</div>';
       return;
@@ -1090,11 +1106,12 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
   // a live price turned an unpriced card priced: refresh the counts, but leave the grid order alone
   function recount() {
     if (!results) return;
-    var r = bundleResults(cat.search(state.q, state, 'newest'));
-    results.counts = r.counts;
+    var r = searchTiles(), all = r.ids, ids = tileFilter(all), pb = tileFilter(all, 'priced'), yes = 0;
+    for (var q = 0; q < pb.length; q++) if (cat.isPriced(pb[q])) yes++;
+    base = all; results.tiles = { all: pb.length, yes: yes, no: pb.length - yes };
     updateFacetCounts();
-    var ce = document.querySelector('.resbar .count'); if (ce) ce.firstChild.nodeValue = fmt(r.total) + ' '; // a price filter may now match fewer cards
-    var pk = document.querySelector('.resbar .pk'); if (pk) pk.outerHTML = pkHTML(results.counts.priced);
+    var ce = document.querySelector('.resbar .count'); if (ce) ce.firstChild.nodeValue = fmt(ids.length) + ' '; // a price filter may now match fewer cards
+    var pk = document.querySelector('.resbar .pk'); if (pk) pk.outerHTML = pkHTML(results.tiles);
   }
   function tiles(a, b) {
     var r = results, html = '';
