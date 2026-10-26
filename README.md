@@ -71,20 +71,36 @@ listings/ebay/<set>/<card>.json        eBay items for sale and sold
 
 Every file is validated against its schema before it is written. It goes to a temporary file that is renamed into place, so a crash never leaves half a file. After the run every file is read back and validated again; if anything fails, the workflow stops before publishing. `npm test` covers the OAuth signature (RFC 5849 vector), listing statistics, eBay filtering and currency conversion, the store's refusal of bad data, history compaction, and full collector runs against mocked APIs.
 
-### Every price: graded, language, for sale and sold
+### Markets: every price filed under one market
 
-Every listing and sale, from every marketplace, is classified the same way (`src/prices.js`) and kept apart along four lines:
+Every listing and sale, from every source, is filed under exactly one **market** of the print it belongs to (`src/prices.js`): **language × variant × quality**.
 
-| Split | How |
-|---|---|
-| **Raw or graded** | The title (eBay, PriceCharting) or seller comment (Cardmarket, CardTrader) is read for a grading company and grade: `PSA 10`, `BGS 9.5`, `BGS 10 Black Label`, `CGC 10 Pristine`, also SGC, ACE, TAG, PCA and others. "PSA 10 candidate" or "ready to grade" stays raw; eBay's own Graded / Ungraded condition is used too. A grade without a named company is `Graded 9`. |
-| **Language** | Cardmarket and CardTrader state it per listing. On eBay the title is read (“japanese”, “deutsch”, “VF”…), then the card name it uses (Glurak: German), then the language the site was searched in. PriceCharting sales are in the print's language. |
-| **For sale or sold** | Current listings (Cardmarket, CardTrader, eBay) and completed sales (eBay, PriceCharting) are never mixed. |
-| **Source** | Each figure keeps its marketplace. |
+| Part | Values | From |
+|---|---|---|
+| Language | English, German, French, Japanese, … (or *not stated*) | Cardmarket per listing; eBay from the title, the card name used (Glurak: German) or the site searched; PriceCharting: the print's language |
+| Variant | standard, reverse holo, 1st edition, shadowless | Cardmarket product and listing flags; the title; PriceCharting's page |
+| Quality | raw by condition: NM (incl. Mint), EX, GD, LP, PL (incl. Poor), or *not stated*; graded: company and grade (PSA 10, BGS 9.5, BGS 10 Black Label, CGC 10 Pristine, SGC, ACE, TAG, PCA…; *Graded 9* when the company isn't named) | Cardmarket's condition, eBay's condition field or the title; a grade in the title or seller comment. "PSA 10 candidate" stays raw; eBay's own Graded / Ungraded wins over the title |
 
-The store keeps this per card as `b` in `summary.json.gz`: `"eb|S|3|PSA 10": [n, min, median, avg, max]` (source, L for sale / S sold, Cardmarket language id, grade; EUR). Headline figures (the Cardmarket listing average, eBay `ea` / `es`) use raw copies in the print's own language only, so a German copy or a slab never moves an English card's price.
+Asks (current listings) and sales are never mixed, nor are prints: Base Set and Base Set 2 Charizard share artwork but are separate cards with separate markets. Lots, proxies, customs, sealed product, signed and altered copies are left out. A raw copy whose condition nobody states is its own market (*not stated*), never guessed into NM.
 
-A card's details open with **Every price**: one table across all its prints, raw copies per language first, then every grade, with the median for sale and sold, how many, and which marketplaces. The Cardmarket price guide (European languages pooled) and TCGplayer (English, raw) can't be split this way and stay in their own sections.
+Per market the store keeps (summary field `m`): asks (count, lowest, quartile, median, trimmed average, highest, per source), sales of the last 90 days (same statistics), sales counted in 30 / 90 / 365 days, and the last sale. The card view's **Markets** table shows them, with **ask vs sold**: the lowest ask against the median sale of the same market, negative when copies are offered below what they recently sold for. The key figures at the top use the print's main market (own language, standard print, raw NM; for sales, the raw market that has them, named on the tile).
+
+### Data for a price model
+
+Three things are stored so a model can learn from them later:
+
+- **Sales ledger** (`sales/<set>/<card>.json`): every sale the scraper has seen (eBay sold, PriceCharting), with date, EUR and original price, market and source, deduplicated by reference and kept for three years. eBay shows only recent sales; the ledger keeps them after eBay drops them.
+- **Market history** (`markets/<set>.json.gz`): one point per market per day: listings, lowest ask, median ask, sales in the 90 days before, median sale of those days.
+- **Price history** (`history/<set>.json.gz`): hourly Cardmarket trend, listing average, TCGplayer and sold median; plus about six weeks of daily Cardmarket trend and TCGplayer history in the build.
+
+`npm run dataset` (with `--store=` if the store isn't `store/`) exports it all to `build/dataset/` as one JSON object per line, with every field explained in `schema.json`:
+
+| File | One row per | Use |
+|---|---|---|
+| `cards.jsonl` | print | features: set, release date, rarity, type, HP, artist, Pokédex, regulation, bundle (same card in other languages), Cardmarket products, watched |
+| `markets.jsonl` | print × market × day | the time series: supply (asks) and demand (sales) per market |
+| `sales.jsonl` | sale | targets: what copies actually sold for, per market |
+| `guide.jsonl` | print × observation | market-wide signals: Cardmarket trend, TCGplayer, headline |
 
 ### To watch and the scraper
 

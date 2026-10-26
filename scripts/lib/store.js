@@ -10,8 +10,11 @@
 //       c  CardTrader listing stats (older stores only), same keys as l; ctt time, ctn count
 //       ea / es  eBay for sale / sold, raw copies only [n, min, median, avg, max] EUR; en [for sale, sold] counts; et time
 //       h / hs   headline EUR and its source (trend, listings, tcg, sold)
-//       b  every listing and sale by source, for sale / sold, language and grade (src/prices.js segments):
-//          { "eb|S|3|PSA 10": [n, min, median, avg, max] EUR, "cm|L|1|": …, … }
+//       m  the print's markets (src/prices.js buildMarkets), key "<language>|<variant>|<quality>":
+//          { a: asks [n, min, p25, median, avg, max] EUR, as: asks per source, s: sales of 90 days (same stats),
+//            n30 / n90 / n365 sales counted, last: [date, EUR] }; mt when computed
+//   sales/<set>/<card>.json                    every sale seen, deduplicated (src/prices.js SALE rows)
+//   markets/<set>.json.gz                      { card: { market: [[day, asks, lowest ask, median ask, sales 90 d, median sale 90 d]] } }
 //   history/<set>.json.gz                       { card id: [[hour, headline, trend, listing avg, tcgplayer, sold median] (EUR)] }
 //   listings/cardmarket/<set>/<card>.json       every Cardmarket article of the card's products (PRICES.ARTICLE rows)
 //   listings/ebay/<set>/<card>.json             eBay items for sale and sold items, per marketplace
@@ -20,7 +23,8 @@
 //
 // Every write is validated first and goes to a temp file that is renamed into place, so a crash never leaves half a file.
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
-const { SEG_KEY } = require('../../src/prices.js');
+const { SEG_KEY_OLD, MARKET_KEY } = { SEG_KEY_OLD: /^(cm|ct|eb|pc)\|[LS]\|\d{1,2}\|/, MARKET_KEY: require('../../src/prices.js').MARKET_KEY };
+const SALE_MARKET = MARKET_KEY;
 const SCHEMA = 1;
 
 const safe = s => String(s).replace(/[^A-Za-z0-9._-]/g, '_');
@@ -104,6 +108,16 @@ function validate(kind, o) {
       if (o.v !== SCHEMA || !o.id || !isIso(o.at) || !Array.isArray(o.g) || o.g.length !== 6 || !o.g.every(isNum) || !Array.isArray(o.sold)) return 'header';
       for (const s of o.sold) if (!Array.isArray(s) || s.length !== 5 || !/^\d{4}-\d{2}-\d{2}$/.test(s[0]) || !(s[3] > 0)) return 'sale ' + JSON.stringify(s).slice(0, 80);
       return null;
+    case 'sales':
+      if (o.v !== SCHEMA || !o.id || !isIso(o.at) || !Array.isArray(o.sales)) return 'header';
+      for (const r of o.sales) if (!Array.isArray(r) || r.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(r[0]) || !(r[1] > 0) || !Number.isInteger(r[4]) || !SALE_MARKET.test(r[4] + '|' + r[5] + '|' + r[6]) || typeof r[8] !== 'string') return 'sale ' + JSON.stringify(r).slice(0, 80);
+      return null;
+    case 'mhist':
+      for (const id in o) for (const k in o[id]) {
+        if (!MARKET_KEY.test(k) || !Array.isArray(o[id][k])) return id + ' ' + k;
+        for (const p of o[id][k]) if (!Array.isArray(p) || p.length !== 6 || !/^\d{4}-\d{2}-\d{2}$/.test(p[0]) || !p.slice(1).every(isNum)) return id + ' ' + k + ' point';
+      }
+      return null;
     case 'watchlist':
       if (o.v !== SCHEMA || !isIso(o.at) || !Array.isArray(o.cards)) return 'header';
       for (const w of o.cards) if (!Array.isArray(w) || typeof w[0] !== 'string' || !isIso(w[1])) return 'card ' + JSON.stringify(w).slice(0, 60);
@@ -131,7 +145,12 @@ function summaryEntryError(e) {
   if (e.c) { for (const k in e.c) if (!/^\d+\|[A-Z?]{2}\|[f1sa]*$/.test(k) || !isStats(e.c[k])) return 'c ' + k; if (!isIso(e.ctt)) return 'ctt'; }
   for (const k of ['ea', 'es']) if (e[k] && !isStats(e[k])) return k;
   if (e.lc != null && !(typeof e.lc === 'number' && e.lc >= 0 && e.lc <= 1)) return 'lc';
-  if (e.b) { if (typeof e.b !== 'object') return 'b'; for (const k in e.b) if (!SEG_KEY.test(k) || !isStats(e.b[k])) return 'b ' + k; }
+  if (e.b) { if (typeof e.b !== 'object') return 'b'; for (const k in e.b) if (!SEG_KEY_OLD.test(k) || !isStats(e.b[k])) return 'b ' + k; } // older stores
+  if (e.m) {
+    if (typeof e.m !== 'object' || !isIso(e.mt)) return 'm';
+    const q = s => Array.isArray(s) && s.length === 6 && s.every(isNum) && s[0] >= 1;
+    for (const k in e.m) { const x = e.m[k]; if (!MARKET_KEY.test(k) || (x.a && !q(x.a)) || (x.s && !q(x.s)) || (!x.a && !x.n365)) return 'm ' + k; }
+  }
   if ((e.ea || e.es) && !isIso(e.et)) return 'et';
   if (!isNum(e.h === undefined ? null : e.h)) return 'h';
   return null;

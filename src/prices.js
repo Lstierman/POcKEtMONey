@@ -129,6 +129,214 @@
     return 0;
   }
 
+  // ---- markets: every price observation filed under exactly one market of a print ----
+  // market key "<language id>|<variant>|<quality>":
+  //   language  Cardmarket language id (1 English, 3 German, 7 Japanese…; 0 unknown)
+  //   variant   std, reverse (reverse holo), 1st (1st edition), shadowless
+  //   quality   "RAW NM" / "RAW EX" / "RAW GD" / "RAW LP" / "RAW PL" / "RAW ?" (raw, by condition; ? = not stated)
+  //             or a grade label: "PSA 10", "BGS 9.5", "BGS 10 Black Label", "CGC 10 Pristine", "Graded 9" …
+  // Asks (current listings) and sales are kept apart. Lots, proxies, customs, sealed product, signed and altered copies
+  // are left out. Markets never mix prints: Base Set and Base Set 2 Charizard are different cards.
+  var VARIANTS = ['std', 'reverse', '1st', 'shadowless'];
+  var COND_BUCKET = { MT: 'NM', NM: 'NM', EX: 'EX', GD: 'GD', LP: 'LP', PL: 'PL', PO: 'PL' };
+  var RAW_ORDER = ['RAW NM', 'RAW EX', 'RAW GD', 'RAW LP', 'RAW PL', 'RAW ?'];
+  var MARKET_KEY = /^\d{1,2}\|(std|reverse|1st|shadowless)\|(RAW (NM|EX|GD|LP|PL|\?)|(PSA|BGS|CGC|SGC|ACE|TAG|PCA|AGS|ARS|MNT|GMA|HGA|Graded) (10|[1-9](\.5)?|\?)( Black Label| Pristine)?)$/;
+  function marketKey(lang, variant, quality) { return (lang || 0) + '|' + (variant || 'std') + '|' + quality; }
+  function parseMarket(key) { var p = String(key).split('|'); return { lang: +p[0], variant: p[1], quality: p[2], graded: p[2].indexOf('RAW ') !== 0 }; }
+  // condition of a raw copy from free text (eBay's condition field or a title); '?' when it doesn't say
+  function rawCondition(text) {
+    var t = ' ' + String(text || '').toLowerCase() + ' ';
+    if (/light(ly)?[\s-]*played|\blp\b|leicht bespielt|légèrement joué/.test(t)) return 'LP';
+    if (/heavily played|moderately played|\bplayed\b|\bpoor\b|damaged|\bhp\b|\bmp\b|\bdmg\b|bespielt|abîm|joué/.test(t)) return 'PL';
+    if (/near[\s-]*mint|\bnm\b|\bmint\b|neuwertig|comme neuf|quasi neuf|\bm\b\/?nm/.test(t)) return 'NM';
+    if (/excellent|\bexc?\b|sehr gut|très bon/.test(t)) return 'EX';
+    if (/very good|\bvg\b|\bgood\b|\bgut\b/.test(t)) return 'GD';
+    return '?';
+  }
+  // variant from a title or a Cardmarket product name, plus the listing's own flags
+  function variantOf(text, flags) {
+    var t = String(text || '').toLowerCase();
+    if ((flags && flags.first) || /1st[\s-]*ed(ition)?|first edition|1\.?\s*auflage|erstauflage|1(re|ère) édition|prima edizione|primera edici/.test(t)) return '1st';
+    if (/shadowless/.test(t)) return 'shadowless';
+    if ((flags && flags.reverse) || /reverse/.test(t)) return 'reverse';
+    return 'std';
+  }
+  // listings that are not one copy of this card
+  var JUNK = /\b(lots?|bundle|bulk|job ?lot|proxy|proxies|custom|orica|fake|replica|repro|fan[\s-]?made|mystery|repack|pick (one|your)|choose|playset|binder|booster|sealed|blister|tin|etb|display|jumbo|oversized?|signed|signiert|autograph(ed)?|art ?card|sticker|coin|empty|digital|code card|ptcgo|ptcgl)\b|\b(x\s?[2-9]|[2-9]\s?x)\b/i;
+  function isJunk(title) { return JUNK.test(String(title || '')); }
+
+  // [n, min, p25, median, avg (outer 10% trimmed from 5 values on), max]; values may repeat (quantity)
+  function qstats(values) {
+    var v = values.filter(function (x) { return typeof x === 'number' && x > 0 && isFinite(x); }).sort(function (a, b) { return a - b; });
+    if (!v.length) return null;
+    var n = v.length, q = function (p) { var x = (n - 1) * p, lo = Math.floor(x), hi = Math.ceil(x); return v[lo] + (v[hi] - v[lo]) * (x - lo); };
+    var cut = n >= 5 ? Math.floor(n * 0.1) : 0, core = v.slice(cut, n - cut), sum = 0;
+    for (var i = 0; i < core.length; i++) sum += core[i];
+    return [n, r2(v[0]), r2(q(0.25)), r2(q(0.5)), r2(sum / core.length), r2(v[n - 1])];
+  }
+
+  // ask observations [market key, EUR, quantity, source] from Cardmarket / CardTrader article rows (see ARTICLE)
+  function asksFromArticles(src, articles, productVariant) {
+    var out = [];
+    (articles || []).forEach(function (a) {
+      if (a[6] || a[8]) return; // signed, altered
+      var g = grade(a[11]), variant = a[7] ? '1st' : a[5] ? 'reverse' : productVariant || 'std';
+      out.push([marketKey(a[1], variant, g || 'RAW ' + (COND_BUCKET[a[2]] || '?')), a[3], Math.min(4, Math.max(1, a[4] || 1)), src]);
+    });
+    return out;
+  }
+  // eBay item rows [id, title, price, currency, condition, marketplace, date, image, url, kind, bids/qty, country, graded]
+  // -> ask observations; language from the title, else langOf(marketplace, title)
+  function asksFromEbay(rows, fx, langOf) {
+    var out = [];
+    (rows || []).forEach(function (r) {
+      if (isJunk(r[1])) return;
+      var eur = toEur(r[2], r[3], fx); if (!(eur > 0)) return;
+      var g = grade(r[1], r[4]);
+      out.push([marketKey(titleLang(r[1]) || (langOf ? langOf(r[5], r[1]) : 0), variantOf(r[1]), g || 'RAW ' + rawCondition(r[4] + ' ' + r[1])), eur, 1, 'eb']);
+    });
+    return out;
+  }
+  // sales ledger row: [date, EUR, price, currency, language, variant, quality, source, ref, title]
+  var SALE = ['date', 'eur', 'price', 'currency', 'lang', 'variant', 'quality', 'src', 'ref', 'title'];
+  function salesFromEbay(rows, fx, langOf) {
+    var out = [];
+    (rows || []).forEach(function (r) {
+      if (isJunk(r[1]) || !/^\d{4}-\d{2}-\d{2}/.test(r[6] || '')) return;
+      var eur = toEur(r[2], r[3], fx); if (!(eur > 0)) return;
+      var g = grade(r[1], r[4]);
+      out.push([r[6].slice(0, 10), r2(eur), r[2], r[3], titleLang(r[1]) || (langOf ? langOf(r[5], r[1]) : 0), variantOf(r[1]), g || 'RAW ' + rawCondition(r[4] + ' ' + r[1]), 'eb', 'eb:' + r[0], String(r[1]).slice(0, 140)]);
+    });
+    return out;
+  }
+  // PriceCharting sales [date, tab, title, price USD, url]: every sale on a card's page is that print's language and
+  // the page's variant; the title's grade wins over the tab's
+  function salesFromPricecharting(rows, lang, pageVariant, fx) {
+    var out = [];
+    (rows || []).forEach(function (r) {
+      if (isJunk(r[2]) || !/^\d{4}-\d{2}-\d{2}/.test(r[0] || '')) return;
+      var eur = toEur(r[3], 'USD', fx); if (!(eur > 0)) return;
+      var g = grade(r[2]) || PC_TAB[r[1]] || '';
+      var v = pageVariant && pageVariant !== 'std' ? pageVariant : variantOf(r[2]);
+      out.push([r[0], r2(eur), r[3], 'USD', lang, v, g || 'RAW ' + rawCondition(r[2]), 'pc', 'pc:' + (r[4] || r[0] + ':' + r[3] + ':' + String(r[2]).slice(0, 60)), String(r[2]).slice(0, 140)]);
+    });
+    return out;
+  }
+  // the markets of one print: { key: { a: asks qstats, as: { source: count }, s: sales of the last 90 days qstats,
+  // n30 / n90 / n365: sales counted in 30 / 90 / 365 days, last: [date, EUR] } }
+  function buildMarkets(asks, sales, now) {
+    now = now || Date.now();
+    var g = {};
+    var at = function (k) { return g[k] || (g[k] = { av: [], as: {}, sv: [], n30: 0, n90: 0, n365: 0, last: null }); };
+    (asks || []).forEach(function (o) { var m = at(o[0]); for (var c = 0; c < (o[2] || 1); c++) m.av.push(o[1]); m.as[o[3]] = (m.as[o[3]] || 0) + 1; });
+    (sales || []).forEach(function (s) {
+      var days = (now - Date.parse(s[0])) / 864e5; if (!(days <= 365)) return;
+      var m = at(marketKey(s[4], s[5], s[6]));
+      m.n365++; if (days <= 90) { m.n90++; m.sv.push(s[1]); } if (days <= 30) m.n30++;
+      if (!m.last || s[0] > m.last[0]) m.last = [s[0], s[1]];
+    });
+    var out = {};
+    Object.keys(g).sort().forEach(function (k) {
+      var m = g[k], o = {};
+      var a = qstats(m.av), sv = qstats(m.sv);
+      if (a) { o.a = a; o.as = m.as; }
+      if (sv) o.s = sv;
+      if (m.n365) { o.n30 = m.n30; o.n90 = m.n90; o.n365 = m.n365; o.last = m.last; }
+      if (o.a || o.n365) out[k] = o;
+    });
+    return out;
+  }
+  // markets in display order: language, variant, raw by condition, then graded (best first)
+  function marketOrder(a, b) {
+    var x = parseMarket(a), y = parseMarket(b);
+    if (x.graded !== y.graded) return x.graded ? 1 : -1;
+    if (!x.graded && x.quality !== y.quality) return RAW_ORDER.indexOf(x.quality) - RAW_ORDER.indexOf(y.quality);
+    if (x.graded && x.quality !== y.quality) return gradeOrder(x.quality, y.quality);
+    if (x.lang !== y.lang) return x.lang - y.lang;
+    return VARIANTS.indexOf(x.variant) - VARIANTS.indexOf(y.variant);
+  }
+
+  function toEur(v, cur, fx) { if (v == null) return null; if (!cur || cur === 'EUR') return v; var r = fx && fx[cur]; return r ? v * r : null; }
+  function fromEur(v, cur, fx) { if (v == null) return null; if (!cur || cur === 'EUR') return v; var r = fx && fx[cur]; return r ? v / r : null; }
+
+  // ---- grading: which company and which grade a listing or sale is, from its title (and eBay's condition field) ----
+  // "PSA 10", "BGS 9.5", "BGS 10 Black Label", "CGC 10 Pristine", "Graded 9" (grade without a named company),
+  // "PSA ?" (company without a grade); '' for a raw (ungraded) copy.
+  var GRADERS = ['PSA', 'BGS', 'CGC', 'SGC', 'ACE', 'TAG', 'PCA', 'AGS', 'ARS', 'MNT', 'GMA', 'HGA'];
+  // short company names that are also ordinary words ("Ace Trainer", "Tag Team") count only in capitals (upperOnly)
+  var FILLER = '(?:[\\s\\-:#|/]|gem\\s*(?:mint|mt)|mint|mt|pristine|black\\s*label|grade[ds]?|nm-mt|nm)*';
+  var GRADE_NUM = '(10|[1-9](?:[.,]5)?)(?![\\d.,]*\\d)';
+  var CO_THEN = new RegExp('\\b(PSA|BGS|BECKETT|CGC|SGC|PCA|ACE|TAG|AGS|ARS|MNT|GMA|HGA)\\b' + FILLER + GRADE_NUM, 'g');
+  var NUM_THEN = new RegExp('\\b' + GRADE_NUM + '\\s*(?:gem\\s*mint\\s*)?(PSA|BGS|BECKETT|CGC|SGC|PCA|ACE|TAG|AGS|ARS|MNT|GMA|HGA)\\b', 'g');
+  // "PSA 10 candidate", "ready to grade", "not graded": a raw card that mentions grading
+  var RAW_HINT = /candidate|kandidat|\bready\b|worthy|potential|possible|to grade|for grading|grading\s*(?:candidate|ready)|ungraded|not graded|non[- ]?grad|nicht\s*gegradet|ungegradet|pre-?grad|\braw\b/i;
+  var COND_GRADED = /^(graded|gradiert|gegradet|grad[ée]e?|gradata|calificad|beoordeeld)/i, COND_RAW = /ungraded|nicht\s*gegradet|non\s*grad|ungegradet|no\s*gradad|non\s*classificat/i;
+  function upperOnly(co) { return ['ACE', 'TAG', 'AGS', 'ARS', 'MNT', 'GMA', 'HGA'].indexOf(co.toUpperCase()) >= 0; }
+  function grade(title, condition) {
+    var t = String(title || ''), cond = String(condition || '');
+    if (COND_RAW.test(cond)) return '';
+    var m, co = '', g = '';
+    CO_THEN.lastIndex = 0;
+    while ((m = CO_THEN.exec(t.toUpperCase()))) { // upper-cased for matching; capital-only names checked on the original
+      var orig = t.substr(m.index, m[1].length);
+      if (upperOnly(m[1]) && orig !== m[1]) continue;
+      if (m[1] === 'TAG' && /^\s*TEAM/i.test(t.slice(m.index + 3))) continue;
+      co = m[1]; g = m[2]; break;
+    }
+    if (!co) {
+      NUM_THEN.lastIndex = 0;
+      while ((m = NUM_THEN.exec(t.toUpperCase()))) {
+        var o2 = t.substr(m.index + m[0].length - m[2].length, m[2].length);
+        if (upperOnly(m[2]) && o2 !== m[2]) continue;
+        co = m[2]; g = m[1]; break;
+      }
+    }
+    if (co && RAW_HINT.test(t) && !COND_GRADED.test(cond)) return '';
+    if (!co) {
+      if (!COND_GRADED.test(cond)) return '';
+      var bare = /\b(?:grade|graded|gem\s*mint|mint)\s*(10|[1-9](?:[.,]5)?)\b/i.exec(t);
+      return 'Graded ' + (bare ? bare[1].replace(',', '.') : '?');
+    }
+    if (co === 'BECKETT') co = 'BGS';
+    g = g.replace(',', '.');
+    var extra = co === 'BGS' && g === '10' && /black\s*label/i.test(t) ? ' Black Label' : co === 'CGC' && g === '10' && /pristine/i.test(t) ? ' Pristine' : '';
+    return co + ' ' + g + extra;
+  }
+  function isGraded(title, condition) { return grade(title, condition) !== ''; }
+  // grade label of a PriceCharting sales tab, for sales whose title names no company
+  var PC_TAB = { 'Ungraded': '', 'Grade 7': 'Graded 7', 'Grade 8': 'Graded 8', 'Grade 9': 'Graded 9', 'Grade 9.5': 'Graded 9.5', 'PSA 10': 'PSA 10' };
+  // ordering of grade labels: raw first, then highest grade, then company
+  function gradeOrder(a, b) {
+    if (!a || !b) return a ? 1 : b ? -1 : 0;
+    var lvl = function (g) { return (parseFloat(g.split(' ')[1]) || 0) + (/Black Label/.test(g) ? 0.2 : /Pristine/.test(g) ? 0.1 : 0); }; // the premium 10s first
+    var na = lvl(a), nb = lvl(b);
+    if (na !== nb) return nb - na;
+    var ca = GRADERS.indexOf(a.split(' ')[0]), cb = GRADERS.indexOf(b.split(' ')[0]);
+    return (ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb) || (a < b ? -1 : a > b ? 1 : 0);
+  }
+
+  // ---- language of a listing from its title (Cardmarket language ids); 0 when the title doesn't say ----
+  var TITLE_LANGS = [
+    [7, /japanese|\bjapan\b|japanisch|japonais|giappones|japon[eé]s|\bjpn?\b|日本語|日本版/i],
+    [10, /korean|koreanisch|cor[ée]en|coreano|\bkor\b|한국/i],
+    [11, /traditional chinese|t-chinese|繁體|繁体/i],
+    [6, /chinese|chinesisch|chinois|cinese|\bchn\b|简体|中文/i],
+    [3, /\bgerman\b|deutsch|\bdeu\b|\bger\b|allemand|tedesco|alem[aá]n/i],
+    [2, /\bfrench\b|fran[cç]ais|franz[öo]sisch|\bfra\b|\bvf\b|francese|franc[eé]s/i],
+    [5, /italian|italiano|italienisch|\bita\b|\bitalien\b/i],
+    [4, /spanish|espa[ñn]ol|spanisch|\besp\b|castellano|espagnol|spagnolo/i],
+    [8, /portugu[eê]se?|portugiesisch|\bpt-?br\b/i],
+    [12, /\bdutch\b|nederlands|niederl[äa]ndisch|n[ée]erlandais/i],
+    [13, /\bpolish\b|polski|polnisch/i],
+    [9, /russian|russisch|русск/i],
+    [1, /english|englisch|anglais|inglese|ingl[eé]s|\beng\b/i]
+  ];
+  function titleLang(title) {
+    var t = String(title || '');
+    for (var i = 0; i < TITLE_LANGS.length; i++) if (TITLE_LANGS[i][1].test(t)) return TITLE_LANGS[i][0];
+    return 0;
+  }
+
   // ---- the breakdown: every price observation of a card, grouped by source, for sale / sold, language and grade ----
   // key "<source>|<L for sale, S sold>|<language id, 0 unknown>|<grade label, '' raw>" -> [n, min, median, avg, max] EUR
   // sources: cm Cardmarket, ct CardTrader, eb eBay, pc PriceCharting
@@ -225,8 +433,10 @@
 
   var api = { LANGS: LANGS, CONDS: CONDS, COND_NAMES: COND_NAMES, ARTICLE: ARTICLE, stats: stats, aggregateArticles: aggregateArticles, listingAvg: listingAvg,
     toEur: toEur, fromEur: fromEur, isGraded: isGraded, sameCardNumber: sameCardNumber, r2: r2,
-    grade: grade, gradeOrder: gradeOrder, PC_TAB: PC_TAB, SCORE_PARTS: SCORE_PARTS, dataScore: dataScore, scoreBucket: scoreBucket, GRADERS: GRADERS, titleLang: titleLang, SEG_SOURCES: SEG_SOURCES, SEG_KEY: SEG_KEY, segKey: segKey, segments: segments,
-    obsArticles: obsArticles, obsEbay: obsEbay, obsPricecharting: obsPricecharting, setSegments: setSegments, mergeSegments: mergeSegments };
+    grade: grade, gradeOrder: gradeOrder, PC_TAB: PC_TAB, SCORE_PARTS: SCORE_PARTS, dataScore: dataScore, scoreBucket: scoreBucket, GRADERS: GRADERS, titleLang: titleLang,
+    VARIANTS: VARIANTS, COND_BUCKET: COND_BUCKET, MARKET_KEY: MARKET_KEY, SALE: SALE, marketKey: marketKey, parseMarket: parseMarket, rawCondition: rawCondition, variantOf: variantOf,
+    isJunk: isJunk, qstats: qstats, asksFromArticles: asksFromArticles, asksFromEbay: asksFromEbay, salesFromEbay: salesFromEbay, salesFromPricecharting: salesFromPricecharting,
+    buildMarkets: buildMarkets, marketOrder: marketOrder };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PRICES = api;
 })(typeof window !== 'undefined' ? window : globalThis);

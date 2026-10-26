@@ -23,7 +23,7 @@
 const http = require('http'), fs = require('fs'), path = require('path'), zlib = require('zlib'), cp = require('child_process');
 const P = require('../src/prices.js');
 const { Store, SCHEMA } = require('./lib/store.js');
-const { applyCardmarket, applyEbay, finalize } = require('./lib/entries.js');
+const { applyCardmarket, applyEbay, applyPricecharting, finalize } = require('./lib/entries.js');
 const src = require('./lib/sources.js');
 const PLAN = require('./lib/scrape-plan.js'), EBQ = require('./lib/ebay.js');
 
@@ -147,7 +147,7 @@ function apply(m, card) {
     // which filtered views the scraper loaded: [language id or 0 for all, minCondition or 0, offers seen, complete]
     if (Array.isArray(d.coverage)) prod.coverage = d.coverage.filter(x => Array.isArray(x) && x.length === 4).map(x => [+x[0] || 0, +x[1] || 0, +x[2] || 0, x[3] ? 1 : 0]);
     products.push(prod);
-    applyCardmarket(store, e, card, products, at, source);
+    applyCardmarket(store, e, card, products, at, source, fx);
     if (d.idProduct && /cardmarket\.com\/[a-z]{2}\/Pokemon\/Products\/Singles\//.test(page)) state.urls.cardmarket[d.idProduct] = page.split('?')[0]; // visit directly next time
     return d.articles.length + ' Cardmarket listings' + (d.idProduct ? ' (product ' + d.idProduct + ')' : '') +
       (prod.coverage ? ', ' + (prod.coverage.every(x => x[3]) ? 'complete' : prod.coverage.filter(x => x[3]).length + '/' + prod.coverage.length + ' views complete') : '');
@@ -162,11 +162,8 @@ function apply(m, card) {
     return items.length + (items.length !== d.items.length ? ' of ' + d.items.length : '') + ' eBay ' + (d.sold ? 'sold' : 'for-sale') + ' items (' + d.mp.replace('EBAY_', '') + ')';
   }
   if (m.site === 'pricecharting') {
-    const g = ['ungraded', 'grade7', 'grade8', 'grade9', 'grade9_5', 'psa10'].map(k => d.prices[k] == null ? null : +d.prices[k]);
-    store.write(store.listingFile('pricecharting', card[1], card[0]), { v: SCHEMA, id: card[0], at, source, url: d.url, g, sold: d.sold }, 'pcListing');
+    const g = applyPricecharting(store, e, card, d, fx, at, source);
     if (d.url) { state.urls.pricecharting[card[0]] = d.url; byPc.set(d.url, card[0]); }
-    e.pc = { u: d.url, g, at, n: d.sold.length };
-    P.setSegments(e, 'pc', P.obsPricecharting(d.sold, card[5] === 'ja' ? 7 : 1, fx));
     return 'PriceCharting: ' + g.filter(x => x != null).length + ' graded prices, ' + d.sold.length + ' sales';
   }
   throw new Error('unknown site ' + m.site);

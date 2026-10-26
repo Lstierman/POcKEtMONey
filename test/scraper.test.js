@@ -167,7 +167,7 @@ test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip
   r = await post('/ingest', { site: 'cardmarket', url: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Base-Set/Charizard', cardId: 'base1-4', data: cmData, via: 'scraper' });
   assert.strictEqual(r.status, 200, JSON.stringify(r.data));
   let sum = JSON.parse(require('zlib').gunzipSync(fs.readFileSync(path.join(dir, 'summary.json.gz'))));
-  assert.deepStrictEqual(Object.keys(sum.cards['base1-4'].l), ['1|NM|']); assert.ok(sum.cards['base1-4'].b['cm|L|12|']);
+  assert.deepStrictEqual(Object.keys(sum.cards['base1-4'].l), ['1|NM|']); assert.ok(sum.cards['base1-4'].m['12|std|RAW ?'].a, 'unreadable condition: its own market');
   r = await post('/ingest', { site: 'cardmarket', url: 'x', cardId: 'base1-4', data: Object.assign({}, cmData, { articles: [cmRow(3, 1, 'NM', -5)] }), via: 'scraper' });
   assert.strictEqual(r.status, 500, 'invalid price refused');
   r = await post('/ingest', { site: 'pricecharting', url: pc.url, cardId: 'base1-2', data: pc, via: 'scraper' });
@@ -233,16 +233,17 @@ test('classification: grading company and grade, language, raw copies that menti
   assert.strictEqual(P.grade('Charizard 4/102', 'Graded'), 'Graded ?');
   assert.strictEqual(P.grade('Charizard PSA 9', 'Ungraded'), '');
   assert.deepStrictEqual(['PSA 9', '', 'BGS 10 Black Label', 'PSA 10', 'CGC 10'].sort(P.gradeOrder), ['', 'BGS 10 Black Label', 'PSA 10', 'CGC 10', 'PSA 9']);
-  // Cardmarket comments: a graded copy leaves the raw condition stats and lands in the breakdown under its grade
+  // Cardmarket comments: a graded copy leaves the raw condition stats and is filed under its grade
   const row = (id, lang, price, comment) => [id, lang, 'NM', price, 1, 0, 0, 0, 0, 'DE', 's', comment, 5];
   const arts = [row(1, 1, 100, ''), row(2, 1, 110, ''), row(3, 1, 2000, 'PSA 10 slab'), row(4, 3, 80, '')];
   assert.deepStrictEqual(Object.keys(P.aggregateArticles(arts)).sort(), ['1|NM|', '3|NM|']);
   assert.strictEqual(P.aggregateArticles(arts)['1|NM|'][4], 110);
-  const b = P.segments(P.obsArticles('cm', arts));
-  assert.deepStrictEqual(Object.keys(b).sort(), ['cm|L|1|', 'cm|L|1|PSA 10', 'cm|L|3|']);
-  // PriceCharting: the title's company wins over the tab
-  const pc = P.segments(P.obsPricecharting([['2026-10-20', 'Grade 9', 'Charizard BGS 9', 100, null], ['2026-10-20', 'Grade 9', 'Charizard 4/102', 90, null], ['2026-10-20', 'Ungraded', 'Charizard', 10, null]], 1, { EUR: 1, USD: 1 }));
-  assert.deepStrictEqual(Object.keys(pc).sort(), ['pc|S|1|', 'pc|S|1|BGS 9', 'pc|S|1|Graded 9']);
+  const m = P.buildMarkets(P.asksFromArticles('cm', arts, 'std'), []);
+  assert.deepStrictEqual(Object.keys(m).sort(), ['1|std|PSA 10', '1|std|RAW NM', '3|std|RAW NM']);
+  // PriceCharting: the title's company wins over the tab; ungraded sales of unstated condition are RAW ?
+  const fx = { EUR: 1, USD: 1 }, today = new Date().toISOString().slice(0, 10);
+  const pc = P.salesFromPricecharting([[today, 'Grade 9', 'Charizard BGS 9', 100, null], [today, 'Grade 9', 'Charizard 4/102', 90, null], [today, 'Ungraded', 'Charizard', 10, null]], 1, 'std', fx);
+  assert.deepStrictEqual(pc.map(r => r[6]), ['BGS 9', 'Graded 9', 'RAW ?']);
 });
 
 // Runs the real scraper-extension/background.js in a VM with a simulated Chrome and a simulated Cardmarket product.
@@ -424,4 +425,63 @@ test('Cardmarket listing completeness (lc) from the views the scraper loaded', (
   assert.strictEqual(e.lc, 0.75);
   applyCardmarket(store, e, c, [{ cm: 273699, label: 'x', articles: [row] }], new Date().toISOString(), 'api');
   assert.strictEqual(e.lc, undefined, 'API listings are complete');
+});
+
+test('markets: variants, conditions, junk, languages never mixed', () => {
+  const P = require('../src/prices.js'), fx = { EUR: 1, USD: 0.9 }, day = d => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+  const it = (id, title, price, cur, cond, mp, date) => [id, title, price, cur, cond, mp, date || '', '', '', date ? 'SOLD' : 'FIXED_PRICE', 1, '', 0];
+  const lang = mp => (mp === 'EBAY_DE' ? 3 : 1);
+  const active = [it(1, 'Charizard 4/102 Base Set Holo NM', 400, 'EUR', 'Ungraded - Near Mint or Better', 'EBAY_US'), it(2, 'Charizard 4/102 1st Edition holo', 9000, 'EUR', 'Used', 'EBAY_US'),
+    it(3, 'Charizard 4/102 shadowless PSA 9', 6000, 'EUR', 'Graded', 'EBAY_US'), it(4, 'Glurak 4/102 lot of 3', 500, 'EUR', 'Used', 'EBAY_DE'), it(5, 'Glurak 4/102 Basis Set', 300, 'EUR', 'Used', 'EBAY_DE'),
+    it(6, 'Charizard 4/102 played', 150, 'USD', 'Used', 'EBAY_US'), it(7, 'Charizard 4/102 japanese', 700, 'EUR', 'Used', 'EBAY_US')];
+  const keys = P.asksFromEbay(active, fx, lang).map(a => a[0]);
+  assert.deepStrictEqual(keys, ['1|std|RAW NM', '1|1st|RAW ?', '1|shadowless|PSA 9', '3|std|RAW ?', '1|std|RAW PL', '7|std|RAW ?'], 'the lot is left out');
+  const sold = [it(10, 'Charizard 4/102 NM', 500, 'USD', 'Ungraded', 'EBAY_US', day(5)), it(11, 'Charizard 4/102 NM', 520, 'USD', 'Ungraded', 'EBAY_US', day(40)), it(12, 'Charizard 4/102 NM', 480, 'USD', 'Ungraded', 'EBAY_US', day(200))];
+  const sales = P.salesFromEbay(sold, fx, lang);
+  assert.deepStrictEqual(sales.map(r => [r[0].length, r[1], r[6], r[8]]), [[10, 450, 'RAW NM', 'eb:10'], [10, 468, 'RAW NM', 'eb:11'], [10, 432, 'RAW NM', 'eb:12']]);
+  const m = P.buildMarkets(P.asksFromEbay(active, fx, lang), sales);
+  const nm = m['1|std|RAW NM'];
+  assert.deepStrictEqual(nm.a, [1, 400, 400, 400, 400, 400]);
+  assert.deepStrictEqual([nm.n30, nm.n90, nm.n365, nm.s[0], nm.s[3]], [1, 2, 3, 2, 459], 'sales of 90 days in the stats, counts per window');
+  assert.strictEqual(nm.last[1], 450);
+  assert.ok(Object.keys(m).every(k => P.MARKET_KEY.test(k)));
+  assert.deepStrictEqual(Object.keys(m).sort(P.marketOrder).slice(0, 3), ['1|std|RAW NM', '1|std|RAW PL', '1|1st|RAW ?']);
+});
+
+test('sales ledger keeps every sale once, across scrapes; market history one point per day', () => {
+  const { Store } = require('../scripts/lib/store.js'), E = require('../scripts/lib/entries.js'), P = require('../src/prices.js');
+  const store = new Store(fs.mkdtempSync(path.join(os.tmpdir(), 'ptcg-ledger-'))), c = cards.get('base1-4'), fx = { EUR: 1, USD: 0.9 };
+  const day = d => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
+  const it = (id, date, price) => [String(id), 'Charizard 4/102 NM', price, 'EUR', 'Ungraded', 'EBAY_US', date, '', '', 'SOLD', 1, '', 0];
+  const e = {}, at1 = new Date().toISOString();
+  E.applyEbay(store, e, c, [], [it(1, day(3), 400), it(2, day(10), 420)], { EBAY_US: 'Charizard 4/102' }, fx, at1, 'scraper');
+  // next scrape: eBay no longer shows sale 2 (out of its window) but shows a new one; sale 1 again
+  E.applyEbay(store, e, c, [], [it(3, day(0), 410), it(1, day(3), 400)], { EBAY_US: 'Charizard 4/102' }, fx, new Date().toISOString(), 'scraper');
+  const ledger = store.read(E.ledgerFile(store, c));
+  assert.deepStrictEqual(ledger.sales.map(r => r[8]), ['eb:3', 'eb:1', 'eb:2'], 'all three, newest first, none twice');
+  assert.strictEqual(e.m['1|std|RAW NM'].n30, 3);
+  // PriceCharting sales go into the same ledger, under the page's variant
+  E.applyPricecharting(store, e, c, { url: 'https://www.pricecharting.com/game/pokemon-base-set/charizard-1st-edition-4', prices: { psa10: 300000 }, sold: [[day(2), 'PSA 10', 'Charizard 1st edition PSA 10', 300000, 'https://www.ebay.com/itm/9']], found: 2 }, fx, new Date().toISOString(), 'scraper');
+  assert.ok(e.m['1|1st|PSA 10'].s, '1st edition PSA 10: its own market');
+  const hist = store.read(E.marketsFile(store, c))['base1-4'];
+  assert.strictEqual(hist['1|std|RAW NM'].length, 1, 'three updates today: one point');
+  assert.deepStrictEqual(hist['1|std|RAW NM'][0].slice(4), [3, 410]);
+  assert.deepStrictEqual(store.verify(), []);
+});
+
+test('dataset export: cards, markets per day, sales, history, schema', () => {
+  const { Store } = require('../scripts/lib/store.js'), E = require('../scripts/lib/entries.js'), cp = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ptcg-ds-')), store = new Store(path.join(dir, 'store')), c = cards.get('base1-4'), fx = { EUR: 1, USD: 0.9 };
+  // eBay's own condition field wins over the title: a "PSA 9" listed as Ungraded would be filed as raw
+  const it = (id, date, price, title) => [String(id), title, price, 'EUR', /PSA/.test(title) ? 'Graded' : 'Ungraded', 'EBAY_US', date, '', '', 'SOLD', 1, '', 0];
+  E.applyEbay(store, {}, c, [], [it(1, new Date().toISOString().slice(0, 10), 400, 'Charizard 4/102 NM'), it(2, new Date().toISOString().slice(0, 10), 9000, 'Charizard 4/102 PSA 9')], { EBAY_US: 'Charizard 4/102' }, fx, new Date().toISOString(), 'scraper');
+  const r = cp.spawnSync(process.execPath, [path.join(root, 'scripts/dataset.js'), '--store=' + path.join(dir, 'store'), '--out=' + path.join(dir, 'out')], { encoding: 'utf8' });
+  assert.strictEqual(r.status, 0, r.stderr);
+  const rows = f => fs.readFileSync(path.join(dir, 'out', f + '.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
+  const sales = rows('sales'), markets = rows('markets'), schema = JSON.parse(fs.readFileSync(path.join(dir, 'out', 'schema.json')));
+  assert.deepStrictEqual(sales.map(s => [s.quality, s.graded, s.lang]).sort(), [['PSA 9', true, 'en'], ['RAW NM', false, 'en']]);
+  assert.deepStrictEqual(markets.map(m => m.market).sort(), ['1|std|PSA 9', '1|std|RAW NM']);
+  for (const [f, list] of [['sales', sales], ['markets', markets]]) assert.deepStrictEqual(Object.keys(list[0]).sort(), Object.keys(schema[f]).sort(), f + ' fields match the schema');
+  const card = rows('cards').find(x => x.id === 'base1-4');
+  assert.strictEqual(card.release, '1999-01-09'); assert.ok(card.bundle != null && card.cardmarket_products.length === 2);
 });

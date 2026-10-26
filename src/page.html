@@ -179,7 +179,7 @@ dialog::backdrop { background: rgba(3,5,9,.72); backdrop-filter: blur(4px) }
 .watchnote { margin-left: 10px; font-size: 12px; color: var(--muted) }
 .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px }
 .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 4px; min-width: 0 }
-.kpi span { font: 700 10.5px/1 var(--f-display); letter-spacing: .09em; text-transform: uppercase; color: var(--muted) }
+.kpi > span { font: 700 10.5px/1 var(--f-display); letter-spacing: .09em; text-transform: uppercase; color: var(--muted) }
 .kpi b { font-family: var(--f-display); font-size: 24px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .kpi b .chg { font-size: 20px; font-family: var(--f-display) }
 .kpi small { color: var(--faint); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
@@ -238,7 +238,9 @@ details.sec > summary .fig { font: 700 13px/1 var(--f-display); color: var(--ink
 .fseg { display: inline-flex; gap: 2px; background: var(--surface); border: 1px solid var(--line2); border-radius: 99px; padding: 2px; justify-self: start }
 .fseg .chip { border: 0; background: none; height: 28px; padding: 0 12px; border-radius: 99px; cursor: pointer; font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center }
 .fseg .chip[aria-pressed="true"] { background: var(--raised2); color: var(--ink) }
-.every td small { color: var(--faint); font-weight: 400; margin-left: 3px }
+.every td small { color: var(--faint); font-weight: 400; margin-left: 4px }
+.every td.srcs { text-align: right } .spr { font-weight: 800 } .spr.lo { color: var(--up) } .spr.hi { color: var(--down) }
+.kpi b .spr { font-family: var(--f-display) } .item .rq { color: var(--muted); font-weight: 700 } .grd { color: var(--gold) }
 .every td.g { font-weight: 800; color: var(--ink) } .every tr.first td { border-top: 1px solid var(--line2) }
 .every .st { font: 700 9.5px/1 var(--f-display); letter-spacing: .05em; color: var(--muted); background: var(--raised2); border-radius: 4px; padding: 3px 5px; margin-left: 3px }
 /* listings matrix and calculator */
@@ -1178,7 +1180,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
   }
   // The card details: the same sections in the same order for every card, each with its status (updated when, or never
   // collected), so nothing appears or disappears from one card to the next.
-  var NAV = [['score', 'Score'], ['graded', 'Graded'], ['every', 'Every price'], ['listings', 'Listings'], ['eba', 'For sale'], ['ebs', 'Sold'], ['guide', 'Price guide'], ['tcg', 'TCGplayer'], ['langs', 'Prints'], ['card', 'Card'], ['meta', 'Details']];
+  var NAV = [['score', 'Score'], ['graded', 'Graded'], ['every', 'Markets'], ['listings', 'Listings'], ['eba', 'For sale'], ['ebs', 'Sold'], ['guide', 'Price guide'], ['tcg', 'TCGplayer'], ['langs', 'Prints'], ['card', 'Card'], ['meta', 'Details']];
   function openCard(id) {
     var t = cat.cards[id], c = PTCG.expand(t), set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(c.img);
     var h = '<button class="close" type="button" id="dclose" aria-label="Close">×</button>';
@@ -1197,18 +1199,24 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
   }
   // the six key figures under the card's name
   function kpiPart(id) {
-    var o = priceOf(id), t = cat.cards[id], hz = HOURLY && HOURLY.cards[t[0]], own = o.lang;
-    var seg = PRICES.mergeSegments([(hz && hz.b) || {}]), find = function (kind, lang, grade) { var x = null; for (var k in seg) { var g = seg[k]; if (g.kind === kind && (lang == null || g.lang === lang) && g.grade === grade && (!x || g.n > x.n)) x = g; } return x; };
-    var sold = find('S', own, '') || find('S', null, ''), psa = find('S', null, 'PSA 10') || find('L', null, 'PSA 10');
-    var chg = cat.chg.any[id], fresh = o.score.parts.filter(function (p) { return p.state === 'fresh'; }).length, nApp = o.score.parts.filter(function (p) { return p.state !== 'n/a'; }).length;
-    var tile = function (label, value, note, cls) { return '<div class="kpi' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><b>' + value + '</b><small>' + (note || '&nbsp;') + '</small></div>'; };
-    return tile('Price', o.head ? (o.head.src === 'thin' ? '~' : '') + moneyText(o.head.eur, 'EUR') : '—', o.head ? esc(HEAD_LABEL[o.head.src]) : 'no price yet', 'main') +
-      tile('Cardmarket from', o.la ? moneyText(o.la.min, 'EUR') : o.guide && o.guide.rows[0] && o.guide.rows[0][2] != null ? moneyText(o.guide.rows[0][2], 'EUR') : '—',
-        o.la ? fmt(o.la.n) + ' copies, ' + esc(PRICES.LANGS[own]) + ' ' + settings.cond + '+' : o.guide ? 'price guide “from”' : 'not collected') +
-      tile('Sold, raw', sold ? moneyText(sold.med, 'EUR') : '—', sold ? 'median of ' + fmt(sold.n) + ' sales' + (sold.lang !== own ? ', ' + esc(PRICES.LANGS[sold.lang] || 'any language') : '') : 'no sales collected') +
-      tile('PSA 10', psa ? moneyText(psa.med, 'EUR') : o.graded && o.graded.g && o.graded.g[5] != null ? moneyText(o.graded.g[5], 'USD') : '—', psa ? (psa.kind === 'S' ? 'median of ' + fmt(psa.n) + ' sales' : fmt(psa.n) + ' for sale') : o.graded && o.graded.g && o.graded.g[5] != null ? 'PriceCharting' : 'not collected') +
-      tile('Data score', scoreHTML(o.score, true), fresh + ' of ' + nApp + ' parts up to date') +
-      tile('7 days', isNaN(chg) ? '—' : '<span class="chg ' + (chg >= 0 ? 'up">▲' : 'down">▼') + Math.abs(chg).toFixed(1) + '%</span>', isNaN(chg) ? 'no history' : 'price change');
+    var o = priceOf(id), ref = refMarket(id), m = marketsOf(id) || {}, own = o.lang, chg = cat.chg.any[id];
+    var psaK = own + '|std|PSA 10', psa = m[psaK] || null;
+    var fresh = o.score.parts.filter(function (p) { return p.state === 'fresh'; }).length, nApp = o.score.parts.filter(function (p) { return p.state !== 'n/a'; }).length;
+    var refName = ref ? qualityName(PRICES.parseMarket(ref.k).quality).replace('Raw ', '').replace(', condition not stated', ' raw') : '';
+    var tile = function (label, value, note, cls, title) { return '<div class="kpi' + (cls ? ' ' + cls : '') + '"' + (title ? ' title="' + esc(title) + '"' : '') + '><span>' + label + '</span><b>' + value + '</b><small>' + (note || '&nbsp;') + '</small></div>'; };
+    // sold and ask-vs-sold: the main market if it has sales, else the print's raw market (own language, standard)
+    // with the most sales; always within one market, and the tile says which
+    var soldM = ref && ref.m.n365 ? ref : null;
+    if (!soldM) for (var k in m) { var p = PRICES.parseMarket(k); if (p.lang === own && p.variant === 'std' && !p.graded && m[k].n365 && (!soldM || m[k].n365 > soldM.m.n365)) soldM = { k: k, m: m[k] }; }
+    var soldName = soldM ? qualityName(PRICES.parseMarket(soldM.k).quality).replace('Raw ', '').replace('Raw, condition not stated', 'raw, cond. not stated') : '';
+    var sp = soldM ? spread(soldM.m) : null;
+    return tile('Price', o.head ? (o.head.src === 'thin' ? '~' : '') + moneyText(o.head.eur, 'EUR') : '—', o.head ? esc(HEAD_LABEL[o.head.src]) + (isNaN(chg) ? '' : ' · <span class="chg ' + (chg >= 0 ? 'up">▲' : 'down">▼') + Math.abs(chg).toFixed(1) + '% 7 d</span>') : 'no price yet', 'main') +
+      tile('Lowest ask' + (ref ? ' · ' + esc(refName) : ''), ref && ref.m.a ? moneyText(ref.m.a[1], 'EUR') : '—', ref && ref.m.a ? 'median ' + moneyText(ref.m.a[3], 'EUR') + ' · ' + ref.m.a[0] + ' listed' : 'no listings collected', '', 'Current listings, ' + (PRICES.LANGS[own] || '') + ', standard print') +
+      tile('Sold, 90 days' + (soldM ? ' · ' + esc(soldName) : ''), soldM && soldM.m.s ? moneyText(soldM.m.s[3], 'EUR') : '—', soldM ? (soldM.m.n90 || 0) + ' sales · ' + (soldM.m.n30 || 0) + ' in 30 d · last ' + esc(fmtDate(soldM.m.last[0])) : 'no sales collected', '', 'Median sale of the last 90 days, ' + (PRICES.LANGS[own] || '') + ', standard print') +
+      tile('Ask vs sold' + (soldM && sp != null ? ' · ' + esc(soldName) : ''), spreadHTML(sp), sp == null ? 'needs asks and sales in one market' : sp <= -0.1 ? 'offered below recent sales' : sp >= 0.1 ? 'offered above recent sales' : 'in line with sales', '', 'Lowest ask compared with the median sale of the last 90 days, in the same market') +
+      tile('PSA 10', psa && psa.s ? moneyText(psa.s[3], 'EUR') : psa && psa.a ? moneyText(psa.a[1], 'EUR') : o.graded && o.graded.g && o.graded.g[5] != null ? moneyText(o.graded.g[5], 'USD') : '—',
+        psa && psa.s ? 'median of ' + psa.s[0] + ' sales, 90 d' : psa && psa.a ? 'lowest of ' + psa.a[0] + ' listed' : o.graded && o.graded.g && o.graded.g[5] != null ? 'PriceCharting' : 'not collected') +
+      tile('Data score', scoreHTML(o.score, true), fresh + ' of ' + nApp + ' parts up to date');
   }
   // one section: title, its key figure, its status pill (from the data score's part), body
   var STATE_TEXT = { fresh: 'up to date', aging: 'ageing', stale: 'out of date', missing: 'never collected', 'n/a': 'not applicable' };
@@ -1374,49 +1382,44 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
     });
   }
 
-  // ---- every price of this card in one table: all its prints, for sale and sold, raw and each grade, per language ----
-  // from the store's breakdown (summary field b, src/prices.js segments) plus the build's PriceCharting sales
+  // ---- markets: this print's prices per language × variant × quality, asks and sales apart (summary field m) ----
   var everyFilter = 'all';
-  var SRC_SHORT = { cm: 'CM', ct: 'CT', eb: 'eBay', pc: 'PC' };
-  function everyPart(id) {
-    var ids = bundleIds(id), parts = [], own = cat.cards[id][22] === 'ja' ? 7 : 1;
-    ids.forEach(function (i) {
-      var t = cat.cards[i], hz = HOURLY && HOURLY.cards[t[0]], b = (hz && hz.b) || {};
-      parts.push(b);
-      var sales = t[26] && t[26].s;
-      if (sales && sales.length && !Object.keys(b).some(function (k) { return k.slice(0, 3) === 'pc|'; }))
-        parts.push(PRICES.segments(PRICES.obsPricecharting(sales, t[22] === 'ja' ? 7 : 1, FX)));
-    });
-    var m = PRICES.mergeSegments(parts), rows = {};
-    for (var k in m) { var c = m[k], rk = c.grade + '|' + c.lang; (rows[rk] = rows[rk] || { grade: c.grade, lang: c.lang, n: 0 })[c.kind] = c; rows[rk].n += c.n; }
-    var all = Object.keys(rows).map(function (k) { return rows[k]; });
-    var nRaw = all.filter(function (r) { return !r.grade; }).length, nGr = all.length - nRaw;
-    var list = all.filter(function (r) { return everyFilter === 'all' || (everyFilter === 'graded') === !!r.grade; }).sort(function (a, b) {
-      return PRICES.gradeOrder(a.grade, b.grade) || (b.lang === own) - (a.lang === own) || b.n - a.n;
-    });
-    var h = '<details class="sec wide" id="sec-every" data-k="every" open><summary><h4>Every price</h4><span class="fig">' + (all.length ? all.length + ' groups' : '—') + '</span></summary><div class="pb">';
-    if (!all.length) return h + '<p class="nolang">No listings or sales collected for ' + (ids.length > 1 ? 'these prints' : 'this card') + ' yet. The price guide and TCGplayer are below.</p></div></details>';
-    h += '<div class="seg3 fseg">' + [['all', 'All', all.length], ['raw', 'Raw', nRaw], ['graded', 'Graded', nGr]].map(function (f) {
-      return '<button type="button" class="chip plain" data-evf="' + f[0] + '" aria-pressed="' + (everyFilter === f[0]) + '">' + f[1] + ' <span class="n">' + f[2] + '</span></button>'; }).join('') + '</div>';
-    var cell = function (c) {
-      if (!c) return '—';
-      var tip = c.n + (c.kind === 'S' ? ' sold' : ' for sale') + ', ' + moneyText(c.min, 'EUR') + ' to ' + moneyText(c.max, 'EUR') + ' · ' +
-        Object.keys(c.src).map(function (s) { return PRICES.SEG_SOURCES[s] + ' ' + c.src[s][0] + '× median ' + moneyText(c.src[s][2], 'EUR'); }).join(' · ');
-      return '<span title="' + esc(tip) + '"><b>' + (c.approx ? '≈' : '') + moneyText(c.med, 'EUR') + '</b><small>' + c.n + '×</small></span>';
-    };
-    var prev = null;
-    h += '<div class="ptable every"><table><thead><tr><th>Copy</th><th>Language</th><th>For sale</th><th>Sold</th><th>Sources</th></tr></thead><tbody>' + list.map(function (r) {
-      var srcs = {}; ['L', 'S'].forEach(function (kd) { if (r[kd]) for (var s in r[kd].src) srcs[s] = 1; });
-      var first = r.grade !== prev; prev = r.grade;
-      return '<tr' + (first ? ' class="first"' : '') + '><td class="g">' + (first ? esc(r.grade || 'Raw') : '') + '</td><td>' + esc(r.lang ? PRICES.LANGS[r.lang] || 'Language ' + r.lang : 'Not stated') + '</td><td>' + cell(r.L) + '</td><td>' + cell(r.S) + '</td><td>' +
-        Object.keys(srcs).map(function (s) { return '<span class="st" title="' + esc(PRICES.SEG_SOURCES[s]) + '">' + SRC_SHORT[s] + '</span>'; }).join('') + '</td></tr>';
-    }).join('') + '</tbody></table></div>';
-    h += '<p class="src">Median per group' + (ids.length > 1 ? ', all ' + ids.length + ' prints of this card together' : '') + '; ≈ combines several sources, weighted by count. Hover a price for its range and per-source figures. ' +
-      'Cardmarket (CM) and CardTrader (CT): current listings of plain copies in any condition (the Cardmarket section splits by condition); a seller comment naming a grade counts as graded. ' +
-      'eBay: language from the title or the card name it uses, else the language the site was searched in. PriceCharting (PC): sales in this print’s language; grades without a named company show as “Graded”. ' +
-      'The Cardmarket price guide (European languages pooled) and TCGplayer (English, raw) are market figures, below.</p>';
-    return h + '</div></details>';
+  var VARIANT_NAME = { std: '', reverse: 'reverse holo', '1st': '1st edition', shadowless: 'shadowless' };
+  function marketName(k) { var x = PRICES.parseMarket(k); return (PRICES.LANGS[x.lang] || 'Language not stated') + (VARIANT_NAME[x.variant] ? ' · ' + VARIANT_NAME[x.variant] : ''); }
+  function qualityName(q) { return q.indexOf('RAW ') === 0 ? (q === 'RAW ?' ? 'Raw, condition not stated' : 'Raw ' + q.slice(4)) : q; }
+  // how far the cheapest ask is from what copies sold for: negative = offered below recent sales
+  function spread(m) { return m && m.a && m.s && m.s[3] ? (m.a[1] - m.s[3]) / m.s[3] : null; }
+  function spreadHTML(x) { return x == null ? '—' : '<span class="spr ' + (x <= -0.1 ? 'lo' : x >= 0.1 ? 'hi' : '') + '">' + (x > 0 ? '+' : '') + Math.round(x * 100) + '%</span>'; }
+  function marketsOf(id) { var hz = HOURLY && HOURLY.cards[cat.cards[id][0]]; return (hz && hz.m) || null; }
+  // the card's main market: its own language, standard print, raw near mint (else the raw one with most data)
+  function refMarket(id) {
+    var m = marketsOf(id), own = cat.cards[id][22] === 'ja' ? 7 : 1; if (!m) return null;
+    var k = own + '|std|RAW NM'; if (m[k]) return { k: k, m: m[k] };
+    var best = null; for (var x in m) { var p = PRICES.parseMarket(x); if (p.lang === own && p.variant === 'std' && !p.graded) { var w = (m[x].a ? m[x].a[0] : 0) + (m[x].n90 || 0) * 3; if (!best || w > best.w) best = { k: x, m: m[x], w: w }; } }
+    return best;
   }
+  function everyPart(id) {
+    var m = marketsOf(id), keys = m ? Object.keys(m).sort(PRICES.marketOrder) : [], nRaw = keys.filter(function (k) { return !PRICES.parseMarket(k).graded; }).length;
+    var h = '<details class="sec wide" id="sec-every" data-k="every" open><summary><h4>Markets</h4><span class="fig">' + (keys.length ? keys.length + ' markets' : '—') + '</span>' +
+      (HOURLY && HOURLY.cards[cat.cards[id][0]] && HOURLY.cards[cat.cards[id][0]].mt ? '<span class="st st-fresh">' + esc(agoIso(HOURLY.cards[cat.cards[id][0]].mt)) + '</span>' : '') + '</summary><div class="pb">';
+    if (!keys.length) return h + '<p class="nolang">No listings or sales of this print collected yet. Every listing and sale the scraper finds is filed here by language, variant and quality.</p></div></details>';
+    h += '<div class="fseg">' + [['all', 'All', keys.length], ['raw', 'Raw', nRaw], ['graded', 'Graded', keys.length - nRaw]].map(function (f) {
+      return '<button type="button" class="chip plain" data-evf="' + f[0] + '" aria-pressed="' + (everyFilter === f[0]) + '">' + f[1] + ' <span class="n">' + f[2] + '</span></button>'; }).join('') + '</div>';
+    var prevQ = null, rows = keys.filter(function (k) { return everyFilter === 'all' || (everyFilter === 'graded') === PRICES.parseMarket(k).graded; }).map(function (k) {
+      var x = m[k], q = PRICES.parseMarket(k).quality, first = q !== prevQ; prevQ = q;
+      var tip = function (st, what) { return st ? ' title="' + esc(st[0] + ' ' + what + ': ' + moneyText(st[1], 'EUR') + ' lowest · ' + moneyText(st[2], 'EUR') + ' quarter · ' + moneyText(st[3], 'EUR') + ' median · ' + moneyText(st[5], 'EUR') + ' highest') + '"' : ''; };
+      return '<tr' + (first ? ' class="first"' : '') + '><td class="g">' + (first ? esc(qualityName(q)) : '') + '</td><td>' + esc(marketName(k)) + '</td>' +
+        '<td' + tip(x.a, 'listed') + '>' + (x.a ? '<b>' + moneyText(x.a[1], 'EUR') + '</b>' : '—') + '</td>' +
+        '<td' + tip(x.a, 'listed') + '>' + (x.a ? moneyText(x.a[3], 'EUR') + '<small>' + x.a[0] + '×</small>' : '—') + '</td>' +
+        '<td' + tip(x.s, 'sold in 90 days') + '>' + (x.s ? '<b>' + moneyText(x.s[3], 'EUR') + '</b><small>' + x.s[0] + '×</small>' : '—') + '</td>' +
+        '<td>' + (x.last ? moneyText(x.last[1], 'EUR') + '<small>' + esc(fmtDate(x.last[0])) + '</small>' : '—') + '</td>' +
+        '<td>' + spreadHTML(spread(x)) + '</td><td>' + (x.n365 ? (x.n30 || 0) + '<small>/ ' + x.n365 + ' yr</small>' : '—') + '</td><td class="srcs">' +
+        Object.keys(x.as || {}).map(function (s) { return '<span class="st" title="' + esc(SRC_NAME[s] || s) + ' listings">' + (SRC_SHORT[s] || s) + '</span>'; }).join('') + '</td></tr>';
+    });
+    h += '<div class="ptable every"><table><thead><tr><th>Quality</th><th>Market</th><th>Lowest ask</th><th>Median ask</th><th>Sold, 90 d</th><th>Last sale</th><th title="Lowest ask compared with the median sale of the last 90 days">Ask vs sold</th><th title="Sales in the last 30 days / 12 months">Sales 30 d</th><th>Asks from</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
+    return h + '<p class="src">This print only, one row per language × variant × quality: raw copies by condition (Cardmarket’s own condition, eBay’s condition or the title; “not stated” when neither says), graded copies by company and grade. Asks are current listings, sales come from the sales ledger (every sale the scraper has seen, kept when eBay drops it). Lots, proxies, sealed product, signed and altered copies are left out. <b>Ask vs sold</b> below 0 means the cheapest copy is offered under what copies recently sold for. Hover a price for its range.</p></div></details>';
+  }
+  var SRC_SHORT = { cm: 'CM', ct: 'CT', eb: 'eBay', pc: 'PC' }, SRC_NAME = { cm: 'Cardmarket', ct: 'CardTrader', eb: 'eBay', pc: 'PriceCharting' };
 
   // ---- all languages of this card: every print, and Cardmarket listings per language across all of them ----
   function bundlePart(id) {
@@ -1484,7 +1487,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
     var s = null, exact = false;
     if (cmArticles) {
       var vals = [];
-      cmArticles.forEach(function (a) { var f = (a[5] ? 'f' : '') + (a[7] ? '1' : '') + (a[6] ? 's' : '') + (a[8] ? 'a' : ''); if (selMatch(a[1], a[2], f)) for (var q = 0; q < Math.min(4, a[4] || 1); q++) vals.push(a[3]); });
+      cmArticles.forEach(function (a) { var f = (a[5] ? 'f' : '') + (a[7] ? '1' : '') + (a[6] ? 's' : '') + (a[8] ? 'a' : ''); if (!PRICES.grade(a[11]) && selMatch(a[1], a[2], f)) for (var q = 0; q < Math.min(4, a[4] || 1); q++) vals.push(a[3]); }); // raw copies only: graded ones are in Markets
       s = PRICES.stats(vals); exact = true;
     } else if (o.listings && o.listings.groups) {
       var n = 0, sum = 0, mn = null, mx = null;
@@ -1495,8 +1498,8 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
       });
       if (n) s = [n, mn, null, sum / n, mx];
     }
-    if (!s) return 'No listings for ' + what + '.';
-    return '<b>' + moneyText(s[3], 'EUR') + '</b> average for ' + what + ' · ' + s[0] + (s[0] === 1 ? ' copy' : ' copies') + ' · from ' + moneyText(s[1], 'EUR') +
+    if (!s) return 'No raw listings for ' + what + '.';
+    return '<b>' + moneyText(s[3], 'EUR') + '</b> average for ' + what + ', raw · ' + s[0] + (s[0] === 1 ? ' copy' : ' copies') + ' · from ' + moneyText(s[1], 'EUR') +
       (s[2] != null ? ' · median ' + moneyText(s[2], 'EUR') : '') + ' · up to ' + moneyText(s[4], 'EUR') + (exact ? '' : ' <small>(combined groups; open “Every listing” for exact median)</small>');
   }
   function refreshCalc() {
@@ -1510,7 +1513,8 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
     if (!rows.length) return '<p class="nolang">No listings match the selection above (' + fmt(cmArticles.length) + ' listings in total).</p>';
     return '<p class="src">' + fmt(rows.length) + ' of ' + fmt(cmArticles.length) + ' listings match the selection above, cheapest first.</p><div class="ptable"><table><thead><tr><th>Price</th><th>Qty</th><th>Cond.</th><th>Language</th><th>Extras</th><th>Seller</th><th>Comment</th></tr></thead><tbody>' +
       rows.slice(0, 300).map(function (a) {
-        return '<tr><td class="hl">' + money(a[3], 'EUR') + '</td><td>' + a[4] + '</td><td title="' + PRICES.COND_NAMES[a[2]] + '">' + esc(a[2]) + '</td><td>' + esc(PRICES.LANGS[a[1]] || a[1]) + '</td><td>' + esc(flagText((a[5] ? 'f' : '') + (a[7] ? '1' : '') + (a[6] ? 's' : '') + (a[8] ? 'a' : ''))) + '</td><td>' + (a[10] ? A('https://www.cardmarket.com/en/Pokemon/Users/' + encodeURIComponent(a[10]), a[10]) : '') + ' <small>' + esc(a[9]) + '</small></td><td class="cm">' + esc(a[11]) + '</td></tr>';
+        var gr = PRICES.grade(a[11]);
+        return '<tr><td class="hl">' + money(a[3], 'EUR') + '</td><td>' + a[4] + '</td><td title="' + (gr ? 'graded copy (seller comment)' : PRICES.COND_NAMES[a[2]]) + '">' + (gr ? '<b class="grd">' + esc(gr) + '</b>' : esc(a[2])) + '</td><td>' + esc(PRICES.LANGS[a[1]] || a[1]) + '</td><td>' + esc(flagText((a[5] ? 'f' : '') + (a[7] ? '1' : '') + (a[6] ? 's' : '') + (a[8] ? 'a' : ''))) + '</td><td>' + (a[10] ? A('https://www.cardmarket.com/en/Pokemon/Users/' + encodeURIComponent(a[10]), a[10]) : '') + ' <small>' + esc(a[9]) + '</small></td><td class="cm">' + esc(a[11]) + '</td></tr>';
       }).join('') + '</tbody></table></div>' + (rows.length > 300 ? '<p class="nolang">Showing the 300 cheapest.</p>' : '');
   }
 
@@ -1520,22 +1524,37 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
   function safeName(s) { return String(s).replace(/[^A-Za-z0-9._-]/g, '_'); }
   var ebayFilter = 'all';
   // grade label of an eBay or PriceCharting item ('' raw), from its title, eBay's condition or PriceCharting's tab
-  function itemGrade(r) {
-    if (r[5] === 'PriceCharting') { var g = PRICES.grade(r[1]); return g || PRICES.PC_TAB[r[4]] || ''; }
-    return PRICES.grade(r[1], r[4]);
+  // every eBay / PriceCharting item classified like the markets: quality, variant, language, junk
+  function classify(r) {
+    if (r.q != null) return r;
+    var pc = r[5] === 'PriceCharting';
+    r.junk = PRICES.isJunk(r[1]);
+    r.g = pc ? (PRICES.grade(r[1]) || PRICES.PC_TAB[r[4]] || '') : PRICES.grade(r[1], r[4]);
+    r.q = r.g || 'RAW ' + PRICES.rawCondition((pc ? '' : r[4] + ' ') + r[1]);
+    r.v = PRICES.variantOf(r[1]); r.l = PRICES.titleLang(r[1]);
+    return r;
+  }
+  // a sales-ledger row [date, EUR, price, currency, lang, variant, quality, source, ref, title] as an item
+  function ledgerItem(x) {
+    var ref = String(x[8]), url = /^eb:/.test(ref) ? 'https://www.ebay.com/itm/' + ref.slice(3) : /^pc:https?:/.test(ref) ? ref.slice(3) : '';
+    var r = [ref, x[9], x[2], x[3], '', x[7] === 'pc' ? 'PriceCharting' : 'eBay', x[0], '', url, 'SOLD', 1, '', x[6].indexOf('RAW') ? 1 : 0];
+    r.q = x[6]; r.g = x[6].indexOf('RAW ') === 0 ? '' : x[6]; r.v = x[5]; r.l = x[4]; r.junk = false;
+    return r;
   }
   function itemRows(items, kind) {
-    items.forEach(function (r) { if (r.g == null) { r.g = itemGrade(r); r.l = PRICES.titleLang(r[1]); } });
+    items.forEach(classify);
+    var junk = items.filter(function (r) { return r.junk; }).length; items = items.filter(function (r) { return !r.junk; });
     var list = items.filter(function (r) { return ebayFilter === 'all' || (ebayFilter === 'graded') === !!r.g; });
     list.sort(kind === 'sold' ? function (a, b) { return a[6] < b[6] ? 1 : -1; } : function (a, b) { return (toDisp(a[2], a[3]) || 0) - (toDisp(b[2], b[3]) || 0); });
     var seg = '<div class="seg3 fseg">' + [['all', 'All'], ['raw', 'Raw'], ['graded', 'Graded']].map(function (f) { return '<button type="button" class="chip plain" data-ebf="' + f[0] + '" aria-pressed="' + (ebayFilter === f[0]) + '">' + f[1] + ' <span class="n">' + items.filter(function (r) { return f[0] === 'all' || (f[0] === 'graded') === !!r.g; }).length + '</span></button>'; }).join('') + '</div>';
-    if (!list.length) return seg + '<p class="nolang">Nothing in this filter.</p>';
+    var junkNote = junk ? '<p class="src">' + junk + ' listing' + (junk === 1 ? '' : 's') + ' left out: lots, proxies, sealed product, signed or altered copies.</p>' : '';
+    if (!list.length) return seg + '<p class="nolang">Nothing in this filter.</p>' + junkNote;
     var st = PRICES.stats(list.map(function (r) { return toDisp(r[2], r[3]); }));
-    return seg + '<p class="src">' + list.length + ' items · median ' + fmtCur(st[2], settings.currency) + ' · average ' + fmtCur(st[3], settings.currency) + ' (outer 10% trimmed)</p><div class="items">' + list.map(function (r) {
-      var extra = [r[4], r[5] === 'PriceCharting' ? 'PriceCharting' : (r[5] || '').replace('EBAY_', 'eBay '), r[11], r[6] ? fmtDate(r[6].slice(0, 10)) : '', r[9] === 'AUCTION' ? 'auction · ' + r[10] + ' bids' : r[9] === 'SOLD' && r[10] > 1 ? r[10] + ' sold' : ''].filter(Boolean);
+    return seg + junkNote + '<p class="src">' + list.length + ' items · median ' + fmtCur(st[2], settings.currency) + ' · average ' + fmtCur(st[3], settings.currency) + ' (outer 10% trimmed)</p><div class="items">' + list.map(function (r) {
+      var extra = [VARIANT_NAME[r.v] || '', r[5] === 'PriceCharting' ? 'PriceCharting' : (r[5] || '').replace('EBAY_', 'eBay '), r[11], r[6] ? fmtDate(r[6].slice(0, 10)) : '', r[9] === 'AUCTION' ? 'auction · ' + r[10] + ' bids' : r[9] === 'SOLD' && r[10] > 1 ? r[10] + ' sold' : ''].filter(Boolean);
       return '<div class="item">' + (r[7] ? '<img loading="lazy" alt="" src="' + esc(r[7]) + '">' : '<span class="noimg"></span>') + '<div class="it">' +
         (r[8] ? '<a target="_blank" rel="noopener" href="' + esc(r[8]) + '">' + esc(r[1]) + '</a>' : '<span>' + esc(r[1]) + '</span>') +
-        '<div class="im"><b>' + money(r[2], r[3]) + '</b>' + (r.g ? '<span class="gr">' + esc(r.g) + '</span>' : '') + (r.l ? '<span class="ln">' + esc(PRICES.LANGS[r.l]) + '</span>' : '') + extra.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div></div></div>';
+        '<div class="im"><b>' + money(r[2], r[3]) + '</b>' + (r.g ? '<span class="gr">' + esc(r.g) + '</span>' : '<span class="rq">' + esc(qualityName(r.q)) + '</span>') + (r.l ? '<span class="ln">' + esc(PRICES.LANGS[r.l]) + '</span>' : '') + extra.map(function (x) { return '<span>' + esc(x) + '</span>'; }).join('') + '</div></div></div>';
     }).join('') + '</div>';
   }
   var ebayData = null;
@@ -1544,7 +1563,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
     if (!ebayData) { if ($('ebSold') && /Loading/.test($('ebSold').textContent)) $('ebSold').innerHTML = '<p class="nolang">No sales collected yet (eBay sold, PriceCharting).</p>'; return; }
     if ($('ebActive') && !ebayData.active) $('ebActive').innerHTML = notCollected('ebay');
     if ($('ebActive') && ebayData.active) $('ebActive').innerHTML = ebayData.active.length ? itemRows(ebayData.active, 'active') : '<p class="nolang">No matching listings for sale when checked ' + esc(whenText(ebayData.at)) + '.</p>';
-    if ($('ebSold')) $('ebSold').innerHTML = ebayData.sold.length ? itemRows(ebayData.sold, 'sold') : '<p class="nolang">No sold items found.</p>';
+    if ($('ebSold')) $('ebSold').innerHTML = (ebayData.ledger ? '<p class="src">Every sale the scraper has seen for this print (eBay, PriceCharting), kept after eBay drops it.</p>' : '') + (ebayData.sold.length ? itemRows(ebayData.sold, 'sold') : '<p class="nolang">No sold items found.</p>');
     if ($('ebEvA') && ebayData.active) $('ebEvA').innerHTML = ebayEvidence(openId, false);
     if ($('ebEvS')) $('ebEvS').innerHTML = ebayEvidence(openId, true);
   }
@@ -1561,21 +1580,26 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
       refreshCalc();
     }, function (e) { if ($('cmList')) $('cmList').innerHTML = '<p class="nolang">Could not load the listings (' + esc(e.message) + ').</p>'; });
     else if (o.listings && $('cmList')) $('cmList').innerHTML = '<p class="nolang">No listings on Cardmarket when checked ' + esc(whenText(o.listings.at)) + '.</p>';
+    var ledger = null;
     var ebDone = function (f) {
       if (openId !== id) return;
-      ebayData = { at: f ? f.at : '', queries: f ? f.queries : null, active: f ? f.active : null, sold: (f ? f.sold : []).concat(pcSold) };
+      // sold: the sales ledger when there is one (every sale ever seen, classified), else eBay's current file + PriceCharting
+      ebayData = { at: f ? f.at : '', queries: f ? f.queries : null, active: f ? f.active : null, sold: ledger ? ledger.map(ledgerItem) : (f ? f.sold : []).concat(pcSold), ledger: !!ledger };
       renderEbay();
     };
     var ebLoad = function () {
       if (o.ebay) storeFile('listings/ebay/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(ebDone, function () { ebDone(null); });
-      else if (pcSold.length) ebDone(null);
+      else if (pcSold.length || ledger) ebDone(null);
       else renderEbay();
     };
-    // PriceCharting sales the scraper collected replace the build's snapshot of them
-    if (o.graded && o.graded.src === 'scraped') storeFile('listings/pricecharting/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(function (f) {
+    var pcLoad = function () {
+      // PriceCharting sales the scraper collected replace the build's snapshot of them
+      if (o.graded && o.graded.src === 'scraped') storeFile('listings/pricecharting/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(function (f) {
       if (f && f.sold) pcSold = f.sold.map(pcRow); pcData = f; ebLoad();
-    }, ebLoad);
-    else ebLoad();
+      }, ebLoad);
+      else ebLoad();
+    };
+    storeFile('sales/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(function (f) { if (f && f.sales && f.sales.length) ledger = f.sales; pcLoad(); }, pcLoad);
     if (HOURLY && HOURLY.cards[t[0]]) storeFile('history/' + safeName(set.id) + '.json.gz').then(function (hist) {
       if (openId !== id) return;
       openHist = (hist && hist[t[0]]) || null; fillHist();

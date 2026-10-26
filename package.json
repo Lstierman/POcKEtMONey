@@ -10,6 +10,7 @@
     "collect": "node scripts/collect.js store",
     "test": "node --test test/collect.test.js test/scraper.test.js",
     "helper": "node scripts/ingest-server.js --publish --publish-minutes=15",
-    "page": "node scripts/lib/page.js"
+    "page": "node scripts/lib/page.js",
+    "dataset": "node scripts/dataset.js"
   }
 }
