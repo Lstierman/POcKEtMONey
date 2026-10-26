@@ -71,9 +71,10 @@ $('sug').addEventListener('click', async e => {
 
 // ---------- the run ----------
 function renderButton() {
-  $('go').textContent = active() ? 'Stop' : 'Scrape all';
-  $('go').className = active() ? 'main stop' : 'pr main';
-  $('go').disabled = !status && !active();
+  const stopping = job && job.status === 'stopping';
+  $('go').textContent = stopping ? 'Stopping: saving what was read…' : active() ? 'Stop' : 'Scrape all';
+  $('go').className = active() || stopping ? 'main stop' : 'pr main';
+  $('go').disabled = stopping || (!status && !active());
 }
 function renderJob() {
   renderButton();
@@ -88,7 +89,7 @@ function renderJob() {
   $('log').textContent = job.log.join('\n');
 }
 $('go').onclick = async () => {
-  if (active()) { send({ type: 'stop' }); return; }
+  if (active()) { $('go').disabled = true; $('go').textContent = 'Stopping: saving what was read…'; send({ type: 'stop' }); return; }
   const only = $('only').value.trim(), deep = $('deep').checked;
   chrome.storage.local.set({ deep }); // "only" is not remembered, so a test filter never sticks to the next Scrape all
   const r = await send({ type: 'start', only, deep });

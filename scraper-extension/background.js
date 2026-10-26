@@ -109,7 +109,7 @@ async function visit(w, url) {
         block = t.status === 'complete' ? await run(tabId, blockCheck).catch(() => 'check') : 'check';
       }
     } finally {
-      job.waiting--; if (!job.waiting) { job.status = 'running'; job.message = ''; chrome.notifications.clear('check'); }
+      job.waiting--; if (!job.waiting && !job.stop) { job.status = 'running'; job.message = ''; chrome.notifications.clear('check'); }
     }
     log('check done on ' + new URL(url).host + ', continuing'); await save();
     await sleep(1000);
@@ -122,7 +122,11 @@ async function wait(w, ms) { for (const end = Date.now() + ms; Date.now() < end;
 // page-side: fetches pages of this site from inside its tab (same origin, your cookies) and reads them with
 // parsers.js without rendering. opts: { conc, gap (s), pageSize, pick: { kind, match } }
 async function fetchParse(urls, opts) {
-  const out = new Array(urls.length), sleep = ms => new Promise(r => setTimeout(r, ms));
+  // Stop (from the popup) sets window.__ptcgStop and aborts the requests in flight: what was read so far is returned
+  window.__ptcgStop = false;
+  const ctl = new AbortController(); (window.__ptcgCtl = window.__ptcgCtl || new Set()).add(ctl);
+  const halted = () => window.__ptcgStop || ctl.signal.aborted;
+  const out = new Array(urls.length), sleep = async ms => { for (const end = Date.now() + ms; Date.now() < end && !halted(); ) await new Promise(r => setTimeout(r, 150)); };
   const BLOCKED = /challenge-platform|cf-turnstile|<title>\s*(just a moment|attention required)|pardon our interruption|verify you are a human|g-recaptcha|hcaptcha/i;
   // fetched pages are not rendered, so "load more" is judged from the markup: a visible-looking, enabled button
   function cmHasMore(doc, p) {
@@ -134,10 +138,10 @@ async function fetchParse(urls, opts) {
   let next = 0;
   async function lane(k) {
     if (k) await sleep(k * 400);
-    while (next < urls.length) {
+    while (next < urls.length && !halted()) {
       const i = next++, url = urls[i];
       try {
-        const r = await fetch(url, { credentials: 'include', headers: { Accept: 'text/html,application/xhtml+xml' } });
+        const r = await fetch(url, { credentials: 'include', signal: ctl.signal, headers: { Accept: 'text/html,application/xhtml+xml' } });
         const html = await r.text();
         if (r.status === 429) out[i] = { url, slow: true, status: 429 };
         else if ((r.status === 403 || r.status === 503 || BLOCKED.test(html.slice(0, 30000))) && !/data-listingid|articleRow|completed-auctions/.test(html)) out[i] = { url, blocked: true, status: r.status };
@@ -153,28 +157,34 @@ async function fetchParse(urls, opts) {
           }
           out[i] = res;
         }
-      } catch (e) { out[i] = { url, error: e.message }; }
+      } catch (e) { out[i] = halted() ? null : { url, error: e.message }; }
       if (next < urls.length) await sleep((opts.gap || 1.5) * 1000 * (0.7 + Math.random() * 0.6));
     }
   }
   await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.conc || 1, urls.length)) }, (_, k) => lane(k)));
-  return out;
+  window.__ptcgCtl.delete(ctl);
+  return out.map(x => x || null);
 }
+
+// page-side: stops fetchParse and loadAllOffers in this tab straight away
+function haltPage() { window.__ptcgStop = true; (window.__ptcgCtl || new Set()).forEach(c => c.abort()); return true; }
 
 // fetches pages through their site's tab; a block or check makes that tab load the page normally (you complete the
 // check there), then the page is fetched again. Results in the order of urls.
 async function getPages(w, urls, pick) {
-  const out = new Array(urls.length), byOrigin = new Map();
+  if (stopped()) throw new Stop();
+  const out = new Array(urls.length).fill(null), byOrigin = new Map();
   urls.forEach((u, i) => { const o = new URL(u).origin; if (!byOrigin.has(o)) byOrigin.set(o, []); byOrigin.get(o).push(i); });
   await Promise.all([...byOrigin].map(async ([origin, idx]) => { // eBay.de and eBay.com side by side
     if (!job.ready[origin]) await visit(w, urls[idx[0]]); // first page of this site: a normal load, for cookies and checks
     for (let attempt = 0; attempt < 3; attempt++) {
-      if (stopped()) throw new Stop();
+      if (stopped()) return; // keep the pages read so far
       const todo = idx.filter(i => !out[i] || out[i].blocked || out[i].slow);
       if (!todo.length) break;
       const tabId = await originTab(origin);
       const res = await run(tabId, fetchParse, [todo.map(i => urls[i]), { conc: w.conc, gap: w.gap, pageSize: job.pace.pageSize, pick }], ['parsers.js', 'match.js']);
       todo.forEach((i, k) => { out[i] = res[k]; });
+      if (stopped()) return;
       const slow = res.filter(r => r.slow), blocked = res.filter(r => r.blocked);
       if (slow.length) { w.gap = Math.min(10, w.gap * 2); w.conc = 1; log(SITE_NAME[w.site] + ': too many requests, slowing down to one page every ' + w.gap.toFixed(1) + ' s'); await wait(w, 30e3); }
       if (blocked.length) await visit(w, blocked[0].url);
@@ -198,10 +208,11 @@ async function scrapeEbay(w, item) {
   let n = 0;
   for (let k = 0; k < pages.length; k++) {
     const p = item.pages[k], page = pages[k];
-    if (!page || !page.data || page.data.site !== 'ebay') { log('eBay ' + p.mp.replace('EBAY_', '') + ': ' + (page && (page.error || page.title) || 'no results page')); continue; }
-    const res = await ingest('ebay', page, item.card, { empty: page.data.found === 0 });
+    if (!page || !page.data || page.data.site !== 'ebay') { if (!stopped()) log('eBay ' + p.mp.replace('EBAY_', '') + ': ' + (page && (page.error || page.title) || 'no results page')); continue; }
+    const res = await ingest('ebay', page, item.card, { empty: page.data.found === 0, partial: stopped() || undefined });
     n++; log('eBay ' + p.mp.replace('EBAY_', '') + (p.sold ? ' sold' : ' for sale') + ': ' + res.report);
   }
+  if (stopped()) throw new Stop(n ? 'saved ' + n + ' of ' + pages.length + ' eBay searches' : '');
   if (!n) throw new Error('no eBay results page could be read');
   return n;
 }
@@ -223,10 +234,12 @@ function readPage() {
   return { data: JSON.parse(JSON.stringify(o)), url: location.href.split('#')[0], more: !!r.more };
 }
 async function loadAllOffers(maxClicks) {
+  window.__ptcgStop = false;
   for (let i = 0; i < maxClicks; i++) {
+    if (window.__ptcgStop) return i;
     const r = window.PTCG_PARSE.cardmarket(document, location); if (!r.more) return i;
     const before = r.rowsSeen; r.more.click();
-    for (let t = 0; t < 40 && window.PTCG_PARSE.cardmarket(document, location).rowsSeen === before; t++) await new Promise(ok => setTimeout(ok, 250));
+    for (let t = 0; t < 40 && !window.__ptcgStop && window.PTCG_PARSE.cardmarket(document, location).rowsSeen === before; t++) await new Promise(ok => setTimeout(ok, 250));
     await new Promise(ok => setTimeout(ok, 800 + Math.random() * 700));
   }
   return maxClicks;
@@ -253,20 +266,21 @@ async function cmProduct(w, first, item) { // first: the product page as fetched
     return !p.more;
   };
   const all = /\?/.test(first.final) ? await getPage(w, viewUrl(base, 0, 0)) : first;
-  if (!add(all, 0, 0)) {
+  if (!add(all, 0, 0) && !stopped()) {
     // per language: the configured ones plus any seen on the first page
     const langs = [...new Set((f.languages || []).concat(all.data.articles.map(a => a[1]).filter(Boolean)))];
     w.step('Cardmarket: ' + all.data.found + '+ offers, fetching ' + langs.length + ' languages');
     const lv = await getPages(w, langs.map(l => viewUrl(base, l, 0)));
     const cut = langs.filter((l, k) => add(lv[k], l, 0) === false);
-    if (cut.length && f.conditions !== false) {
+    if (cut.length && f.conditions !== false && !stopped()) {
       const views = []; cut.forEach(l => { for (let c = 1; c <= 6; c++) views.push([l, c]); });
       w.step('Cardmarket: ' + cut.map(l => LANG_NAME[l]).join(', ') + ' per condition (' + views.length + ' views)');
       const cv = await getPages(w, views.map(([l, c]) => viewUrl(base, l, c)));
       views.forEach(([l, c], k) => add(cv[k], l, c));
     }
-    if (job.deep) { // every single offer: languages still cut off, clicked through in the tab
+    if (job.deep && !stopped()) { // every single offer: languages still cut off, clicked through in the tab
       for (const l of cut) {
+        if (stopped()) break;
         const p = await deepView(w, viewUrl(base, l, 0), (f.maxLoadMore || 40), 'Cardmarket ' + viewName(l, 0));
         if (p && !p.none) add(p, l, 0);
       }
@@ -292,14 +306,14 @@ async function scrapeCardmarket(w, item) {
     const data = await cmProduct(w, page, item);
     const odd = data.articles.filter(a => a[2] === '??').length;
     if (odd) log('Cardmarket ' + id + ': ' + odd + ' of ' + data.articles.length + ' offers without a readable condition (kept, left out of the condition prices)');
-    const res = await ingest('cardmarket', { final: page.final, data }, item.card, { empty: data.found === 0 }).catch(e => { errors.push(e.message); log('✗ Cardmarket ' + id + ': ' + e.message); return null; });
+    const res = await ingest('cardmarket', { final: page.final, data }, item.card, { empty: data.found === 0, partial: stopped() || undefined }).catch(e => { errors.push(e.message); log('✗ Cardmarket ' + id + ': ' + e.message); return null; });
     if (res) { log('Cardmarket: ' + res.report); got.add(id); }
     else { want.delete(id); tried.add('failed:' + id); } // found but not saved: don't look for it elsewhere
   }
   w.step('Cardmarket: finding the product');
   const known = item.products.filter(p => p.url).map(p => p.url);
-  if (known.length) for (const page of await getPages(w, known)) await product(page);
-  if (got.size < want.size && item.redirect) { // pokemontcg.io redirects to the product page; only the address is needed
+  if (known.length) for (const page of await getPages(w, known)) await product(page); // after a stop, product() saves what it read and starts nothing new
+  if (got.size < want.size && item.redirect && !stopped()) { // pokemontcg.io redirects to the product page; only the address is needed
     try {
       const ctl = new AbortController(), r = await fetch(item.redirect, { signal: ctl.signal }); ctl.abort();
       if (/cardmarket\.com\/.+\/Products\/Singles\//.test(r.url)) await product(await getPage(w, r.url.split('?')[0]));
@@ -308,17 +322,19 @@ async function scrapeCardmarket(w, item) {
   }
   // each product still missing: search its exact name within its expansion (from Cardmarket's catalog)
   for (const p of item.products) {
+    if (stopped()) break;
     if (got.has(p.cm) || !want.has(p.cm) || !p.search) continue;
     w.step('Cardmarket: searching ' + (p.variant || 'product ' + p.cm));
     const s = await getPage(w, p.search, { kind: 'cm', match: item.match });
     if (s && s.data) await product(s); // a single hit opens the product directly
     else if (s && s.picked) for (const u of s.picked) { if (got.has(p.cm)) break; if (!tried.has(u.split('?')[0])) await product(await getPage(w, u)); }
   }
-  if (got.size < want.size) {
+  if (got.size < want.size && !stopped()) {
     const s = await getPage(w, item.search, { kind: 'cm', match: item.match });
     if (s && s.data) await product(s); // a single hit opens the product directly
     else if (s && s.picked) for (const u of s.picked.slice(0, want.size - got.size + 2)) { if (got.size === want.size) break; if (!tried.has(u.split('?')[0])) await product(await getPage(w, u)); }
   }
+  if (stopped()) throw new Stop(got.size ? 'Cardmarket saved what it had read' : '');
   if (!got.size && errors.length) throw new Error('found, but the helper could not save it: ' + errors[0]); // not a "not found": retried next run
   if (!got.size) { await helper('/skip', { site: 'cardmarket', card: item.card, reason: 'no matching product found' }); log('Cardmarket: nothing found for ' + item.label); }
   return got.size;
@@ -333,8 +349,9 @@ async function scrapePricecharting(w, item) {
     const cands = (page && page.picked) || []; page = null;
     for (const u of cands.slice(0, 2)) { const p = await getPage(w, u); if (ok(p)) { page = p; break; } }
   }
+  if (!page && stopped()) throw new Stop();
   if (!page) { await helper('/skip', { site: 'pricecharting', card: item.card, reason: 'no matching PriceCharting page' }); log('PriceCharting: nothing found for ' + item.label); return 0; }
-  const res = await ingest('pricecharting', page, item.card, { empty: page.data.found === 0 });
+  const res = await ingest('pricecharting', page, item.card, { empty: page.data.found === 0, partial: stopped() || undefined });
   log('PriceCharting: ' + res.report);
   return 1;
 }
@@ -370,10 +387,14 @@ async function siteWorker(site) {
     job.cur[site] = (item.phase === 'watch' ? '★ ' : '') + item.label; job.steps[site] = ''; job.inFlight[site] = item; saveSoon();
     try {
       const n = await SCRAPE[site](w, item);
+      if (stopped()) throw new Stop();
       if (n) job.saved++; else job.skipped++;
       job.done[item.phase] = (job.done[item.phase] || 0) + 1;
     } catch (e) {
-      if (e instanceof Stop) { (job.buf[site] = job.buf[site] || []).unshift(item); throw e; } // retried on resume
+      if (e instanceof Stop || stopped()) { // the card is done again next run (what was read is saved, but not counted as up to date)
+        if (e.message) log(SITE_NAME[site] + ' ' + item.label + ': stopped, ' + e.message);
+        (job.buf[site] = job.buf[site] || []).unshift(item); throw new Stop();
+      }
       job.failed++; log('✗ ' + SITE_NAME[site] + ' ' + item.label + ': ' + e.message);
       await helper('/skip', { site, card: item.card, kind: 'fail', reason: e.message }); // retried after a while, not straight away
     }
@@ -399,12 +420,24 @@ async function loop() {
     }
     log(job.message);
   } finally {
-    clearInterval(keepAlive); running = false; job.cur = {}; job.steps = {};
-    await closeWindow(); await save();
+    clearInterval(keepAlive); running = false; job.cur = {}; job.steps = {}; job.inFlight = {};
+    await save(); await closeWindow(); await save();
     const p = await helper('/publish', {}); // push what this run collected
     if (p.status === 200 && p.data.ok && !p.data.nothing) log('pushed to GitHub');
     await save();
   }
+}
+
+// Stop: nothing new starts, the tabs abort their requests, the pages already read are saved (marked partial, so those
+// cards are done again next run), the state is saved, and the window closes. Never more than a few seconds.
+async function stop() {
+  if (!job) return { ok: true };
+  job.stop = true;
+  if (!running) { job.status = 'stopped'; await save(); return { ok: true }; }
+  job.status = 'stopping'; job.message = 'Stopping: saving what was read…'; await save();
+  for (const tabId of Object.values(job.tabs || {})) run(tabId, haltPage).catch(() => {});
+  setTimeout(() => { if (running) closeWindow(); }, 4000); // anything still hanging (a page load, a check) ends here
+  return { ok: true };
 }
 
 // opts: { only: card ids or sets (for testing), deep: every single Cardmarket offer, sites }
@@ -424,7 +457,7 @@ async function start(opts = {}) {
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   (async () => {
     if (msg.type === 'start') return start(msg);
-    if (msg.type === 'stop') { if (job) { job.stop = true; if (!running) { job.status = 'stopped'; await save(); } } return { ok: true }; }
+    if (msg.type === 'stop') return stop();
     if (msg.type === 'helper') return helper(msg.path, msg.body);
     return { error: 'unknown request' };
   })().then(reply);

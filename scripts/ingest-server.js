@@ -199,7 +199,7 @@ function replay() {
       if (j.watch) { applyWatch(j.watch, j.at); n++; continue; }
       if (j.skip) { applySkip(j.skip, j.at); n++; continue; }
       const c = cards.get(j.card); if (!c) continue;
-      apply(j.m, c); (state.capture[j.m.site] = state.capture[j.m.site] || {})[c[0]] = j.at; ids.push(c[0]); n++;
+      apply(j.m, c); if (!j.m.partial) (state.capture[j.m.site] = state.capture[j.m.site] || {})[c[0]] = j.at; ids.push(c[0]); n++;
     } catch (e) { console.warn('skipped an old change (' + (j.card || 'watch list') + '): ' + e.message); }
   }
   if (ids.length) saveAll(ids); else store.write('state.json', state, 'state');
@@ -314,7 +314,8 @@ async function handle(req, res) {
     let report;
     try {
       report = apply(j.m, cards.get(id));
-      (state.capture[m.site] = state.capture[m.site] || {})[id] = at;
+      // a capture cut short by Stop is saved, but the card stays due, so the next run does it completely
+      if (!m.partial) (state.capture[m.site] = state.capture[m.site] || {})[id] = at;
       saveAll([id]);
       const bad = store.verify(); if (bad.length) throw new Error('store validation failed: ' + bad.join('; '));
     } catch (e) {
@@ -326,7 +327,7 @@ async function handle(req, res) {
     store.written = [];
     changed(id, report);
     journal(j);
-    console.log(`${at.slice(11, 19)} ${id} ${report}`);
+    console.log(`${at.slice(11, 19)} ${id} ${report}${m.partial ? ' (stopped part-way; done again next run)' : ''}`);
     return send(res, 200, { ok: true, card: search(id, 1)[0], report, pending });
   }
   send(res, 404, { error: 'not found' });

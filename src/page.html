@@ -160,11 +160,15 @@ footer.status .wrap { padding-block: 14px calc(14px + env(safe-area-inset-bottom
 footer.status button { font: inherit; border: 1px solid var(--line2); background: var(--surface); border-radius: 6px; padding: 3px 8px; cursor: pointer; color: var(--ink) }
 
 /* ---------- dialogs ---------- */
-dialog { border: 1px solid var(--line2); padding: 0; background: var(--bg2); color: var(--ink); border-radius: 20px; width: min(1240px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-shadow: 0 30px 80px rgba(0,0,0,.6) }
+dialog { border: 1px solid var(--line2); padding: 0; background: var(--bg2); color: var(--ink); border-radius: 20px; width: min(1240px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-shadow: 0 30px 80px rgba(0,0,0,.6); overflow: hidden }
+/* the dialog only frames; the one scrollbar is its content's, and the page behind stays still */
+dialog[open] { display: flex; flex-direction: column }
+dialog > .sheet, dialog > .dash, dialog > .setf { flex: 1 1 auto; min-height: 0; max-height: none }
+html:has(dialog[open]) { overflow: hidden }
 dialog::backdrop { background: rgba(3,5,9,.72); backdrop-filter: blur(4px) }
 
 /* card view */
-.sheet { position: relative; overflow: auto; max-height: calc(100dvh - 24px); padding: 0 0 28px; scroll-padding-top: 64px }
+.sheet { position: relative; overflow: auto; overscroll-behavior: contain; padding: 0 0 28px; scroll-padding-top: 64px }
 .sheet .close { position: absolute; right: 14px; top: 14px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line2); background: var(--raised); cursor: pointer; font-size: 18px; z-index: 4; color: var(--ink) }
 .hero { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; padding: 26px 28px 22px; background: linear-gradient(180deg, rgba(125,155,255,.09), transparent); border-bottom: 1px solid var(--line) }
 .hero-img .face { border-width: 3px; width: 100%; box-shadow: 0 18px 50px rgba(0,0,0,.6), 0 0 40px rgba(125,155,255,.12) }
@@ -297,7 +301,7 @@ dl.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere }
 
 /* scraping dashboard */
 dialog#dash { width: min(1240px, calc(100vw - 24px)) }
-.dash { padding: 24px 26px; max-height: calc(100dvh - 24px); overflow: auto; display: grid; gap: 16px }
+.dash { padding: 24px 26px; overflow: auto; overscroll-behavior: contain; display: grid; gap: 16px }
 .dash > header { display: flex; align-items: center; gap: 12px } .dash > header h2 { margin: 0; flex: 1; font-family: var(--f-display); font-stretch: 80%; font-size: 30px }
 .dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px; align-items: start }
 .dcard { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; background: var(--panel); display: grid; gap: 10px; min-width: 0 }
@@ -326,7 +330,7 @@ dialog#dash { width: min(1240px, calc(100vw - 24px)) }
 .dopts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted) } .dopts input[type=text] { height: 34px; border: 1px solid var(--line2); border-radius: var(--r-sm); padding: 0 10px; background: var(--surface); color: var(--ink); min-width: 190px }
 /* settings */
 dialog#settings { width: min(540px, calc(100vw - 24px)) }
-.setf { display: grid; gap: 16px; padding: 24px; max-height: calc(100dvh - 24px); overflow: auto }
+.setf { display: grid; align-content: start; gap: 16px; padding: 24px; overflow: auto; overscroll-behavior: contain }
 .setf h2 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-size: 28px }
 .setf fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px }
 .setf legend { font-weight: 700; margin-bottom: 6px }
@@ -355,7 +359,6 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
   .fbar > * { flex: none }
   .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 12px }
   dialog { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; border-radius: 0; margin: 0 }
-  .sheet { max-height: 100dvh }
   .hero { grid-template-columns: minmax(0, 1fr); padding: 18px 16px; gap: 16px }
   .hero-img .face { max-width: 220px; margin: 0 auto }
   .hero h2 { font-size: 32px }
@@ -1800,7 +1803,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
     var done = j ? j.saved + j.skipped + j.failed : 0, mins = j ? (Date.now() - Date.parse(j.startedAt)) / 60e3 : 0;
     h += '<section class="dcard"><h3>Run <span>' + (j && j.startedAt ? 'started ' + esc(agoIso(j.startedAt)) : '') + '</span></h3>' +
       '<div class="runmsg' + (j && j.status === 'waiting' ? ' wait' : '') + '">' + esc(!j ? 'Not started yet.' : j.message || (act ? (j.done && j.done.catalog ? 'To watch done · working through the catalog' : j.only ? 'Scraping ' + j.only : 'Updating To watch first') : j.status)) + '</div>' +
-      '<div class="dopts"><button type="button" class="dbtn ' + (act ? 'stop" data-dact="stop">Stop' : 'pr" data-dact="start"' + (ext.on && helperState.on ? '' : ' disabled') + '>Scrape all') + '</button>' +
+      '<div class="dopts"><button type="button" class="dbtn ' + (j && j.status === 'stopping' ? 'stop" disabled>Stopping…' : act ? 'stop" data-dact="stop">Stop' : 'pr" data-dact="start"' + (ext.on && helperState.on ? '' : ' disabled') + '>Scrape all') + '</button>' +
       (act ? '' : '<input type="text" id="dOnly" placeholder="only cards or sets (testing)" value="' + esc(keepOnly) + '"><label><input type="checkbox" id="dDeep"' + (keepDeep ? ' checked' : '') + '> every single Cardmarket offer (slow)</label>') + '</div>';
     if (j) {
       h += '<div class="cur3">' + Object.keys(SITE_NAMES).filter(function (k) { return !j.sites || j.sites.indexOf(k) >= 0; }).map(function (k) {
