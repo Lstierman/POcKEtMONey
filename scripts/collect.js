@@ -1,21 +1,19 @@
-// Hourly price collector. Updates the price store (see scripts/lib/store.js) from every source it can reach:
-//   always:            exchange rates, Cardmarket price guide, TCGplayer (tcgcsv)
-//   with credentials:  Cardmarket listings (CARDMARKET_*), CardTrader listings (CARDTRADER_TOKEN), eBay for sale / sold (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET)
-// Usage: node scripts/collect.js <store dir> [--force] [--only=fx,guide,tcg,cardmarket,cardtrader,ebay] [--cards=id,id]
+// Hourly collector (GitHub Actions). Updates the price store (see scripts/lib/store.js) with the free bulk feeds that
+// cover every card at once: exchange rates, Cardmarket's price guide and TCGplayer (tcgcsv). Per-card data (every
+// Cardmarket listing, eBay for sale and sold, PriceCharting) comes from the scraper extension through the helper; the
+// collector keeps it and recomputes headlines and history.
+// Usage: node scripts/collect.js <store dir> [--force] [--only=fx,guide,tcg]
 // The run is skipped when the last one is younger than intervalMinutes (prices.config.json, or PRICE_INTERVAL_MINUTES).
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const P = require('../src/prices.js');
 const { Store, SCHEMA } = require('./lib/store.js');
-const { applyCardmarket, applyCardTrader, applyEbay, finalize } = require('./lib/entries.js');
-const CT = require('./lib/cardtrader.js');
 const src = require('./lib/sources.js');
-const CM = require('./lib/cardmarket.js'), EB = require('./lib/ebay.js');
+const { finalize } = require('./lib/entries.js');
 
 const root = path.join(__dirname, '..');
 const args = process.argv.slice(2), flag = n => args.find(a => a === '--' + n || a.startsWith('--' + n + '='));
 const dir = args.find(a => !a.startsWith('--')) || path.join(root, 'store');
 const only = flag('only') ? flag('only').split('=')[1].split(',') : null, want = s => !only || only.includes(s);
-const forced = flag('cards') ? flag('cards').split('=')[1].split(',') : [];
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
 if (process.env.PRICE_INTERVAL_MINUTES) cfg.intervalMinutes = +process.env.PRICE_INTERVAL_MINUTES;
 
@@ -72,109 +70,13 @@ if (process.env.PRICE_INTERVAL_MINUTES) cfg.intervalMinutes = +process.env.PRICE
     }
   } catch (e) { note('tcg', { ok: false, note: e.message }); }
 
-  // ---- which cards get the per-card (budgeted) fetches this run ----
-  const S = cfg.schedule;
-  // the To watch list (edited on the site, kept in the store by the scraper helper) is refreshed every run, like `always`
-  const watched = new Set(S.always.concat((store.read('watchlist.json', { cards: [] }).cards || []).map(w => w[0])));
-  function due(stamps, eligible) {
-    const list = [];
-    for (const c of eligible) {
-      const v = (entries[c[0]] && entries[c[0]].h) || 0, last = stamps[c[0]] ? Date.parse(stamps[c[0]]) : 0;
-      const hot = watched.has(c[0]) || v >= S.hotEur;
-      const period = (hot ? cfg.intervalMinutes / 60 : v >= S.warmEur ? S.warmEveryHours : S.coldEveryHours) * 3600e3;
-      const overdue = (now - last) / period;
-      if (forced.includes(c[0])) list.push([c, Infinity]);
-      else if (!forced.length && overdue >= 0.95) list.push([c, overdue * (1 + Math.log1p(v))]);
-    }
-    return list.sort((a, b) => b[1] - a[1]).map(x => x[0]);
-  }
-
-  // ---- Cardmarket listings ----
-  const cmCreds = CM.credentials();
-  if (!want('cardmarket') || !cfg.cardmarket.enabled) {}
-  else if (!cmCreds) note('listings', { ok: false, note: 'no Cardmarket API credentials (CARDMARKET_APP_TOKEN, …)' });
-  else {
-    const api = new CM.Cardmarket(cmCreds, cfg.cardmarket.requestsPerRun); let n = 0, failed = 0, stop = '';
-    for (const c of due(state.cm, [...cards.values()].filter(c => c[6].length))) {
-      try {
-        const products = [];
-        for (const [cm, label] of c[6].slice(0, cfg.cardmarket.maxProductsPerCard)) products.push({ cm, label, articles: await api.articles(cm) });
-        applyCardmarket(store, E(c[0]), c, products, at, 'api'); state.cm[c[0]] = at; n++;
-      } catch (e) { if (e.budget) break; if (e.fatal) { stop = e.message; break; } failed++; }
-    }
-    note('listings', { ok: !stop, note: (stop || 'requests ' + api.used + '/' + cfg.cardmarket.requestsPerRun) + (failed ? ', ' + failed + ' failed' : '') + (api.limit ? ', daily ' + api.limit.count + '/' + api.limit.max : ''), count: n });
-  }
-
-  // ---- CardTrader: listings per language and condition, one request per expansion ----
-  const ctToken = process.env.CARDTRADER_TOKEN;
-  if (!want('cardtrader') || !(cfg.cardtrader && cfg.cardtrader.enabled)) {}
-  else if (!ctToken) note('cardtrader', { ok: false, note: 'no CardTrader API token (CARDTRADER_TOKEN)' });
-  else {
-    const api = new CT.CardTrader(ctToken, cfg.cardtrader.requestsPerRun), WEEK = 7 * 86400e3;
-    const map = store.read('cardtrader-map.json', { v: SCHEMA, expansions: {} });
-    let n = 0, mapped = 0, stop = '';
-    const byCm = new Map(), byTcg = new Map();
-    for (const c of cards.values()) { for (const [cm] of c[6]) byCm.set(cm, c[0]); for (const [t] of c[7]) byTcg.set(t, c[0]); }
-    try {
-      if (!map.listedAt || now - Date.parse(map.listedAt) > WEEK) {
-        const r = await api.pokemonExpansions(); map.game = r.game; map.listedAt = at;
-        for (const e of r.expansions) map.expansions[e.id] = Object.assign(map.expansions[e.id] || {}, { code: e.code, name: e.name });
-      }
-      for (const [eid, x] of Object.entries(map.expansions)) { // blueprint -> card mapping, refreshed weekly per expansion
-        if (x.mappedAt && now - Date.parse(x.mappedAt) < WEEK) continue;
-        x.bp = CT.mapBlueprints(await api.blueprints(eid), byCm, byTcg); x.mappedAt = at; mapped++;
-      }
-    } catch (e) { if (!e.budget) stop = e.message; }
-    if (!stop) {
-      const todo = Object.entries(map.expansions).filter(([, x]) => x.bp && Object.keys(x.bp).length)
-        .sort((a, b) => ((a[1].fetchedAt || '') < (b[1].fetchedAt || '') ? -1 : 1));
-      const toEur = (v, cur) => P.toEur(v, cur, fx);
-      for (const [eid, x] of todo) {
-        try {
-          const res = await api.products(eid), groups = {};
-          if (Array.isArray(res)) res.forEach(p => { (groups[p.blueprint_id] = groups[p.blueprint_id] || []).push(p); }); else Object.assign(groups, res);
-          const byCard = new Map();
-          for (const [bp, prods] of Object.entries(groups)) {
-            const id = x.bp[bp]; if (!id) continue;
-            if (!byCard.has(id)) byCard.set(id, []);
-            byCard.get(id).push({ bp: +bp, articles: (prods || []).map(p => CT.productRow(p, toEur)).filter(Boolean) });
-          }
-          for (const id of new Set(Object.values(x.bp))) { const c = cards.get(id); if (c) { applyCardTrader(store, E(id), c, byCard.get(id) || [], at, 'api'); n++; } }
-          x.fetchedAt = at;
-        } catch (e) { if (e.budget) break; if (e.fatal) { stop = e.message; break; } }
-      }
-    }
-    store.write('cardtrader-map.json', map, 'ctMap');
-    note('cardtrader', { ok: !stop, note: (stop || 'requests ' + api.used + '/' + cfg.cardtrader.requestsPerRun) + (mapped ? ', ' + mapped + ' expansions mapped' : ''), count: n });
-  }
-
-  // ---- eBay ----
-  const ebCreds = EB.credentials();
-  if (!want('ebay') || !cfg.ebay.enabled) {}
-  else if (!ebCreds) note('ebay', { ok: false, note: 'no eBay API credentials (EBAY_CLIENT_ID, EBAY_CLIENT_SECRET)' });
-  else {
-    const api = new EB.Ebay(ebCreds, cfg.ebay.callsPerRun); let n = 0, failed = 0, stop = '';
-    let soldOn = cfg.ebay.sold && !(state.insightsBlockedUntil && Date.parse(state.insightsBlockedUntil) > now), soldNote = soldOn ? '' : 'sold: Marketplace Insights not granted';
-    for (const c of due(state.eb, cards.values())) {
-      try {
-        const active = [], sold = [], queries = {}; // queries: the exact search per marketplace, kept as evidence
-        for (const mp of cfg.ebay.marketplaces) {
-          const q = EB.query(c, mp); queries[mp] = q;
-          active.push(...EB.relevant(c, await api.forSale(q, mp, cfg.ebay.itemsPerSearch)));
-          if (soldOn) try { sold.push(...EB.relevant(c, await api.sold(q, mp, cfg.ebay.itemsPerSearch))); }
-          catch (e) { if (e.budget || e.fatal) throw e; if (e.denied || e.scope) { soldOn = false; soldNote = 'sold: ' + e.message; state.insightsBlockedUntil = new Date(now + 86400e3).toISOString(); } }
-        }
-        applyEbay(store, E(c[0]), c, active, sold, queries, fx, at, 'api'); state.eb[c[0]] = at; n++;
-      } catch (e) { if (e.budget) break; if (e.fatal) { stop = e.message; break; } failed++; }
-    }
-    note('ebay', { ok: !stop, note: [stop || 'calls ' + api.used + '/' + cfg.ebay.callsPerRun, soldNote, failed ? failed + ' failed' : ''].filter(Boolean).join(', '), count: n });
-  }
-
-  // ---- headline (EUR) and history ----
+    // ---- headline (EUR) and history ----
   const changedSets = finalize(store, entries, cards, cfg, fx, now);
 
   // ---- summary, state, meta ----
-  for (const k of ['cm', 'eb']) for (const id of Object.keys(state[k])) if (!cards.has(id)) delete state[k][id];
+  for (const k of ['cm', 'eb']) for (const id of Object.keys(state[k] || {})) if (!cards.has(id)) delete state[k][id];
+  // sources that the scraper replaced: no longer reported
+  for (const k of ['listings', 'cardtrader', 'ebay']) delete sources[k];
   state.v = SCHEMA;
   store.write('summary.json.gz', { v: SCHEMA, at, fx, fxDate, guideAt: state.guideAt || null, tcgAt: state.tcgAt || null, sources, cards: entries }, 'summary');
   store.write('state.json', state, 'state');

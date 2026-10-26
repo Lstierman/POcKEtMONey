@@ -93,7 +93,7 @@ function plan(site, c, { cfg, urls = {}, cmInfo = null }) {
   const base = { site, card: c[0], label: label(c), match: { name: slug(enName(c)), num: cardNo(c), set: slug(c[11]), ja: isJa(c) } };
   if (site === 'ebay') {
     const sc = cfg.scrape || {}, pages = [];
-    for (const mp of sc.ebayMarketplaces || cfg.ebay.marketplaces) {
+    for (const mp of sc.ebayMarketplaces || ['EBAY_DE', 'EBAY_US']) {
       const q = EBQ.query(c, mp);
       pages.push({ mp, sold: false, url: ebaySearchUrl(mp, q, false) });
       if (sc.ebaySold !== false) pages.push({ mp, sold: true, url: ebaySearchUrl(mp, q, true) });
@@ -101,7 +101,7 @@ function plan(site, c, { cfg, urls = {}, cmInfo = null }) {
     return Object.assign(base, { pages });
   }
   if (site === 'cardmarket') {
-    const max = (cfg.cardmarket && cfg.cardmarket.maxProductsPerCard) || 3, known = urls.cardmarket || {};
+    const max = (cfg.scrape && cfg.scrape.cardmarket && cfg.scrape.cardmarket.maxProductsPerCard) || 3, known = urls.cardmarket || {};
     const products = c[6].slice(0, max).map(([cm, variant]) => {
       const info = cmInfo && cmInfo.get(cm);
       return { cm, variant, url: known[cm] || null, search: info ? cmSearchUrl(info.name, info.idExpansion) : null };

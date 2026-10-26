@@ -7,7 +7,7 @@
 //       t  TCGplayer per product/finish [product id, finish, market, low, mid, high] USD
 //       l  Cardmarket listing stats { "<language id>|<condition>|<flags>": [n, min, median, avg, max] } EUR, lt time, ln count,
 //          lc share of loaded views that were complete (scraper; missing = complete)
-//       c  CardTrader listing stats, same keys as l; ctt time, ctn count
+//       c  CardTrader listing stats (older stores only), same keys as l; ctt time, ctn count
 //       ea / es  eBay for sale / sold, raw copies only [n, min, median, avg, max] EUR; en [for sale, sold] counts; et time
 //       h / hs   headline EUR and its source (trend, listings, tcg, sold)
 //       b  every listing and sale by source, for sale / sold, language and grade (src/prices.js segments):
@@ -15,9 +15,7 @@
 //   history/<set>.json.gz                       { card id: [[hour, headline, trend, listing avg, tcgplayer, sold median] (EUR)] }
 //   listings/cardmarket/<set>/<card>.json       every Cardmarket article of the card's products (PRICES.ARTICLE rows)
 //   listings/ebay/<set>/<card>.json             eBay items for sale and sold items, per marketplace
-//   listings/cardtrader/<set>/<card>.json       every CardTrader listing of the card (same row format as Cardmarket)
 //   listings/pricecharting/<set>/<card>.json    PriceCharting graded prices and sales, captured with the extension
-//   cardtrader-map.json                        CardTrader blueprint id -> card id per expansion, refreshed weekly
 //   watchlist.json                             the To watch list: [[card id, added at]], edited on the site / in the scraper
 //
 // Every write is validated first and goes to a temp file that is renamed into place, so a crash never leaves half a file.

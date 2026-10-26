@@ -4,12 +4,14 @@ Every English and Japanese Pokémon TCG card in one page that works offline, sea
 
 - **33,641 cards**: 20,635 English (Base Set through *30th Celebration*) and 13,006 Japanese prints, each language as its own card with its own prices.
 - **Prices**: Cardmarket (EUR, per variant, 6 weeks of history), TCGplayer (USD, per variant, 2 weeks of history), and PriceCharting graded prices with recent sold listings (linked) for the cards in `data/pricecharting/`.
-- **Hourly prices**: a collector refreshes Cardmarket (price guide and every individual listing, averaged per language and condition), TCGplayer and eBay (for sale and sold) every hour into a separate price store. The cards on screen are also checked live from the browser.
+- **Collected prices**: the scraper extension collects every Cardmarket listing (per language and condition), eBay for sale and sold, and PriceCharting graded prices in your own Chrome; an hourly job adds Cardmarket's price guide, TCGplayer and exchange rates for every card. The cards on screen are also checked live from the browser.
+- **Dark card view**: every card the same layout: image, name and six key figures (price, Cardmarket from, sold, PSA 10, data score, 7-day change), then panels for every price, graded, listings, eBay, sold, price guide, TCGplayer, all prints, card text and details.
+- **Simple filters**: set, language, ★ To watch, price (priced / no price, min–max), data score, sort.
 - **Data score** on every card, from 0 to 1: how much of everything there is to collect for it is collected and up to date. **One currency** for everything: euro or dollar, converted at the ECB rate.
 - **Scraping dashboard** on the site: the browser scraper live, the To watch list, how much of the catalog is scraped, the score across the catalog.
 - **Search**: names in English, Japanese, German, French, Spanish, Italian and Portuguese (`glurak` finds Charizard), typo-tolerant (`charzard`), plus field queries.
 
-Open `index.html` in a browser. Served from GitHub Pages, card images load as well.
+Open `index.html` in a browser, or run `npm run helper` and open http://127.0.0.1:8787/ (the newest page, with live data). Served from GitHub Pages, card images load as well.
 
 ## Search syntax
 
@@ -31,34 +33,23 @@ Open `index.html` in a browser. Served from GitHub Pages, card images load as we
 Every card's price comes from three layers. For each source the newest copy wins:
 
 1. **Snapshot** built into `index.html` by the daily build (works offline).
-2. **Price store**: the `prices` branch, refreshed by the hourly collector (`scripts/collect.js`, workflow *Collect prices*). The page reads it on open and again every refresh interval.
+2. **Price store**: the `prices` branch. The scraper extension writes per-card data into it (through the helper on your computer), and the hourly collector adds the bulk feeds. The page reads it on open and again every refresh interval; while the helper runs, straight from the helper.
 3. **Live checks** from the browser for the cards on screen: Cardmarket via `api.tcgdex.net`, TCGplayer via `api.pokemontcg.io`.
 
-### What the collector fetches
+### Where the data comes from
 
-| Source | Data | Needs |
+| Source | Data | Collected by |
 |---|---|---|
-| ECB exchange rates (frankfurter.dev) | EUR per USD, GBP, … | nothing |
-| Cardmarket price guide | trend, low, 1/7/30-day averages per product, all cards | nothing |
-| TCGplayer (tcgcsv.com) | market, low, mid, high per finish | nothing |
-| **Cardmarket listings** (API 2.0) | **every article**: language, condition, price, quantity, reverse holo / 1st edition / signed / altered, seller country, comment | Cardmarket app keys |
-| **eBay for sale** (Browse API) | items per marketplace (DE, US, GB, FR by default), local-language search, other card numbers dropped, graded copies flagged | eBay developer keys |
-| **eBay sold** (Marketplace Insights API) | sold items with date and price | eBay must grant this API to your app |
+| **Cardmarket listings** | every offer: language, condition, price, quantity, reverse holo / 1st edition / signed / altered, seller, comment | scraper extension |
+| **eBay** | items for sale and sold, per marketplace, in its language | scraper extension |
+| **PriceCharting** | graded prices (ungraded, 7–10) and recent sales | scraper extension |
+| Cardmarket price guide | trend, low, 1/7/30-day averages per product, every card | hourly collector (`scripts/collect.js`, workflow *Collect prices*) |
+| TCGplayer (tcgcsv.com) | market, low, mid, high per finish | hourly collector |
+| ECB exchange rates (frankfurter.dev) | EUR per USD, GBP, … | hourly collector |
 
-Cardmarket listings are grouped per **language × condition × extras**, with count, min, median, trimmed average (the outer 10% dropped) and max for each group. The page shows them as a matrix, plus a calculator: pick any language and condition (exact, or "or better", optionally reverse holo) and it computes the average from the stored listings.
+The collector needs no keys: it fetches Cardmarket's and TCGplayer's public bulk files. Everything per card comes from the scraper, so no Cardmarket, eBay or CardTrader API access is needed. The repository must be public so the page can read `raw.githubusercontent.com/<you>/<repo>/prices/…` (or build with `PRICES_URL=https://…/`). `PRICECHARTING_TOKEN` (optional) adds graded prices to the daily build.
 
-Paid and limited APIs are spent within a per-run budget (`prices.config.json`). Valuable cards (≥ €50 by default) and the `always` list are refreshed every run, cards ≥ €5 daily, the rest weekly. The most overdue and most valuable cards go first.
-
-### Setting it up
-
-1. Repository → Settings → Secrets and variables → Actions → add the secrets you have:
-   - `CARDMARKET_APP_TOKEN`, `CARDMARKET_APP_SECRET`, `CARDMARKET_ACCESS_TOKEN`, `CARDMARKET_ACCESS_SECRET` (a *dedicated app* in your Cardmarket account; Cardmarket only gives API access to some accounts)
-   - `EBAY_CLIENT_ID`, `EBAY_CLIENT_SECRET` (developer.ebay.com, production keyset)
-   - `PRICECHARTING_TOKEN` (optional, graded prices in the daily build)
-2. Actions → *Collect prices* → *Run workflow* (tick *force*) for the first run. After that it runs every hour.
-3. The repository must be public so the page can read `raw.githubusercontent.com/<you>/<repo>/prices/…`. To host the store elsewhere, build with `PRICES_URL=https://…/`.
-
-Without keys the collector still runs the free sources, and the page explains for each card why a section is empty.
+Cardmarket listings are grouped per **language × condition × extras**, with count, min, median, trimmed average (the outer 10% dropped) and max for each group. The card view shows them as a matrix, plus a calculator: pick any language and condition (exact, or "or better", optionally reverse holo) and it computes the average from the stored listings.
 
 ### Interval
 
@@ -101,7 +92,7 @@ For the data the APIs don't give (every Cardmarket listing, eBay for sale and so
 
 **Setup, once:** in the project folder run `npm run helper` (leave it running), then Chrome → `chrome://extensions` → *Developer mode* → *Load unpacked* → pick `scraper-extension/`.
 
-**To watch:** the cards you care about most. Add them with **☆ Watch** on a card on the site, or by searching in the extension's popup; remove them the same way. The site's filter rail has *★ Only cards I watch*. The list is kept in the price store (`watchlist.json`), so it is pushed with the prices and shows on every device. Changes made on the site while the helper isn't running wait in that browser and are sent the next time it is. The hourly collector also refreshes watched cards on every run.
+**To watch:** the cards you care about most. Add them with **☆ Watch** on a card on the site, or by searching in the extension's popup; remove them the same way. The site's filter bar has *★ To watch*. The list is kept in the price store (`watchlist.json`), so it is pushed with the prices and shows on every device. Changes made on the site while the helper isn't running wait in that browser and are sent the next time it is.
 
 **Scrape all:** one button. Each site works through:
 1. the To watch list: every watched card not scraped on that site in the last hour (`scrape.watchStaleHours`);
@@ -149,11 +140,11 @@ Every card has a score from 0 to 1: how much of everything there is to collect f
 | Graded prices (PriceCharting) | 0.15 | 7 days | 90 days |
 | TCGplayer | 0.10 | 2 days | 30 days |
 
-"Checked, nothing listed" counts as collected. Cardmarket listings where only each language and condition's cheapest offers were loaded count 0.6–1.0, by the share of complete views (`lc` in the store). Parts that can't apply (TCGplayer for Japanese prints) are left out and the rest re-weighted. The score is the chip on every card, a breakdown at the top of the card details, a filter in the side rail, and the `score>=0.5` query (`src/prices.js` `dataScore`).
+"Checked, nothing listed" counts as collected. Cardmarket listings where only each language and condition's cheapest offers were loaded count 0.6–1.0, by the share of complete views (`lc` in the store). Parts that can't apply (TCGplayer for Japanese prints) are left out and the rest re-weighted. The score is the chip on every card, a breakdown in the card view, a filter in the filter bar, and the `score>=0.5` query (`src/prices.js` `dataScore`).
 
-### Card details
+### Card view
 
-Every card shows the same sections in the same order, each with a status pill (*updated 3 h ago*, *never collected*, *not applicable*), so nothing appears or disappears from one card to the next: overview (headline price and the data score per part), every price (by grade, language, for sale and sold), all prints & languages, Cardmarket price guide, Cardmarket listings, TCGplayer, eBay for sale, sold (eBay and PriceCharting), graded prices, card text, details. PriceCharting data the scraper collected replaces the build's snapshot when it is newer.
+Every card has the same layout, so nothing appears or disappears from one card to the next. On top: the image, name, set, number, rarity, illustrator, ★ Watch, and six key figures: the headline price, Cardmarket's lowest offer (the print's language, chosen condition or better), the raw sold median, PSA 10, the data score and the 7-day change. A sticky menu jumps to the panels, always in this order: data score (every part, with its age) · graded prices · every price (by grade, language, for sale and sold) · Cardmarket listings (matrix, calculator, every offer) · eBay for sale · sold (eBay and PriceCharting) · Cardmarket price guide · TCGplayer · all prints & languages · card text · details. Each panel shows its status (*31 min ago*, *never collected*, *not applicable*) and ends with links to its sources.
 
 ### Scraping dashboard
 

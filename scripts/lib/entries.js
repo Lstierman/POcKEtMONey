@@ -1,6 +1,5 @@
-// How a card's summary entry is updated from Cardmarket listings and eBay items, and how the headline and history are
-// derived. Shared by the API collector (scripts/collect.js) and the scraper extension (via scripts/ingest-server.js), so both
-// write exactly the same store format.
+// How a card's summary entry is updated from Cardmarket listings and eBay items (the scraper extension, through
+// scripts/ingest-server.js), and how the headline and history are derived (also by the hourly collector).
 const P = require('../../src/prices.js');
 const { SCHEMA, addPoint } = require('./store.js');
 const EBQ = require('./ebay.js');
@@ -16,16 +15,6 @@ function applyCardmarket(store, entry, card, products, at, source) {
   const views = products.flatMap(p => p.coverage || []);
   if (views.length) entry.lc = Math.round(views.filter(v => v[3]).length / views.length * 100) / 100; else delete entry.lc;
   P.setSegments(entry, 'cm', P.obsArticles('cm', all));
-}
-
-// CardTrader listings, same row format as Cardmarket articles (prices already in EUR); summary fields c / ctt / ctn
-function applyCardTrader(store, entry, card, blueprints, at, source) {
-  store.write(store.listingFile('cardtrader', card[1], card[0]), { v: SCHEMA, id: card[0], at, source: source || 'api', blueprints }, 'ctListing');
-  const all = blueprints.flatMap(b => b.articles);
-  const c = P.aggregateArticles(all);
-  if (Object.keys(c).length) entry.c = c; else delete entry.c;
-  entry.ctt = at; entry.ctn = all.length;
-  P.setSegments(entry, 'ct', P.obsArticles('ct', all));
 }
 
 // active / sold: eBay item rows (scripts/lib/ebay.js). ea / es: EUR stats of raw copies in the card's own language
@@ -67,4 +56,4 @@ function finalize(store, entries, cards, cfg, fx, now, ids) {
   return changed.size;
 }
 
-module.exports = { applyCardmarket, applyCardTrader, applyEbay, finalize };
+module.exports = { applyCardmarket, applyEbay, finalize };

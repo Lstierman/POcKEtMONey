@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>POcKEtMONey scraper</title>
 <style>
-  :root { --ink: #141a24; --mute: #5a6474; --line: #d3d9e2; --bg: #fbfcfd; --soft: #eef2fb; --blue: #2149c4; --ok: #157a3d; --warn: #b45309; --err: #b8322a; --gold: #c79a1e }
+  :root { color-scheme: dark; --ink: #e8edf6; --mute: #8d99b0; --line: #2e3a50; --bg: #0d1119; --soft: #1a2230; --blue: #7d9bff; --ok: #3fd99a; --warn: #f4b14a; --err: #ff6f6f; --gold: #f0bf4c }
   * { box-sizing: border-box }
   body { font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; width: 380px; margin: 0; padding: 14px; color: var(--ink); background: var(--bg) }
   h1 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px }
@@ -11,14 +11,14 @@
   h2 small { color: var(--mute); font-weight: 400 }
   .helper { padding: 7px 10px; border-radius: 8px; background: var(--soft); color: var(--mute) }
   .helper b.ok { color: var(--ok) } .helper b.err { color: var(--err) }
-  code { background: #fff; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px }
-  button { height: 30px; border-radius: 8px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); font: inherit; font-weight: 700; padding: 0 12px; cursor: pointer }
-  button.pr { background: var(--blue); border-color: var(--blue); color: #fff }
-  button.stop { background: #fff; border-color: var(--err); color: var(--err) }
+  code { background: #11161f; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px }
+  button { height: 30px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--soft); color: var(--ink); font: inherit; font-weight: 700; padding: 0 12px; cursor: pointer; color: var(--ink) }
+  button.pr { background: linear-gradient(135deg, #7d9bff, #a685ff); border: 0; color: #0a0d14 }
+  button.stop { background: rgba(255,111,111,.08); border-color: var(--err); color: var(--err) }
   button:disabled { opacity: .45; cursor: default }
-  input { height: 30px; border: 1.5px solid var(--line); border-radius: 8px; padding: 0 8px; font: inherit; min-width: 0; width: 100% }
+  input { height: 30px; border: 1.5px solid var(--line); border-radius: 8px; padding: 0 8px; font: inherit; min-width: 0; width: 100%; background: #11161f; color: var(--ink) }
   .main { width: 100%; height: 40px; font-size: 14px; margin-top: 12px }
-  .watch { border: 1.5px solid var(--line); border-radius: 10px; background: #fff; overflow: hidden }
+  .watch { border: 1.5px solid var(--line); border-radius: 10px; background: #141b26; overflow: hidden }
   .wl { max-height: 150px; overflow: auto }
   .wi { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-bottom: 1px solid var(--soft) }
   .wi .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
@@ -34,8 +34,8 @@
   .site .name { font-weight: 700 } .site .w { text-align: right; color: var(--mute); font-size: 12px }
   .site .when { color: var(--mute); font-size: 12px; grid-column: 1 / -1 }
   .bar { height: 5px; border-radius: 3px; background: var(--soft); overflow: hidden; grid-column: 1 / -1; margin-top: 3px } .bar i { display: block; height: 100%; background: var(--blue) }
-  .job { margin-top: 10px; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line); background: #fff; display: grid; gap: 6px }
-  .job.waiting { border-color: var(--warn); background: #fffbeb }
+  .job { margin-top: 10px; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line); background: #141b26; display: grid; gap: 6px }
+  .job.waiting { border-color: var(--warn); background: rgba(244,177,74,.08) }
   .job .msg { font-weight: 700 } .job.waiting .msg { color: var(--warn) }
   .job .cur { color: var(--ink); font-size: 12px; white-space: pre-line } .job .counts { color: var(--mute); font-size: 12px }
   .log { max-height: 110px; overflow: auto; font: 11px/1.45 ui-monospace, Menlo, Consolas, monospace; color: var(--mute); white-space: pre-wrap }

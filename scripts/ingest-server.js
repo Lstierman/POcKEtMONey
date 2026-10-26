@@ -329,9 +329,8 @@ async function handle(req, res) {
     store.written = [];
     changed(id, report);
     journal(j);
-    const e = entries()[id], cov = P.coverage({ guide: e.g, listings: e.ln || e.ctn, tcg: e.t, ebayActive: e.ea, ebaySold: e.es || (e.pc && e.pc.n), graded: e.pc && e.pc.g.some(x => x != null) });
     console.log(`${at.slice(11, 19)} ${id} ${report}`);
-    return send(res, 200, { ok: true, card: search(id, 1)[0], report, coverage: cov.tier + ' (' + cov.n + '/6 in the store)', pending });
+    return send(res, 200, { ok: true, card: search(id, 1)[0], report, pending });
   }
   send(res, 404, { error: 'not found' });
 }

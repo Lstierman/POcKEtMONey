@@ -33,13 +33,6 @@ jobs:
         run: node scripts/collect.js store ${{ inputs.force && '--force' || '' }}
         env:
           PRICE_INTERVAL_MINUTES: ${{ vars.PRICE_INTERVAL_MINUTES }}
-          CARDMARKET_APP_TOKEN: ${{ secrets.CARDMARKET_APP_TOKEN }}
-          CARDMARKET_APP_SECRET: ${{ secrets.CARDMARKET_APP_SECRET }}
-          CARDMARKET_ACCESS_TOKEN: ${{ secrets.CARDMARKET_ACCESS_TOKEN }}
-          CARDMARKET_ACCESS_SECRET: ${{ secrets.CARDMARKET_ACCESS_SECRET }}
-          CARDTRADER_TOKEN: ${{ secrets.CARDTRADER_TOKEN }}
-          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
-          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
       # The collector exits non-zero if any written file fails re-validation, so a broken store is never published.
       # The branch is one commit, replaced every run: history lives inside history/*.json.gz, not in git.
       - name: Publish the store

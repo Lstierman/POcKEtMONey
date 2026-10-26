@@ -1,5 +1,5 @@
 /* Price data model shared by the hourly collector (Node) and the page: listing statistics, currency conversion,
-   the headline price and the per-card data-coverage score. All money is stored in its native currency and
+   the headline price and the per-card data score. All money is stored in its native currency and
    converted with an `fx` table of "euro per one unit" (fx.EUR = 1, fx.USD ≈ 0.9). */
 (function (root) {
   'use strict';
@@ -8,17 +8,6 @@
   var LANGS = { 1: 'English', 2: 'French', 3: 'German', 4: 'Spanish', 5: 'Italian', 6: 'Chinese (S)', 7: 'Japanese', 8: 'Portuguese', 9: 'Russian', 10: 'Korean', 11: 'Chinese (T)', 12: 'Dutch', 13: 'Polish' };
   var CONDS = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'];
   var COND_NAMES = { MT: 'Mint', NM: 'Near Mint', EX: 'Excellent', GD: 'Good', LP: 'Light Played', PL: 'Played', PO: 'Poor' };
-
-  // the six price-data methods, in the order the coverage label lists them
-  var METHODS = [
-    ['guide', 'Cardmarket price guide'],
-    ['listings', 'Cardmarket listings by language & condition'],
-    ['tcg', 'TCGplayer market'],
-    ['ebayActive', 'eBay listings for sale'],
-    ['ebaySold', 'Sold listings (eBay / PriceCharting)'],
-    ['graded', 'Graded prices (PriceCharting)']
-  ];
-  var TIERS = ['No data', 'Thin', 'Fair', 'Good', 'Strong', 'Rich', 'Complete'];
 
   function r2(x) { return x == null || isNaN(x) ? null : Math.round(x * 100) / 100; }
 
@@ -234,15 +223,8 @@
   }
   function scoreBucket(score) { return Math.max(0, Math.min(20, Math.floor(score * 20 + 1e-9))); } // 0.05 steps, for the search engine
 
-  // which methods a card has data for: 0..6 plus the flags
-  function coverage(has) {
-    var flags = METHODS.map(function (m) { return !!has[m[0]]; }), n = 0;
-    flags.forEach(function (f) { if (f) n++; });
-    return { n: n, flags: flags, tier: TIERS[n] };
-  }
-
-  var api = { LANGS: LANGS, CONDS: CONDS, COND_NAMES: COND_NAMES, METHODS: METHODS, TIERS: TIERS, ARTICLE: ARTICLE, stats: stats, aggregateArticles: aggregateArticles, listingAvg: listingAvg,
-    toEur: toEur, fromEur: fromEur, isGraded: isGraded, sameCardNumber: sameCardNumber, coverage: coverage, r2: r2,
+  var api = { LANGS: LANGS, CONDS: CONDS, COND_NAMES: COND_NAMES, ARTICLE: ARTICLE, stats: stats, aggregateArticles: aggregateArticles, listingAvg: listingAvg,
+    toEur: toEur, fromEur: fromEur, isGraded: isGraded, sameCardNumber: sameCardNumber, r2: r2,
     grade: grade, gradeOrder: gradeOrder, PC_TAB: PC_TAB, SCORE_PARTS: SCORE_PARTS, dataScore: dataScore, scoreBucket: scoreBucket, GRADERS: GRADERS, titleLang: titleLang, SEG_SOURCES: SEG_SOURCES, SEG_KEY: SEG_KEY, segKey: segKey, segments: segments,
     obsArticles: obsArticles, obsEbay: obsEbay, obsPricecharting: obsPricecharting, setSegments: setSegments, mergeSegments: mergeSegments };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

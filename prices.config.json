@@ -3,32 +3,7 @@
   "displayCurrency": "EUR",
   "headline": "trend",
   "listingCondition": "NM",
-  "cardmarket": {
-    "enabled": true,
-    "requestsPerRun": 180,
-    "maxProductsPerCard": 3
-  },
-  "cardtrader": {
-    "enabled": true,
-    "requestsPerRun": 120
-  },
-  "ebay": {
-    "enabled": true,
-    "callsPerRun": 160,
-    "marketplaces": [
-      "EBAY_DE",
-      "EBAY_US",
-      "EBAY_GB",
-      "EBAY_FR"
-    ],
-    "itemsPerSearch": 50,
-    "sold": true
-  },
   "schedule": {
-    "hotEur": 50,
-    "warmEur": 5,
-    "warmEveryHours": 24,
-    "coldEveryHours": 168,
     "always": [
       "base1-4",
       "sv3pt5-199",
@@ -70,7 +45,8 @@
       "jaLanguages": [
         7
       ],
-      "conditions": true
+      "conditions": true,
+      "maxProductsPerCard": 3
     },
     "watchMissRecheckHours": 24,
     "failRecheckHours": 12

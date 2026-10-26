@@ -3,401 +3,402 @@
 <meta name="pocketmoney" content="app">
 <title>Pokémon Card Index</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#090c12">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* Layout: sticky search bar over a binder-page grid of card faces; filters in a side rail (a drawer on phones). */
+/* POcKEtMONey: a dark binder. Sticky header with search, tools and one filter bar; a grid of card faces; the card
+   view is a hero (image, name, key figures) over a fixed grid of panels, the same for every card. */
 :root {
-  --bg: #e9edf2; --surface: #fbfcfd; --raised: #ffffff; --ink: #141a24; --muted: #5a6474; --line: #d3d9e2;
-  --accent: #2149c4; --accent-ink: #ffffff; --accent-soft: #dfe6fb; --warn: #9a5b00;
-  --card-edge: #e4c35a; --shadow: 0 1px 2px rgba(20,26,36,.08), 0 4px 14px rgba(20,26,36,.06); --up: #157a3d; --down: #b8322a;
+  color-scheme: dark;
+  --bg: #090c12; --bg2: #0d1119; --surface: #11161f; --panel: #141b26; --raised: #1a2230; --raised2: #212b3c;
+  --line: #222c3d; --line2: #2e3a50; --ink: #e8edf6; --muted: #8d99b0; --faint: #5f6b82;
+  --accent: #7d9bff; --accent2: #a685ff; --accent-ink: #0a0d14; --accent-soft: rgba(125,155,255,.13);
+  --gold: #f0bf4c; --up: #3fd99a; --down: #ff6f6f; --warn: #f4b14a;
+  --card-edge: #c9a646; --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 8px 24px rgba(0,0,0,.35);
+  --r: 14px; --r-sm: 10px;
   --f-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
-  --f-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --e-grass:#4f9a2c; --e-fire:#d9481f; --e-water:#2a86d1; --e-lightning:#d8a90f; --e-psychic:#8e4fae; --e-fighting:#a95a26;
-  --e-darkness:#2f3d47; --e-metal:#7d8a97; --e-fairy:#d46aa3; --e-dragon:#a38420; --e-colorless:#b9bdc4; --e-trainer:#6b7686;
+  --e-grass:#4f9a2c; --e-fire:#e0532a; --e-water:#2f8ee0; --e-lightning:#e2b21a; --e-psychic:#9a5bc0; --e-fighting:#b5652d;
+  --e-darkness:#4a5a66; --e-metal:#7d8a97; --e-fairy:#d46aa3; --e-dragon:#a38420; --e-colorless:#b9bdc4; --e-trainer:#6b7686;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #0f131a; --surface: #161b24; --raised: #1c2230; --ink: #e7ebf1; --muted: #98a2b3; --line: #2a3242;
-  --accent: #8aa6ff; --accent-ink: #0f131a; --accent-soft: #232d48; --warn: #f0b45a;
-  --card-edge: #b99a3a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3); --e-darkness:#4a5a66; --up: #5ed38a; --down: #ff8a7a; color-scheme: dark } }
-:root[data-theme="dark"] {
-  --bg: #0f131a; --surface: #161b24; --raised: #1c2230; --ink: #e7ebf1; --muted: #98a2b3; --line: #2a3242;
-  --accent: #8aa6ff; --accent-ink: #0f131a; --accent-soft: #232d48; --warn: #f0b45a;
-  --card-edge: #b99a3a; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 14px rgba(0,0,0,.3); --e-darkness:#4a5a66; --up: #5ed38a; --down: #ff8a7a; color-scheme: dark }
-
 * { box-sizing: border-box }
 html, body { background: var(--bg); color: var(--ink) }
-body { font-family: var(--f-body); font-size: 15px; line-height: 1.45; -webkit-text-size-adjust: 100% }
-body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface) }
+body { margin: 0; font-family: var(--f-body); font-size: 14.5px; line-height: 1.45; -webkit-text-size-adjust: 100%;
+  background: radial-gradient(1200px 500px at 15% -10%, rgba(125,155,255,.08), transparent 60%), radial-gradient(900px 400px at 100% 0%, rgba(166,133,255,.06), transparent 60%), var(--bg); background-attachment: fixed }
 button, input, select { font: inherit; color: inherit }
+[hidden] { display: none !important }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
-.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1500px; margin: 0 auto }
+::selection { background: rgba(125,155,255,.35) }
+* { scrollbar-width: thin; scrollbar-color: var(--line2) transparent }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1560px; margin: 0 auto }
+.mono { font-family: var(--f-mono); font-size: 12.5px }
+.link { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-align: left; font-weight: 600 }
+.link:hover { text-decoration: underline }
+a { color: var(--accent) }
+code { font-family: var(--f-mono); font-size: 12px; background: var(--raised); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px }
 
-/* header */
-header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line) }
-header.top .wrap { padding-block: 12px; display: grid; grid-template-columns: auto 1fr auto; gap: 10px 16px; align-items: center }
-.mark { font-family: var(--f-display); font-weight: 800; font-stretch: 72%; font-size: 22px; letter-spacing: .01em; line-height: 1; white-space: nowrap; display: flex; align-items: center; gap: 8px }
-.mark i { width: 18px; height: 25px; border-radius: 3px; border: 2px solid var(--card-edge); background: linear-gradient(160deg, var(--accent) 0 48%, var(--surface) 48% 52%, var(--accent) 52%); display: inline-block }
+/* ---------- header ---------- */
+header.top { position: sticky; top: 0; z-index: 5; background: rgba(9,12,18,.82); backdrop-filter: saturate(140%) blur(14px); -webkit-backdrop-filter: saturate(140%) blur(14px); border-bottom: 1px solid var(--line) }
+header.top > .wrap:first-child { padding-block: 12px 10px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 18px; align-items: center }
+.mark { font-family: var(--f-display); font-weight: 800; font-stretch: 78%; font-size: 23px; letter-spacing: .01em; line-height: 1; white-space: nowrap; display: flex; align-items: center; gap: 10px;
+  background: linear-gradient(90deg, #fff, #c9d4ff); -webkit-background-clip: text; background-clip: text; color: transparent }
+.mark i { width: 18px; height: 25px; border-radius: 4px; border: 2px solid var(--gold); background: linear-gradient(160deg, var(--accent) 0 46%, #fff 46% 54%, var(--accent2) 54%); display: inline-block; box-shadow: 0 0 18px rgba(125,155,255,.45) }
 .search { position: relative; min-width: 0 }
-.search input { width: 100%; height: 44px; border: 1.5px solid var(--line); background: var(--raised); border-radius: 10px; padding: 0 40px 0 14px; font-size: 16px }
-.search input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft) }
-.search .clear { position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border: 0; background: none; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 18px }
-.sortbox { display: flex; gap: 8px; align-items: center }
-select { height: 40px; border: 1.5px solid var(--line); background: var(--raised); border-radius: 10px; padding: 0 10px; max-width: 100% }
-.filters-btn { display: none; height: 40px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700 }
-.filters-btn b { background: var(--accent); color: var(--accent-ink); border-radius: 99px; padding: 0 7px; font-size: 12px; margin-left: 6px }
-.hint { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; margin-top: -2px }
-.hint::-webkit-scrollbar { display: none }
-.cur { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; height: 40px; flex: none }
-.cur button { border: 0; background: var(--raised); width: 40px; font-weight: 800; cursor: pointer; font-family: var(--f-display); font-size: 16px }
+.search input { width: 100%; height: 42px; border: 1px solid var(--line2); background: var(--surface); border-radius: 12px; padding: 0 40px 0 40px; font-size: 15px; transition: border-color .15s, box-shadow .15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238d99b0' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5.5'/%3E%3Cpath d='M11 11l4 4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: 14px 50% }
+.search input::placeholder { color: var(--faint) }
+.search input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 4px var(--accent-soft) }
+.search .clear { position: absolute; right: 6px; top: 5px; width: 32px; height: 32px; border: 0; background: none; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 18px }
+.tools { display: flex; gap: 8px; align-items: center }
+select { height: 36px; border: 1px solid var(--line2); background: var(--surface); border-radius: var(--r-sm); padding: 0 10px; max-width: 100%; color: var(--ink) }
+select option, select optgroup { background: var(--surface); color: var(--ink) }
+.cur { display: inline-flex; border: 1px solid var(--line2); border-radius: var(--r-sm); overflow: hidden; height: 36px; flex: none; background: var(--surface) }
+.cur button { border: 0; background: none; width: 36px; font-weight: 800; cursor: pointer; font-family: var(--f-display); font-size: 15px; color: var(--muted) }
 .cur button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
-.seg3 { grid-template-columns: repeat(3, 1fr) }
-.cap .row2 .n1, .cap .row2 .n2 { min-width: 0 }
-.cap .row2 { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; min-width: 0 }
-.cap .px { font-family: var(--f-display); font-weight: 800; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums }
-/* price tag: known (bold), other currency only (muted), unknown (dashed pill) */
+.tbtn { height: 36px; min-width: 36px; border-radius: var(--r-sm); border: 1px solid var(--line2); background: var(--surface); cursor: pointer; font-size: 16px; flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px }
+.tbtn:hover, select:hover, .cur:hover { border-color: var(--faint) }
+.scrapebtn { font: 700 13px/1 var(--f-display); letter-spacing: .02em }
+.ldot { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); flex: none }
+.ldot.idle { background: var(--accent) } .ldot.run { background: var(--up); box-shadow: 0 0 10px var(--up); animation: pulse 1.2s infinite } .ldot.wait { background: var(--warn); box-shadow: 0 0 10px var(--warn); animation: pulse .6s infinite }
+@keyframes pulse { 50% { opacity: .35 } }
+
+/* filter bar */
+.fbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-block: 0 12px }
+.fbar select { height: 34px; font-size: 13px }
+#fSet { max-width: 210px }
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line2); border-radius: 99px; padding: 2px; gap: 2px }
+.seg button { border: 0; background: none; height: 28px; padding: 0 11px; border-radius: 99px; cursor: pointer; font-size: 13px; color: var(--muted); white-space: nowrap }
+.seg button[aria-pressed="true"] { background: var(--raised2); color: var(--ink); box-shadow: 0 0 0 1px var(--line2) inset }
+.n { color: var(--faint); font-family: var(--f-mono); font-size: 11px; font-variant-numeric: tabular-nums }
+.tog { height: 34px; padding: 0 13px; border-radius: 99px; border: 1px solid var(--line2); background: var(--surface); cursor: pointer; font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center }
+.tog[aria-pressed="true"] { border-color: var(--gold); color: #1a1405; background: var(--gold) }
+.tog[aria-pressed="true"] .n { color: #4a3a10 }
+.range { display: inline-flex; align-items: center; gap: 4px; height: 34px; border: 1px solid var(--line2); border-radius: 99px; background: var(--surface); padding: 0 10px; color: var(--muted); font-size: 13px }
+.range input { width: 42px; border: 0; background: none; outline: none; font-size: 13px; text-align: center; color: var(--ink) }
+.range input::placeholder { color: var(--faint) }
+.range b { font-weight: 700; color: var(--faint) }
+.fbar .sortsel { margin-left: auto; max-width: 150px }
+.fbar .reset { border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; font-size: 13px; padding: 0 6px }
+
+/* ---------- results ---------- */
+main.wrap { padding-block: 18px 56px }
+.resbar { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-bottom: 16px; min-width: 0 }
+.resbar .count { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums }
+.resbar .ms { font-family: var(--f-mono); font-size: 11.5px; color: var(--faint) }
+.resbar .note { font-size: 13px; color: var(--warn) }
+.resbar .pk { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: baseline }
+.resbar .pk button { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line2); text-underline-offset: 3px }
+.resbar .pk button.no { color: var(--muted) }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 22px 16px }
+.tile { border: 0; padding: 0; background: none; text-align: left; cursor: pointer; display: grid; gap: 8px; min-width: 0; color: var(--ink) }
+.face { position: relative; aspect-ratio: 63 / 88; max-width: 100%; border-radius: 4.6% / 3.3%; overflow: hidden; background: var(--raised); box-shadow: var(--shadow); border: 2px solid color-mix(in srgb, var(--card-edge) 70%, transparent); transition: transform .18s ease, box-shadow .18s ease, border-color .18s }
+.tile:hover .face, .tile:focus-visible .face { transform: translateY(-3px); border-color: var(--card-edge); box-shadow: 0 14px 34px rgba(0,0,0,.5), 0 0 0 1px rgba(201,166,70,.35), 0 0 30px rgba(125,155,255,.12) }
+.face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--raised) }
+.tile.unpriced .face { filter: grayscale(.6) brightness(.8); border-style: dashed }
+.tile.unpriced:hover .face { filter: none }
+.cap { display: grid; gap: 2px; min-width: 0; padding: 0 2px }
+.cap .row2 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; min-width: 0 }
+.cap .n1 { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
+.cap .n2 { font-family: var(--f-mono); font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; min-width: 0 }
+.cap .px { font-family: var(--f-display); font-weight: 800; font-size: 15px; white-space: nowrap; font-variant-numeric: tabular-nums }
 .cap .px.thin { color: var(--warn) }
 .cap .px.alt { color: var(--muted); font-weight: 600; font-size: 12.5px }
-.cap .px.none { color: var(--muted); font: 600 11px/1 var(--f-body); border: 1px dashed color-mix(in srgb, var(--muted) 60%, var(--line)); border-radius: 99px; padding: 3px 7px }
-.ld { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--up); margin-right: 4px; vertical-align: 2px }
-.tile.unpriced .face { filter: grayscale(.7); opacity: .72; border-style: dashed }
-.tile.unpriced:hover .face, .tile.unpriced:focus-visible .face { filter: none; opacity: 1 }
-.cut { grid-column: 1 / -1; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; border-top: 2px dashed var(--line); padding-top: 12px; margin-top: 6px }
-.cut b { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: 18px }
-.cut span { font-size: 13px; color: var(--muted) }
-.resbar .pk { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: baseline }
-.resbar .pk button { border: 0; background: none; padding: 0; font: inherit; cursor: pointer; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px }
-.resbar .pk button.no { color: var(--muted) }
-.pstat { border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; font-size: 13.5px }
-.pstat.known { background: var(--accent-soft) }
-.pstat.unknown { border: 1.5px dashed var(--line); color: var(--muted) }
-.pstat.unknown b { color: var(--ink); font-family: var(--f-display); font-size: 17px }
-.pstat .hl { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
-.pstat .hl b { font-family: var(--f-display); font-size: 20px; font-variant-numeric: tabular-nums }
-.pstat .hl span { color: var(--muted); font-size: 12.5px }
-.src .lv { color: var(--up); font-weight: 700 }
-.lang { font: 700 9px/1 var(--f-display); letter-spacing: .08em; background: var(--ink); color: var(--bg); border-radius: 4px; padding: 3px 4px; position: absolute; left: 6px; bottom: 6px; z-index: 1 }
-.prices { display: grid; gap: 14px; border-top: 1px solid var(--line); padding-top: 12px }
-.prices h4 { margin: 0; font-family: var(--f-display); font-stretch: 85%; font-size: 16px; font-weight: 800 }
-.prices .src { font-size: 12.5px; color: var(--muted); margin: 2px 0 6px }
-.prices > * { min-width: 0 }
-.ptable { overflow-x: auto; max-width: 100% }
-.sheet > * { min-width: 0 }
-.ptable table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums }
-.ptable th { text-align: right; font: 700 10px/1.2 var(--f-display); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); white-space: nowrap }
-.ptable th:first-child, .ptable td:first-child { text-align: left; padding-left: 0 }
-.ptable td { text-align: right; padding: 6px; border-bottom: 1px solid var(--line); white-space: nowrap }
-.ptable td.hl { font-weight: 800 }
-.grades { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px }
-.grades div { border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; display: grid; gap: 2px; background: var(--raised) }
-.grades span { font: 700 10px/1.2 var(--f-display); letter-spacing: .07em; text-transform: uppercase; color: var(--muted) }
-.grades b { font-family: var(--f-display); font-size: 16px; font-variant-numeric: tabular-nums }
-.nolang { font-size: 13px; color: var(--muted); margin: 0 }
+.cap .px.none { color: var(--faint); font: 600 11px/1 var(--f-body); border: 1px dashed var(--line2); border-radius: 99px; padding: 3px 7px }
+.ld { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--up); margin-right: 5px; vertical-align: 2px; box-shadow: 0 0 6px var(--up) }
 .chg { font: 700 11px/1 var(--f-mono); white-space: nowrap }
 .chg.up { color: var(--up) } .chg.down { color: var(--down) }
-.spark { display: grid; gap: 4px }
-.spark svg { width: 100%; height: auto; display: block }
-.spark .lbl { display: flex; justify-content: space-between; font: 11px/1.2 var(--f-mono); color: var(--muted) }
-.spark .big { font-family: var(--f-display); font-weight: 800; font-size: 18px; color: var(--ink); display: flex; gap: 8px; align-items: baseline }
-/* price-data label: one pip per method, coloured by tier (No data .. Complete) */
-.subl { color: var(--muted); font-size: 13px; margin: 2px 0 6px }
-details.sec > summary .fig { flex: none }
-.st { flex: none; font: 700 10.5px/1 var(--f-display); padding: 3px 7px; border-radius: 99px; background: var(--line); color: var(--muted); white-space: nowrap }
-.st-fresh { background: #d7f0df; color: #157a3d } .st-aging { background: #fbecc8; color: #8a5a00 } .st-stale { background: #f8d9d4; color: #a3271c } .st-missing { background: transparent; border: 1px dashed var(--line) } .st-na { opacity: .6 }
-.score { display: grid; gap: 6px; margin-top: 6px } .score .sh { display: flex; align-items: center; gap: 10px; font-weight: 700 }
-.parts { border-collapse: collapse; font-size: 12.5px; width: 100% } .parts td { padding: 3px 6px 3px 0; border-top: 1px solid var(--line) }
-.parts td.w, .parts td.a { color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums }
-.parts .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--line) }
-.parts .st-fresh .dot { background: #1f9d55 } .parts .st-aging .dot { background: #e0a100 } .parts .st-stale .dot { background: #d64535 } .parts .st-na td { opacity: .55 }
-.cov { position: relative; display: inline-flex; align-items: center; flex: none; width: 46px; height: 16px; border-radius: 4px; background: var(--line); overflow: hidden }
-.cov i { position: absolute; inset: 0 auto 0 0; background: var(--cv) }
-.cov b { position: relative; width: 100%; text-align: center; font: 800 10px/1 var(--f-display); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.45); font-variant-numeric: tabular-nums }
-.cov.big { width: 120px; height: 24px; border-radius: 6px } .cov.big b { font-size: 13px }
-.cov.tag { position: absolute; right: 5px; bottom: 5px; z-index: 1; width: 38px; height: 15px; background: rgba(15,19,26,.78) }
-.cov.tag b { font-size: 9px }
-ul.cl { list-style: none; margin: 2px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; font-size: 12.5px }
-ul.cl li::before { content: "✓"; font-weight: 800; color: var(--up); margin-right: 6px }
-ul.cl li.n { color: var(--muted) } ul.cl li.n::before { content: "✗"; color: var(--muted) }
-details.sec { border-top: 1px solid var(--line); padding-top: 10px; min-width: 0 }
-details.sec > summary { display: flex; gap: 10px; align-items: baseline; cursor: pointer; list-style: none }
-details.sec > summary::-webkit-details-marker { display: none }
-details.sec > summary::before { content: "▸"; color: var(--muted); font-size: 12px; transition: transform .15s; display: inline-block }
-details.sec[open] > summary::before { transform: rotate(90deg) }
-details.sec > summary h4 { margin: 0; flex: 1 }
-details.sec > summary span { font: 700 13px/1 var(--f-display); color: var(--muted); font-variant-numeric: tabular-nums }
-details.sec > :not(summary) { margin-top: 8px }
-.prices.lists { gap: 10px }
-table.lm td, table.lm th { text-align: center }
-table.lm td:first-child { text-align: left; white-space: normal; min-width: 90px }
-table.lm td small { color: var(--muted); font-size: 11px; display: block }
-table.lm td.e { color: var(--line) }
-.lc { border: 0; background: none; font: 700 13px/1.15 var(--f-body); font-variant-numeric: tabular-nums; cursor: pointer; padding: 3px 5px; border-radius: 6px; color: var(--ink) }
-.lc small { display: block; font-weight: 400; color: var(--muted); font-size: 10.5px }
-.lc:hover, .lc.on { background: var(--accent-soft) }
-.calc { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 10px }
-.calc select { height: 32px; font-size: 13px; margin-left: 4px }
-.calcout { flex-basis: 100%; font-size: 13.5px }
-.calcout b { font-family: var(--f-display); font-size: 18px }
-.calcout small { color: var(--muted) }
-.fseg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 8px }
-.fseg .chip { justify-content: center }
-.items { display: grid; max-height: 460px; overflow: auto; border-top: 1px solid var(--line) }
-.item { display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); align-items: start }
-.item img, .item .noimg { width: 48px; height: 48px; object-fit: contain; border-radius: 6px; background: var(--raised); display: block }
-.item .it { display: grid; gap: 3px; min-width: 0; font-size: 13.5px }
-.item a { color: var(--ink); overflow-wrap: anywhere; text-decoration: none } .item a:hover { text-decoration: underline }
-.item .im { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 12px; color: var(--muted) }
-.item .im b { font-family: var(--f-display); font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums }
-.item .gr { color: var(--accent); font-weight: 700 }
-td.cm { white-space: normal !important; max-width: 220px; color: var(--muted); font-size: 12px }
-.ev { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 12px; margin: 8px 0 0 !important; color: var(--muted) }
-.ev b { font: 800 10px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
-.ev a, td a, .bt a { color: var(--accent); font-weight: 600; text-decoration: none; overflow-wrap: anywhere }
-.ev a:hover, td a:hover { text-decoration: underline }
-details.sub { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--raised) }
-details.sub > summary { cursor: pointer; font-weight: 700; font-size: 13.5px }
-h5.subh { margin: 10px 0 4px; font: 800 13px/1.2 var(--f-display) }
-table.bt td small { display: block; color: var(--muted); font-size: 11.5px; white-space: normal }
-table.bt td { white-space: normal; vertical-align: top }
-table.bt tr.here td { background: var(--accent-soft) }
-table.bt td:nth-child(2), table.bt th:nth-child(2) { min-width: 150px; text-align: left }
-#cmList .ptable { max-height: 420px; overflow: auto }
-#cmList thead th { position: sticky; top: 0; background: var(--raised) }
-.every td small { color: var(--muted); font-weight: 400; margin-left: 3px }
-.every td.g { font-weight: 700 } .every tr.first td { border-top: 2px solid var(--line) }
-.every .st { font: 700 9.5px/1 var(--f-display); letter-spacing: .05em; color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px; margin-left: 3px }
-.item .ln { color: var(--muted); font-weight: 700 }
-.lb { font: 700 10px/1 var(--f-display); letter-spacing: .08em; background: var(--ink); color: var(--bg); border-radius: 4px; padding: 3px 4px }
+.wstar { position: absolute; top: 7px; left: 7px; z-index: 2; width: 24px; height: 24px; border-radius: 50%; background: var(--gold); color: #1a1405; font-size: 13px; line-height: 24px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.5) }
+.lang { font: 700 9px/1 var(--f-display); letter-spacing: .08em; background: rgba(9,12,18,.85); color: #fff; border-radius: 5px; padding: 4px 5px; position: absolute; left: 6px; bottom: 6px; z-index: 1 }
 .lang.multi { background: var(--accent); color: var(--accent-ink) }
-.cv { text-decoration: underline dotted color-mix(in srgb, var(--muted) 60%, transparent); text-underline-offset: 3px }
-.scrapebtn { width: auto; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; font: 700 13px/1 var(--f-display) }
-.ldot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); flex: none }
-.ldot.idle { background: #2149c4 } .ldot.run { background: #1f9d55; animation: pulse 1.2s infinite } .ldot.wait { background: #e0a100; animation: pulse .6s infinite }
-@keyframes pulse { 50% { opacity: .35 } }
-dialog#dash { width: min(1180px, calc(100vw - 24px)) }
-.dash { padding: 22px; max-height: calc(100dvh - 24px); overflow: auto; display: grid; gap: 14px }
-.dash > header { display: flex; align-items: center; gap: 12px } .dash > header h2 { margin: 0; flex: 1; font-family: var(--f-display); font-stretch: 80%; font-size: 26px }
-.dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; align-items: start }
-.dcard { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--raised); display: grid; gap: 8px; min-width: 0 }
-.dcard h3 { margin: 0; font: 800 13px/1.2 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px }
-.dcard.wide { grid-column: 1 / -1 }
-.conn { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: baseline; font-size: 13.5px }
-.conn .ok { color: #157a3d; font-weight: 700 } .conn .no { color: #a3271c; font-weight: 700 } .conn small { color: var(--muted) }
-.dbtn { height: 36px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: 700 13.5px/1 var(--f-display); cursor: pointer }
-.dbtn.pr { background: #2149c4; border-color: #2149c4; color: #fff } .dbtn.stop { border-color: #a3271c; color: #a3271c } .dbtn:disabled { opacity: .45; cursor: default }
-.runmsg { font-weight: 700 } .runmsg.wait { color: #8a5a00 }
-.cur3 { display: grid; gap: 4px; font-size: 13px } .cur3 div { display: grid; grid-template-columns: 96px 1fr; gap: 8px } .cur3 b { color: var(--muted) } .cur3 small { color: var(--muted) }
-.dlog { max-height: 180px; overflow: auto; font: 11.5px/1.5 var(--f-mono, ui-monospace, monospace); color: var(--muted); white-space: pre-wrap; background: var(--surface); border-radius: 8px; padding: 6px 8px; margin: 0 }
-.dstat { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted) } .dstat b { color: var(--ink); font-variant-numeric: tabular-nums }
-.sitebar { display: grid; gap: 3px; font-size: 13px } .sitebar .row { display: flex; justify-content: space-between; gap: 8px } .sitebar small { color: var(--muted) }
-.pbar { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden } .pbar i { display: block; height: 100%; background: #2149c4 }
-.hist { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; align-items: end; height: 120px }
-.hist div { display: grid; gap: 3px; align-items: end; height: 100%; text-align: center; font-size: 10px; color: var(--muted) } .hist i { display: block; border-radius: 3px 3px 0 0; min-height: 2px }
-.dtable { width: 100%; border-collapse: collapse; font-size: 13px } .dtable td { padding: 5px 6px 5px 0; border-top: 1px solid var(--line); vertical-align: middle } .dtable td.r { text-align: right; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums }
-.dtable button.link { text-align: left }
-.dopts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted) } .dopts input[type=text] { height: 32px; border: 1.5px solid var(--line); border-radius: 8px; padding: 0 8px; background: var(--surface); color: var(--ink); min-width: 180px }
-.gear { height: 40px; width: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--raised); cursor: pointer; font-size: 18px; flex: none }
-dialog#settings { width: min(520px, calc(100vw - 24px)) }
-.setf { display: grid; gap: 14px; padding: 22px; max-height: calc(100dvh - 24px); overflow: auto }
-.setf h2 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-size: 26px }
-.setf h3 { margin: 6px 0 0; font-family: var(--f-display); font-size: 15px }
-.setf fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px }
-.setf legend { font-weight: 700; margin-bottom: 6px }
-.setf .fld { display: grid; gap: 6px; font-weight: 700 }
-.setf .fld input { height: 40px; width: 90px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--raised); padding: 0 10px; margin-right: 6px }
-.setf .fld span { font-weight: 400 }
-.setf .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end }
-ul.srcs { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: 13px; color: var(--muted) }
-ul.srcs b { color: var(--ink) } ul.srcs li.y b::before { content: "● "; color: var(--up) } ul.srcs li.n b::before { content: "● "; color: var(--down) }
-.hint button { font-family: var(--f-mono); font-size: 12px; border: 1px solid var(--line); background: var(--bg); border-radius: 6px; padding: 2px 7px; cursor: pointer; color: var(--ink) }
+.cut { grid-column: 1 / -1; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; border-top: 1px dashed var(--line2); padding-top: 12px; margin-top: 6px }
+.cut b { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: 18px }
+.cut span { font-size: 13px; color: var(--muted) }
+.sentinel { height: 1px }
+.more { margin: 26px auto 0; display: block; height: 42px; padding: 0 22px; border-radius: 99px; border: 1px solid var(--line2); background: var(--surface); cursor: pointer; font-weight: 600 }
+.empty { padding: 40px 0; color: var(--muted); max-width: 52ch }
+.empty b { color: var(--ink) }
 
-/* body layout */
-main.wrap { padding-block: 16px 48px; display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 24px; align-items: start }
-aside.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 112px); display: grid; gap: 18px; max-height: calc(100vh - 130px); overflow: auto; padding-bottom: 12px }
-.group h3 { margin: 0 0 8px; font-family: var(--f-display); font-stretch: 80%; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted) }
-.chips { display: flex; flex-wrap: wrap; gap: 6px }
-.chip { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line); background: var(--raised); border-radius: 99px; padding: 4px 10px 4px 5px; cursor: pointer; font-size: 13px; line-height: 1.2 }
-.chip.plain { padding-left: 10px }
-.chip .n { color: var(--muted); font-family: var(--f-mono); font-size: 11px; font-variant-numeric: tabular-nums }
-.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
-.chip[disabled] { opacity: .45; cursor: default }
-.seg { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px }
-.seg .chip { justify-content: space-between; padding-left: 10px }
-.pip { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 11px/1 var(--f-display); color: #fff; flex: none; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.35), 0 0 0 1px rgba(0,0,0,.12) }
-.pip.sm { width: 16px; height: 16px; font-size: 9px }
-.t-Grass{background:var(--e-grass)} .t-Fire{background:var(--e-fire)} .t-Water{background:var(--e-water)} .t-Lightning{background:var(--e-lightning);color:#3a2c00} .t-Psychic{background:var(--e-psychic)} .t-Fighting{background:var(--e-fighting)} .t-Darkness{background:var(--e-darkness)} .t-Metal{background:var(--e-metal)} .t-Fairy{background:var(--e-fairy)} .t-Dragon{background:var(--e-dragon)} .t-Colorless{background:var(--e-colorless);color:#2a2f36} .t-Trainer{background:var(--e-trainer)} .t-Free{background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line)}
-.rail select { width: 100% }
-.check { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer }
-.check input { width: 18px; height: 18px; accent-color: var(--accent) }
-.rail .reset { justify-self: start; border: 0; background: none; color: var(--accent); font-weight: 700; cursor: pointer; padding: 0 }
-details.how { border-top: 1px solid var(--line); padding-top: 12px; font-size: 13px; color: var(--muted) }
-details.how summary { cursor: pointer; font-weight: 700; color: var(--ink) }
-details.how p { margin: 8px 0 0 }
-details.how code { font-family: var(--f-mono); font-size: 12px }
+/* data score chip */
+.cov { position: relative; display: inline-flex; align-items: center; flex: none; width: 46px; height: 17px; border-radius: 5px; background: var(--raised2); overflow: hidden; vertical-align: middle }
+.cov i { position: absolute; inset: 0 auto 0 0; background: var(--cv) }
+.cov b { position: relative; width: 100%; text-align: center; font: 800 10px/1 var(--f-display); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.6); font-variant-numeric: tabular-nums }
+.cov.big { width: 104px; height: 26px; border-radius: 7px } .cov.big b { font-size: 14px }
+.cov.tag { position: absolute; right: 6px; bottom: 6px; z-index: 1; width: 38px; height: 16px; background: rgba(9,12,18,.85) }
+.cov.tag b { font-size: 9.5px }
 
-/* results */
-.resbar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin-bottom: 14px; min-width: 0 }
-.resbar .count { font-family: var(--f-display); font-stretch: 85%; font-weight: 800; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums }
-.resbar .ms { font-family: var(--f-mono); font-size: 12px; color: var(--muted) }
-.resbar .note { font-size: 13px; color: var(--warn) }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px 14px }
-.wstar { position: absolute; top: 6px; left: 6px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: #c79a1e; color: #fff; font-size: 13px; line-height: 22px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.3) }
-.watchbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--raised); color: var(--ink); font: 700 13px/1 var(--f-display); cursor: pointer }
-.watchbtn[aria-pressed="true"] { background: #c79a1e; border-color: #c79a1e; color: #fff }
-.watchnote { display: block; margin-top: 4px; font-size: 12px; color: var(--muted) }
-.tile { border: 0; padding: 0; background: none; text-align: left; cursor: pointer; display: grid; gap: 7px; min-width: 0 }
-.face { position: relative; aspect-ratio: 63 / 88; max-width: 100%; border-radius: 4.6% / 3.3%; overflow: hidden; background: var(--raised); box-shadow: var(--shadow); border: 3px solid var(--card-edge); transition: transform .15s ease, box-shadow .15s ease }
-.tile:hover .face, .tile:focus-visible .face { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(20,26,36,.18) }
-.face img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: var(--raised) }
 /* data face, drawn when there is no image */
-.df { position: absolute; inset: 0; display: grid; grid-template-rows: auto auto 1fr auto; padding: 7% 7% 6%; gap: 4%; background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 22%, var(--raised)) 0%, var(--raised) 62%) }
+.df { position: absolute; inset: 0; display: grid; grid-template-rows: auto auto 1fr auto; padding: 7% 7% 6%; gap: 4%; background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 34%, var(--raised)) 0%, var(--raised) 64%) }
 .df .hd { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; min-width: 0 }
 .df .sub { font: 600 10px/1 var(--f-display); text-transform: uppercase; letter-spacing: .07em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
 .df .hp { font: 800 13px/1 var(--f-display); white-space: nowrap; display: flex; align-items: center; gap: 3px }
 .df .hp small { font-size: 8px; letter-spacing: .05em }
 .df .nm { font-family: var(--f-display); font-weight: 800; font-stretch: 78%; font-size: 19px; line-height: 1.02; text-wrap: balance; overflow-wrap: anywhere }
-.df .art { border-radius: 3px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--tc) 30%, transparent) 0 6px, color-mix(in srgb, var(--tc) 18%, transparent) 6px 12px); display: grid; place-items: center; position: relative; overflow: hidden; min-height: 0 }
-.df .art .big { width: 38%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font: 800 clamp(16px, 2.6vw, 26px)/1 var(--f-display); color: #fff; box-shadow: inset 0 0 0 3px rgba(255,255,255,.4) }
+.df .art { border-radius: 4px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--tc) 30%, transparent) 0 6px, color-mix(in srgb, var(--tc) 16%, transparent) 6px 12px); display: grid; place-items: center; position: relative; overflow: hidden; min-height: 0 }
+.df .art .big { width: 38%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font: 800 clamp(16px, 2.6vw, 26px)/1 var(--f-display); color: #fff; box-shadow: inset 0 0 0 3px rgba(255,255,255,.35) }
 .df .moves { font-size: 10.5px; line-height: 1.25; display: grid; gap: 3px; min-width: 0 }
-.df .moves div { display: flex; justify-content: space-between; gap: 4px; border-top: 1px solid var(--line); padding-top: 3px }
+.df .moves div { display: flex; justify-content: space-between; gap: 4px; border-top: 1px solid var(--line2); padding-top: 3px }
 .df .moves span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0 }
 .df .moves b { font-family: var(--f-display); flex: none }
-.cap { display: grid; gap: 1px; min-width: 0; padding: 0 2px }
-.cap .n1 { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.cap .n2 { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums }
-.sentinel { height: 1px }
-.more { margin: 20px auto 0; display: block; height: 42px; padding: 0 20px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--raised); cursor: pointer; font-weight: 700 }
-.empty { padding: 40px 0; color: var(--muted); max-width: 52ch }
-.empty b { color: var(--ink) }
+.pip { width: 20px; height: 20px; border-radius: 50%; display: inline-grid; place-items: center; font: 700 11px/1 var(--f-display); color: #fff; flex: none; box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.3) }
+.pip.sm { width: 16px; height: 16px; font-size: 9px }
+.t-Grass{background:var(--e-grass)} .t-Fire{background:var(--e-fire)} .t-Water{background:var(--e-water)} .t-Lightning{background:var(--e-lightning);color:#3a2c00} .t-Psychic{background:var(--e-psychic)} .t-Fighting{background:var(--e-fighting)} .t-Darkness{background:var(--e-darkness)} .t-Metal{background:var(--e-metal)} .t-Fairy{background:var(--e-fairy)} .t-Dragon{background:var(--e-dragon)} .t-Colorless{background:var(--e-colorless);color:#2a2f36} .t-Trainer{background:var(--e-trainer)} .t-Free{background:transparent;color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line2)}
 
-/* loading panel */
-.loader { grid-column: 1 / -1; max-width: 560px; margin: 8vh auto; display: grid; gap: 14px; text-align: left }
-.loader h2 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: 30px; line-height: 1.05; text-wrap: balance }
+/* loading */
+.loader { max-width: 560px; margin: 10vh auto; display: grid; gap: 14px }
+.loader h2 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-weight: 800; font-size: 32px; line-height: 1.05 }
 .loader p { margin: 0; color: var(--muted) }
-.bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden }
-.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s }
-.loader .step { font-family: var(--f-mono); font-size: 12.5px; color: var(--muted) }
-.btn { height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; justify-self: start }
-.btn.ghost { background: none; border: 1.5px solid var(--line); color: var(--ink) }
+.bar { height: 6px; border-radius: 99px; background: var(--raised2); overflow: hidden }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .2s }
+.loader .step { font-family: var(--f-mono); font-size: 12px; color: var(--muted) }
+.btn { height: 40px; padding: 0 18px; border-radius: var(--r-sm); border: 0; background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer; justify-self: start }
+.btn.ghost { background: none; border: 1px solid var(--line2); color: var(--ink) }
 
-/* footer status */
-footer.status { border-top: 1px solid var(--line); }
-footer.status .wrap { padding-block: 14px calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12.5px; color: var(--muted); font-family: var(--f-mono); align-items: center }
-footer.status button { font: inherit; border: 1px solid var(--line); background: var(--raised); border-radius: 6px; padding: 3px 8px; cursor: pointer; color: var(--ink) }
+footer.status { border-top: 1px solid var(--line) }
+footer.status .wrap { padding-block: 14px calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--faint); font-family: var(--f-mono); align-items: center }
+footer.status button { font: inherit; border: 1px solid var(--line2); background: var(--surface); border-radius: 6px; padding: 3px 8px; cursor: pointer; color: var(--ink) }
 
-/* detail sheet */
-dialog { border: 0; padding: 0; background: var(--surface); color: var(--ink); border-radius: 16px; width: min(940px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-shadow: 0 20px 60px rgba(0,0,0,.35) }
-dialog::backdrop { background: rgba(10,14,20,.55) }
-.sheet { display: grid; grid-template-columns: minmax(0, 330px) minmax(0, 1fr); gap: 24px; padding: 22px; overflow: auto; max-height: calc(100dvh - 24px) }
-.sheet .face { border-width: 4px; width: 100% }
-.sheet .df .nm { font-size: 28px }
-.sheet .df .moves { font-size: 13px }
-.sheet .close { position: absolute; right: 10px; top: 10px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line); background: var(--raised); cursor: pointer; font-size: 18px; z-index: 2 }
-.info { display: grid; gap: 14px; min-width: 0; align-content: start }
-.info .kicker { font: 700 12px/1 var(--f-display); letter-spacing: .09em; text-transform: uppercase; color: var(--muted) }
-.info h2 { margin: 2px 0 0; font-family: var(--f-display); font-weight: 800; font-stretch: 78%; font-size: 34px; line-height: 1; text-wrap: balance; padding-right: 40px }
-.info .hpline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-weight: 700 }
+/* ---------- dialogs ---------- */
+dialog { border: 1px solid var(--line2); padding: 0; background: var(--bg2); color: var(--ink); border-radius: 20px; width: min(1240px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-shadow: 0 30px 80px rgba(0,0,0,.6) }
+dialog::backdrop { background: rgba(3,5,9,.72); backdrop-filter: blur(4px) }
+
+/* card view */
+.sheet { position: relative; overflow: auto; max-height: calc(100dvh - 24px); padding: 0 0 28px; scroll-padding-top: 64px }
+.sheet .close { position: absolute; right: 14px; top: 14px; width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line2); background: var(--raised); cursor: pointer; font-size: 18px; z-index: 4; color: var(--ink) }
+.hero { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; padding: 26px 28px 22px; background: linear-gradient(180deg, rgba(125,155,255,.09), transparent); border-bottom: 1px solid var(--line) }
+.hero-img .face { border-width: 3px; width: 100%; box-shadow: 0 18px 50px rgba(0,0,0,.6), 0 0 40px rgba(125,155,255,.12) }
+.hero .df .nm { font-size: 26px } .hero .df .moves { font-size: 12.5px }
+.hero-main { display: grid; gap: 10px; align-content: start; min-width: 0 }
+.kicker { font: 700 11.5px/1 var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--muted) }
+.hero h2 { margin: 0; font-family: var(--f-display); font-weight: 800; font-stretch: 78%; font-size: 40px; line-height: 1; padding-right: 48px }
+.subl { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); font-size: 13.5px; align-items: baseline }
+.subl > * + *::before { content: ""; display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--faint); margin-right: 14px; vertical-align: 3px }
+.watchbtn { display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--line2); background: var(--raised); color: var(--ink); font: 700 13px/1 var(--f-display); cursor: pointer }
+.watchbtn[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: #1a1405 }
+.watchnote { margin-left: 10px; font-size: 12px; color: var(--muted) }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px }
+.kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 4px; min-width: 0 }
+.kpi span { font: 700 10.5px/1 var(--f-display); letter-spacing: .09em; text-transform: uppercase; color: var(--muted) }
+.kpi b { font-family: var(--f-display); font-size: 24px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.kpi b .chg { font-size: 20px; font-family: var(--f-display) }
+.kpi small { color: var(--faint); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.kpi.main { background: linear-gradient(135deg, rgba(125,155,255,.2), rgba(166,133,255,.12)); border-color: rgba(125,155,255,.35) }
+.kpi.main b { font-size: 28px }
+.secnav { position: sticky; top: 0; z-index: 3; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 10px 28px; background: rgba(13,17,25,.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line) }
+.secnav::-webkit-scrollbar { display: none }
+.secnav button { flex: none; border: 0; background: none; color: var(--muted); height: 30px; padding: 0 12px; border-radius: 99px; cursor: pointer; font-size: 13px; font-weight: 600 }
+.secnav button:hover { background: var(--raised); color: var(--ink) }
+.pgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 18px 28px 0; align-items: start }
+details.sec { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; scroll-margin-top: 64px }
+details.sec.wide { grid-column: 1 / -1 }
+details.sec > summary { display: flex; gap: 10px; align-items: center; cursor: pointer; list-style: none; padding: 13px 16px; border-bottom: 1px solid transparent }
+details.sec[open] > summary { border-bottom-color: var(--line) }
+details.sec > summary::-webkit-details-marker { display: none }
+details.sec > summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--faint); border-bottom: 2px solid var(--faint); transform: rotate(45deg); margin: -4px 2px 0 4px; transition: transform .15s }
+details.sec[open] > summary::after { transform: rotate(225deg); margin-top: 4px }
+details.sec > summary h4 { margin: 0; flex: 1; font-family: var(--f-display); font-stretch: 88%; font-size: 15.5px; font-weight: 800; letter-spacing: .01em }
+details.sec > summary .fig { font: 700 13px/1 var(--f-display); color: var(--ink); font-variant-numeric: tabular-nums; flex: none }
+.pb { padding: 14px 16px 16px; display: grid; gap: 10px; min-width: 0 }
+.pb > * { min-width: 0; margin: 0 }
+.st { flex: none; font: 700 10.5px/1 var(--f-display); letter-spacing: .02em; padding: 4px 8px; border-radius: 99px; background: var(--raised2); color: var(--muted); white-space: nowrap }
+.st.st-fresh { background: rgba(63,217,154,.14); color: var(--up) } .st.st-aging { background: rgba(244,177,74,.14); color: var(--warn) } .st.st-stale { background: rgba(255,111,111,.14); color: var(--down) }
+.st.st-missing { background: transparent; border: 1px dashed var(--line2); color: var(--faint) } .st.st-na { opacity: .6 }
+.src { font-size: 12.5px; color: var(--muted) }
+.src .lv, .lv { color: var(--up); font-weight: 700 }
+.nolang { font-size: 13px; color: var(--muted); margin: 0 }
+.parts { border-collapse: collapse; font-size: 13px; width: 100% }
+.parts td { padding: 7px 8px 7px 0; border-top: 1px solid var(--line) }
+.parts tr:first-child td { border-top: 0 }
+.parts td.w, .parts td.a { color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums }
+.parts .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--line2) }
+.parts .st-fresh td:nth-child(3) { color: var(--up) } .parts .st-aging td:nth-child(3) { color: var(--warn) } .parts .st-stale td:nth-child(3) { color: var(--down) } .parts .st-missing td:nth-child(3) { color: var(--faint) }
+.parts .st-fresh .dot { background: var(--up); box-shadow: 0 0 6px var(--up) } .parts .st-aging .dot { background: var(--warn) } .parts .st-stale .dot { background: var(--down) } .parts .st-na td { opacity: .5 }
+.ptable { overflow-x: auto; max-width: 100% }
+.ptable table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums }
+.ptable th { text-align: right; font: 700 10px/1.2 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap }
+.ptable th:first-child, .ptable td:first-child { text-align: left; padding-left: 0 }
+.ptable td { text-align: right; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap }
+.ptable tbody tr:hover td { background: rgba(255,255,255,.02) }
+.ptable td.hl { font-weight: 800 }
+.grades { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px }
+.grades div { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px; display: grid; gap: 4px; background: var(--raised) }
+.grades > div > span:first-child { font: 700 10px/1.2 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
+.grades b { font-family: var(--f-display); font-size: 18px; font-variant-numeric: tabular-nums }
+.ev { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 12px; color: var(--muted) }
+.ev b { font: 800 9.5px/1 var(--f-display); letter-spacing: .1em; text-transform: uppercase; color: var(--faint) }
+.ev a, td a, .bt a { color: var(--accent); font-weight: 600; text-decoration: none; overflow-wrap: anywhere }
+.ev a:hover, td a:hover { text-decoration: underline }
+.spark { display: grid; gap: 4px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px }
+.spark svg { width: 100%; height: auto; display: block }
+.spark .lbl { display: flex; justify-content: space-between; font: 11px/1.2 var(--f-mono); color: var(--faint) }
+.spark .big { font-family: var(--f-display); font-weight: 800; font-size: 18px; display: flex; gap: 8px; align-items: baseline }
+.cv { text-decoration: underline dotted var(--faint); text-underline-offset: 3px }
+/* every price */
+.fseg { display: inline-flex; gap: 2px; background: var(--surface); border: 1px solid var(--line2); border-radius: 99px; padding: 2px; justify-self: start }
+.fseg .chip { border: 0; background: none; height: 28px; padding: 0 12px; border-radius: 99px; cursor: pointer; font-size: 13px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center }
+.fseg .chip[aria-pressed="true"] { background: var(--raised2); color: var(--ink) }
+.every td small { color: var(--faint); font-weight: 400; margin-left: 3px }
+.every td.g { font-weight: 800; color: var(--ink) } .every tr.first td { border-top: 1px solid var(--line2) }
+.every .st { font: 700 9.5px/1 var(--f-display); letter-spacing: .05em; color: var(--muted); background: var(--raised2); border-radius: 4px; padding: 3px 5px; margin-left: 3px }
+/* listings matrix and calculator */
+table.lm td, table.lm th { text-align: center }
+table.lm td:first-child { text-align: left; white-space: normal; min-width: 90px }
+table.lm td small { color: var(--muted); font-size: 11px; display: block }
+table.lm td.e { color: var(--line2) }
+.lc { border: 0; background: none; font: 700 13px/1.15 var(--f-body); font-variant-numeric: tabular-nums; cursor: pointer; padding: 4px 6px; border-radius: 7px; color: var(--ink) }
+.lc small { display: block; font-weight: 400; color: var(--muted); font-size: 10.5px }
+.lc:hover, .lc.on { background: var(--accent-soft) }
+.calc { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 13px; background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 12px }
+.calc select { height: 32px; font-size: 13px; margin-left: 4px }
+.calcout { flex-basis: 100%; font-size: 13.5px }
+.calcout b { font-family: var(--f-display); font-size: 20px }
+.calcout small { color: var(--muted) }
+details.sub { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 12px; background: var(--raised) }
+details.sub > summary { cursor: pointer; font-weight: 700; font-size: 13.5px }
+#cmList .ptable { max-height: 420px; overflow: auto; margin-top: 8px }
+#cmList thead th { position: sticky; top: 0; background: var(--raised) }
+td.cm { white-space: normal !important; max-width: 220px; color: var(--muted); font-size: 12px }
+h5.subh { margin: 6px 0 0; font: 800 13px/1.2 var(--f-display) }
+/* prints */
+table.bt td small { display: block; color: var(--muted); font-size: 11.5px; white-space: normal }
+table.bt td { white-space: normal; vertical-align: middle }
+table.bt tr.here td { background: var(--accent-soft) }
+table.bt td:nth-child(2), table.bt th:nth-child(2) { min-width: 150px; text-align: left }
+.lb { font: 700 10px/1 var(--f-display); letter-spacing: .08em; background: var(--raised2); color: var(--ink); border-radius: 5px; padding: 4px 5px }
+/* eBay and sold items */
+.items { display: grid; max-height: 480px; overflow: auto; border-top: 1px solid var(--line) }
+.item { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start }
+.item img, .item .noimg { width: 52px; height: 52px; object-fit: contain; border-radius: 8px; background: var(--raised); display: block }
+.item .it { display: grid; gap: 4px; min-width: 0; font-size: 13.5px }
+.item a { color: var(--ink); overflow-wrap: anywhere; text-decoration: none } .item a:hover { color: var(--accent) }
+.item .im { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 12px; color: var(--muted) }
+.item .im b { font-family: var(--f-display); font-size: 16px; color: var(--ink); font-variant-numeric: tabular-nums }
+.item .gr { color: var(--gold); font-weight: 700 } .item .ln { color: var(--accent); font-weight: 700 }
+/* card text */
+.hpline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-weight: 700 }
 .move { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px }
 .move .row { display: flex; gap: 8px; align-items: center }
 .move .row .nm { font-weight: 700; flex: 1; min-width: 0 }
 .move .row .dmg { font-family: var(--f-display); font-weight: 800; font-size: 20px }
-.move .tag { font: 700 10px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #b8322a; padding: 4px 6px; border-radius: 4px }
-.move p, .rules p { margin: 0; font-size: 14px }
-.rules { font-size: 13.5px; color: var(--muted); display: grid; gap: 6px }
+.move .tag { font: 700 10px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: #fff; background: #c2412f; padding: 4px 6px; border-radius: 4px }
+.move p, .rules p { margin: 0; font-size: 13.5px; color: #c8d0de }
+.rules { font-size: 13px; color: var(--muted); display: grid; gap: 6px }
 .wrr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border-top: 1px solid var(--line); padding-top: 10px }
 .wrr div { display: grid; gap: 4px; font-size: 13px }
 .wrr span { font: 700 10px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted) }
 .wrr em { font-style: normal; display: flex; align-items: center; gap: 4px; flex-wrap: wrap }
-.flavor { font-style: italic; color: var(--muted); font-size: 14px; margin: 0 }
-dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; border-top: 1px solid var(--line); padding-top: 12px; font-size: 14px }
+.flavor { font-style: italic; color: var(--muted); font-size: 13.5px; margin: 0 }
+dl.meta { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; font-size: 13.5px }
 dl.meta dt { color: var(--muted) }
 dl.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere }
-.link { border: 0; background: none; padding: 0; color: var(--accent); cursor: pointer; text-align: left; font-weight: 700 }
-a.ext { color: var(--accent); font-weight: 700 }
-.mono { font-family: var(--f-mono); font-size: 13px }
 
-@media (max-width: 860px) {
-  header.top .wrap { grid-template-columns: 1fr auto; }
-  .mark { grid-column: 1 / -1 }
-  .sortbox { grid-column: 1 / -1; justify-content: space-between }
-  .sortbox select { flex: 1 }
-  .filters-btn { display: inline-block }
-  .search { grid-column: 1 / -1 }
-  main.wrap { grid-template-columns: minmax(0, 1fr) }
-  aside.rail { display: none; position: static; max-height: none; overflow: visible; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px }
-  aside.rail.open { display: grid }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px 12px }
-  .sheet { grid-template-columns: minmax(0, 1fr); padding: 16px }
-  .sheet .face { max-width: 300px; margin: 0 auto }
+/* scraping dashboard */
+dialog#dash { width: min(1240px, calc(100vw - 24px)) }
+.dash { padding: 24px 26px; max-height: calc(100dvh - 24px); overflow: auto; display: grid; gap: 16px }
+.dash > header { display: flex; align-items: center; gap: 12px } .dash > header h2 { margin: 0; flex: 1; font-family: var(--f-display); font-stretch: 80%; font-size: 30px }
+.dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 16px; align-items: start }
+.dcard { border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; background: var(--panel); display: grid; gap: 10px; min-width: 0 }
+.dcard h3 { margin: 0; font: 800 12px/1.2 var(--f-display); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px }
+.dcard h3 span { color: var(--faint); font-weight: 700 }
+.dcard.wide { grid-column: 1 / -1 }
+.conn { display: grid; grid-template-columns: auto 1fr; gap: 8px 12px; align-items: baseline; font-size: 13.5px }
+.conn .ok { color: var(--up); font-weight: 700 } .conn .no { color: var(--down); font-weight: 700 } .conn small { color: var(--muted) }
+.dbtn { height: 36px; padding: 0 16px; border-radius: var(--r-sm); border: 1px solid var(--line2); background: var(--raised); color: var(--ink); font: 700 13.5px/1 var(--f-display); cursor: pointer }
+.dbtn.pr { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: 0; color: #0a0d14 } .dbtn.stop { border-color: var(--down); color: var(--down); background: rgba(255,111,111,.08) } .dbtn:disabled { opacity: .4; cursor: default }
+.runmsg { font-weight: 700 } .runmsg.wait { color: var(--warn) }
+.cur3 { display: grid; gap: 6px; font-size: 13px } .cur3 div { display: grid; grid-template-columns: 100px 1fr; gap: 8px } .cur3 b { color: var(--muted) } .cur3 small { color: var(--muted) }
+.dlog { max-height: 190px; overflow: auto; font: 11.5px/1.55 var(--f-mono); color: var(--muted); white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 10px; margin: 0 }
+.dstat { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted) } .dstat b { color: var(--ink); font-variant-numeric: tabular-nums }
+.srcrow { display: grid; gap: 4px; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--line) } .srcrow:first-of-type { border-top: 0; padding-top: 0 }
+.srcrow .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline } .srcrow small { color: var(--muted) }
+.srcrow .kind { font: 700 9.5px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); border: 1px solid var(--line2); border-radius: 4px; padding: 3px 5px; margin-left: 6px }
+.srcrow .bad { color: var(--down) }
+.pbar { height: 6px; border-radius: 4px; background: var(--raised2); overflow: hidden } .pbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)) }
+.hist { display: grid; grid-template-columns: repeat(10, 1fr); gap: 5px; align-items: end; height: 130px }
+.hist div { display: grid; gap: 3px; align-items: end; height: 100%; text-align: center; font-size: 10px; color: var(--faint) } .hist i { display: block; border-radius: 4px 4px 0 0; min-height: 2px }
+.dtable { width: 100%; border-collapse: collapse; font-size: 13px } .dtable td { padding: 7px 8px 7px 0; border-top: 1px solid var(--line); vertical-align: middle } .dtable tr:first-child td { border-top: 0 }
+.dtable td.r { text-align: right; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums }
+.dtable button.link { text-align: left }
+.dtable td.wl { display: flex; gap: 6px; align-items: baseline } .dtable td.wl > i { font-style: normal; color: var(--gold) }
+.dopts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted) } .dopts input[type=text] { height: 34px; border: 1px solid var(--line2); border-radius: var(--r-sm); padding: 0 10px; background: var(--surface); color: var(--ink); min-width: 190px }
+/* settings */
+dialog#settings { width: min(540px, calc(100vw - 24px)) }
+.setf { display: grid; gap: 16px; padding: 24px; max-height: calc(100dvh - 24px); overflow: auto }
+.setf h2 { margin: 0; font-family: var(--f-display); font-stretch: 80%; font-size: 28px }
+.setf fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px }
+.setf legend { font-weight: 700; margin-bottom: 6px }
+.setf .fld { display: grid; gap: 6px; font-weight: 700 }
+.setf .fld input { height: 38px; border: 1px solid var(--line2); border-radius: var(--r-sm); background: var(--surface); padding: 0 10px; margin-right: 6px }
+.setf .fld input[type=number] { width: 90px }
+.setf .fld span { font-weight: 400 }
+.setf .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end }
+.check { display: flex; gap: 10px; align-items: center; font-size: 14px; cursor: pointer }
+.check input { width: 17px; height: 17px; accent-color: var(--accent) }
+details.how { font-size: 13px; color: var(--muted) }
+details.how summary { cursor: pointer; font-weight: 700; color: var(--ink) }
+details.how p { margin: 8px 0 0; line-height: 1.9 }
+
+@media (max-width: 980px) {
+  .pgrid { grid-template-columns: minmax(0, 1fr) }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)) }
 }
-@media (max-width: 420px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) } .df .nm { font-size: 16px } }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+@media (max-width: 760px) {
+  header.top > .wrap:first-child { grid-template-columns: 1fr auto }
+  .mark { font-size: 20px }
+  .search { grid-column: 1 / -1; order: 3 }
+  .scrapebtn .lbl { display: none }
+  .fbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none }
+  .fbar::-webkit-scrollbar { display: none }
+  .fbar > * { flex: none }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 12px }
+  dialog { width: 100vw; max-width: 100vw; max-height: 100dvh; height: 100dvh; border-radius: 0; margin: 0 }
+  .sheet { max-height: 100dvh }
+  .hero { grid-template-columns: minmax(0, 1fr); padding: 18px 16px; gap: 16px }
+  .hero-img .face { max-width: 220px; margin: 0 auto }
+  .hero h2 { font-size: 32px }
+  .secnav { padding: 8px 12px } .pgrid { padding: 14px 12px 0; gap: 12px }
+  .dash { padding: 16px } .dgrid { grid-template-columns: minmax(0, 1fr) }
+}
+@media (max-width: 420px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)) } .df .nm { font-size: 16px } .kpi b { font-size: 20px } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
 </style>
 
 <header class="top">
   <div class="wrap">
-    <div class="mark"><i aria-hidden="true"></i>Pokémon Card Index</div>
+    <div class="mark"><i aria-hidden="true"></i>POcKEtMONey</div>
     <div class="search">
-      <input id="q" type="search" placeholder="Search 33,000+ cards — name in any language, attack…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search cards">
+      <input id="q" type="search" placeholder="Search 33,000+ cards — any language, attack, artist…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" aria-label="Search cards">
       <button class="clear" id="clear" type="button" aria-label="Clear search" hidden>×</button>
     </div>
-    <div class="sortbox">
-      <button class="filters-btn" id="filtersBtn" type="button" aria-expanded="false" aria-controls="rail">Filters<b id="fcount" hidden>0</b></button>
-      <select id="sort" aria-label="Sort">
+    <div class="tools">
+      <div class="cur" role="group" aria-label="Show prices in"><button type="button" data-cur="eur" aria-pressed="true" title="Show every price in euro">€</button><button type="button" data-cur="usd" aria-pressed="false" title="Show every price in US dollar">$</button></div>
+      <button type="button" class="tbtn scrapebtn" id="dashBtn" title="Scraping dashboard" aria-label="Scraping dashboard"><span class="ldot" id="ldot"></span><span class="lbl">Scraping</span></button>
+      <button type="button" class="tbtn gear" id="setBtn" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </div>
+  <div class="wrap fbar" id="fbar" aria-label="Filters">
+    <select id="fSet" aria-label="Set"><option value="">All sets</option></select>
+    <div class="seg" id="fLang" role="group" aria-label="Language"></div>
+    <button type="button" class="tog" id="fWatch" aria-pressed="false" title="Only cards on your To watch list">★ To watch <span class="n" id="fWatchN">0</span></button>
+    <div class="seg" id="fPriced" role="group" aria-label="Price"></div>
+    <span class="range" title="Price range, in the currency shown"><input id="fMin" inputmode="decimal" placeholder="min" aria-label="Minimum price"><span>–</span><input id="fMax" inputmode="decimal" placeholder="max" aria-label="Maximum price"><b id="fCurSym">€</b></span>
+    <select id="fCov" aria-label="Data score"></select>
+    <button type="button" class="reset" id="reset" hidden>Reset</button>
+    <select id="sort" class="sortsel" aria-label="Sort">
         <option value="relevance">Best match</option>
         <option value="newest">Newest sets</option>
         <option value="oldest">Oldest sets</option>
         <option value="name">Name A–Z</option>
-        <option value="hp">Highest HP</option>
         <option value="price">Highest price</option>
         <option value="priceAsc">Lowest price</option>
         <option value="rising">Rising this week</option>
         <option value="falling">Falling this week</option>
       </select>
-      <div class="cur" role="group" aria-label="Show prices in"><button type="button" data-cur="eur" aria-pressed="true" title="Show every price in euro">€</button><button type="button" data-cur="usd" aria-pressed="false" title="Show every price in US dollar">$</button></div>
-      <button type="button" class="gear scrapebtn" id="dashBtn" title="Scraping dashboard" aria-label="Scraping dashboard"><span class="ldot" id="ldot"></span>Scraping</button>
-      <button type="button" class="gear" id="setBtn" title="Settings" aria-label="Settings">⚙</button>
-    </div>
-    <div class="hint" id="hints" aria-label="Example searches">
-      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">-has:price</button><button type="button">score&gt;=0.5</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
-    </div>
   </div>
 </header>
 
 <main class="wrap" id="main">
-  <aside class="rail" id="rail" aria-label="Filters">
-    <div class="group"><h3>Language</h3><div class="seg seg3" id="fLang"></div>
-      <label class="check" style="margin-top:8px"><input type="checkbox" id="fBundle"> One tile per card, all languages bundled</label></div>
-    <div class="group"><h3>Card type</h3><div class="seg" id="fSuper"></div></div>
-    <div class="group"><h3>Energy type</h3><div class="chips" id="fType"></div></div>
-    <div class="group"><h3>Set</h3><select id="fSet" aria-label="Set"><option value="">All sets</option></select></div>
-    <div class="group"><h3>Series</h3><select id="fSeries" aria-label="Series"><option value="">All series</option></select></div>
-    <div class="group"><h3>Rarity</h3><select id="fRarity" aria-label="Rarity"><option value="">Any rarity</option></select></div>
-    <div class="group"><h3>Regulation mark</h3><div class="chips" id="fReg"></div></div>
-    <div class="group"><h3>Format</h3>
-      <label class="check"><input type="checkbox" id="fStd"> Standard legal</label>
-      <label class="check"><input type="checkbox" id="fExp"> Expanded legal</label>
-    </div>
-    <div class="group"><h3>To watch</h3><button type="button" class="chip plain" id="fWatch" aria-pressed="false">★ Only cards I watch <span class="n" id="fWatchN">0</span></button></div>
-    <div class="group"><h3>Price</h3><div class="seg seg3" id="fPriced"></div></div>
-    <div class="group"><h3>Data score (at least)</h3><div class="chips" id="fCov"></div></div>
-    <div class="group"><h3>Sales data</h3>
-      <label class="check"><input type="checkbox" id="fSales"> Graded prices &amp; recent sales</label>
-    </div>
-    <button class="reset" id="reset" type="button">Reset filters</button>
-    <details class="how">
-      <summary>How the catalog is stored</summary>
-      <p>Every card is packed into a positional tuple (no repeated field names, image URLs shortened to a 2-letter host code). The whole catalog ships gzip-compressed inside the page: 9.6 MB of card data in about 2.6 MB. Live updates from GitHub are saved in IndexedDB, one record per set, so an update only rewrites the sets that changed.</p>
-      <p>On open, the page builds an inverted index: a sorted term dictionary with a <code>Uint32Array</code> posting list per term. Prefix lookups are a binary search plus a contiguous scan.</p>
-      <p>Filters are bitmaps, one bit per card. Combining filters is a word-by-word AND over ~650 32-bit words, and the live counts on the chips are popcounts of those ANDs. Typos fall back to an edit-distance match over the dictionary.</p>
-      <p><b>Prices</b> come from three layers, newest wins per source: the snapshot built into the page, the hourly price store (Cardmarket price guide and listings, TCGplayer, eBay for sale and sold), and live checks this browser makes for the cards on screen. A green dot means the figure is newer than the snapshot. Every price is shown in the currency picked in the header (€ or $); the other currency is converted at the ECB rate, and a dotted underline shows the original.</p>
-      <p><b>Evidence:</b> every price section in a card's details ends with links to its sources: the Cardmarket and TCGplayer product pages, the API response or data file each figure was read from, the exact eBay searches, and each listing's own page. Its history graphs sit in the same section.</p>
-      <p><b>Languages:</b> prints of the same card in different languages (and same-art reprints) share one tile (badge <code>EN · JP</code>). Its details compare every print, matched by Cardmarket's card id and illustrator. Switch it off under Language.</p>
-      <p><b>Data score:</b> the chip on each card, from 0 to 1: how much of everything there is to collect for it is collected and up to date (Cardmarket listings 0.25, sold 0.20, price guide 0.15, eBay for sale 0.15, graded 0.15, TCGplayer 0.10; each part loses credit as it ages). Filter with the chips or <code>score&gt;=0.5</code>.</p>
-      <p><b>Query syntax:</b> <code>has:price</code> <code>score&gt;=0.5</code> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
-    </details>
-  </aside>
   <section id="results" aria-live="polite" style="min-width:0">
     <div class="loader" id="loader">
       <h2>Opening the card binder</h2>
@@ -428,7 +429,7 @@ a.ext { color: var(--accent); font-weight: 700 }
   var $ = function (id) { return document.getElementById(id); };
   var DATES = { eur: '', usd: '', ja: '' }, AXES = { e: [], u: [] };
   var cat = null, imagesOK = false, mode = 'bundle', results = null, shown = 0, meta = {};
-  var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set(), priced: '', cov: '', watch: false };
+  var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set(), priced: '', cov: '', watch: false, min: null, max: null };
 
   // ---------- settings (defaults from prices.config.json, kept per browser) ----------
   var CONFIG = "__CONFIG__", PRICES_URL = "__PRICES_URL__";
@@ -575,7 +576,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (el) {
       var o = priceOf(i), px = el.querySelector('.px'), cv = el.querySelector('.cov');
       if (px) px.outerHTML = priceTag(i, o);
-      if (cv) cv.outerHTML = scoreHTML(o.score, 'tag');
+      if (cv) cv.outerHTML = o.score.score > 0 ? scoreHTML(o.score, 'tag') : '<span class="cov tag" hidden></span>';
       el.classList.toggle('unpriced', !o.known);
     }
     if (i === openId) rerenderPrices();
@@ -807,7 +808,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     return from === settings.currency ? fmtCur(d, from) : '<span class="cv" title="' + esc(fmtCur(v, from)) + ' converted at ' + esc(FX_SRC || 'ECB rate') + '">' + fmtCur(d, settings.currency) + '</span>';
   }
   function moneyText(v, from) { var d = toDisp(v, from); return d == null ? '—' : fmtCur(d, settings.currency); }
-  function syncCurrencyButtons() { document.querySelectorAll('.cur [data-cur]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.cur === state.currency); }); }
+  function syncCurrencyButtons() { if ($('fCurSym')) $('fCurSym').textContent = settings.currency === 'USD' ? '$' : '€'; document.querySelectorAll('.cur [data-cur]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.cur === state.currency); }); }
 
   // ---------- loading ----------
   function progress(frac, step, msg) {
@@ -920,7 +921,7 @@ a.ext { color: var(--accent); font-weight: 700 }
         meta.loadMs = performance.now() - t0;
         progress(1, 'Ready');
         idIx = new Map(cat.cards.map(function (t, i) { return [t[0], i]; }));
-        buildBundles(data.bundles); $('fBundle').checked = settings.bundle;
+        buildBundles(data.bundles);
         applyAll(); buildFilters(); syncCurrencyButtons(); run(); status(); probeImages();
         // newer data in steps: saved live checks and the saved price store, then the network store and a live exchange rate
         Promise.all([liveLoad(), loadHourlyCached()]).then(function () { applyAll(); run(); liveStatus(); status(); })
@@ -948,15 +949,11 @@ a.ext { color: var(--accent); font-weight: 700 }
 
   // ---------- filters UI ----------
   function buildFilters() {
-    $('fLang').innerHTML = [['', 'All'], ['en', 'English'], ['ja', 'Japanese']].map(function (l) {
-      return '<button type="button" class="chip" data-lang="' + l[0] + '" aria-pressed="' + (state.lang === l[0]) + '"><span>' + l[1] + '</span><span class="n" data-cnt></span></button>';
+    $('fLang').innerHTML = [['', 'All'], ['en', 'EN'], ['ja', 'JP']].map(function (l) {
+      return '<button type="button" data-lang="' + l[0] + '" aria-pressed="' + (state.lang === l[0]) + '">' + l[1] + ' <span class="n" data-cnt></span></button>';
     }).join('');
-    var sup = $('fSuper');
-    sup.innerHTML = ['', 'Pokémon', 'Trainer', 'Energy'].map(function (v) {
-      return '<button type="button" class="chip" data-super="' + esc(v) + '" aria-pressed="' + (state.supertype === v) + '"><span>' + (v || 'All') + '</span><span class="n" data-cnt></span></button>';
-    }).join('');
-    $('fType').innerHTML = PTCG.TYPE_ORDER.map(function (t) {
-      return '<button type="button" class="chip" data-type="' + t + '" aria-pressed="false" title="' + t + '"><span class="pip sm t-' + t + '">' + LETTER[t] + '</span>' + t + ' <span class="n" data-cnt></span></button>';
+    $('fPriced').innerHTML = [['', 'Any price'], ['yes', 'Priced'], ['no', 'No price']].map(function (p) {
+      return '<button type="button" data-priced="' + p[0] + '" aria-pressed="' + (state.priced === p[0]) + '">' + p[1] + ' <span class="n" data-cnt></span></button>';
     }).join('');
     var bySeries = new Map();
     cat.sets.slice().reverse().sort(function (a, b) { return (a.lang === 'ja') - (b.lang === 'ja'); }).forEach(function (s) { var k = (s.lang || 'en') + '|' + s.se; if (!bySeries.has(k)) bySeries.set(k, []); bySeries.get(k).push(s); });
@@ -965,17 +962,14 @@ a.ext { color: var(--accent); font-weight: 700 }
       html += '<optgroup label="' + (list[0].lang === 'ja' ? 'JP · ' : '') + esc(se) + '">' + list.map(function (s) { return '<option value="' + esc(s.id) + '">' + esc(s.n) + (s.ne ? ' (' + esc(s.ne) + ')' : '') + ' · ' + s.d.slice(0, 4) + '</option>'; }).join('') + '</optgroup>';
     });
     $('fSet').innerHTML = html;
-    $('fSeries').innerHTML = '<option value="">All series</option>' + Array.from(new Set(Array.from(bySeries.keys()).map(function (k) { return k.split('|')[1]; }))).map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
-    var rar = Array.from(cat.facets.rarity.entries()).map(function (e) { return [e[0], PTCGpop(e[1])]; }).sort(function (a, b) { return b[1] - a[1]; });
-    $('fRarity').innerHTML = '<option value="">Any rarity</option>' + rar.map(function (r) { return '<option value="' + esc(r[0]) + '">' + esc(r[0]) + ' (' + fmt(r[1]) + ')</option>'; }).join('');
-    $('fCov').innerHTML = [['', 'Any'], [5, '≥ 0.25'], [10, '≥ 0.50'], [15, '≥ 0.75'], [18, '≥ 0.90']].map(function (k) {
-      return '<button type="button" class="chip plain" data-cov="' + k[0] + '" aria-pressed="' + (String(state.cov) === String(k[0])) + '"' + (k[0] ? ' title="data score ' + k[1] + '"' : '') + '>' +
-        k[1] + ' <span class="n" data-cnt></span></button>';
+    covOptions();
+  }
+  var COV_STEPS = [['', 'Any score'], ['5', 'Score ≥ 0.25'], ['10', 'Score ≥ 0.50'], ['15', 'Score ≥ 0.75'], ['18', 'Score ≥ 0.90']];
+  function covOptions(counts) {
+    $('fCov').innerHTML = COV_STEPS.map(function (k) {
+      var n = ''; if (counts && k[0]) { var x = 0; for (var j = +k[0]; j <= 20; j++) x += counts[j]; n = ' (' + fmt(x) + ')'; }
+      return '<option value="' + k[0] + '"' + (String(state.cov) === k[0] ? ' selected' : '') + '>' + k[1] + n + '</option>';
     }).join('');
-    $('fPriced').innerHTML = [['', 'All'], ['yes', 'Priced'], ['no', 'No price']].map(function (p) {
-      return '<button type="button" class="chip" data-priced="' + p[0] + '" aria-pressed="' + (state.priced === p[0]) + '"><span>' + p[1] + '</span><span class="n" data-cnt></span></button>';
-    }).join('');
-    $('fReg').innerHTML = Array.from(cat.facets.reg.keys()).sort().map(function (r) { return '<button type="button" class="chip plain mono" data-reg="' + esc(r) + '" aria-pressed="false">' + esc(r) + '</button>'; }).join('');
   }
   function PTCGpop(b) { var n = 0; for (var i = 0; i < b.length; i++) { var x = b[i]; while (x) { x &= x - 1; n++; } } return n; }
 
@@ -987,6 +981,10 @@ a.ext { color: var(--accent); font-weight: 700 }
     pending = requestAnimationFrame(function () {
       results = bundleResults(cat.search(state.q, state, state.sort));
       if (state.watch) { results.ids = results.ids.filter(function (i) { return watchSet.has(cat.cards[i][0]); }); results.total = results.ids.length; }
+      if (state.min != null || state.max != null) { // price range, in the display currency
+        var pxr = cat[state.currency], lo = state.min == null ? -Infinity : state.min, hi = state.max == null ? Infinity : state.max;
+        results.ids = results.ids.filter(function (i) { var v = pxr[i]; return !isNaN(v) && v >= lo && v <= hi; }); results.total = results.ids.length;
+      }
       results.cut = -1; // price sorts: index of the first card without a price in the chosen currency
       if (state.sort === 'price' || state.sort === 'priceAsc') {
         var px = cat[state.currency];
@@ -998,25 +996,14 @@ a.ext { color: var(--accent); font-weight: 700 }
   }
 
   function updateFacetCounts() {
-    var c = results.counts;
-    document.querySelectorAll('#fType [data-type]').forEach(function (el) {
-      var n = c.type[el.dataset.type] || 0; el.querySelector('[data-cnt]').textContent = fmt(n);
-      el.disabled = !n && el.getAttribute('aria-pressed') !== 'true';
-    });
-    var langCounts = langTally();
+    var c = results.counts, langCounts = langTally();
     document.querySelectorAll('#fLang [data-lang]').forEach(function (el) { var v = el.dataset.lang; el.querySelector('[data-cnt]').textContent = fmt(v ? langCounts[v] : langCounts.en + langCounts.ja); });
-    var allSup = 0; for (var k in c.supertype) allSup += c.supertype[k];
-    document.querySelectorAll('#fSuper [data-super]').forEach(function (el) {
-      var v = el.dataset.super; el.querySelector('[data-cnt]').textContent = fmt(v ? (c.supertype[v] || 0) : allSup);
-    });
     document.querySelectorAll('#fPriced [data-priced]').forEach(function (el) {
       var v = el.dataset.priced; el.querySelector('[data-cnt]').textContent = fmt(v ? c.priced[v] : c.priced.yes + c.priced.no);
     });
-    document.querySelectorAll('#fCov [data-cov]').forEach(function (el) {
-      var k = +el.dataset.cov || 0, n = 0; for (var j = k; j <= 20; j++) n += c.cov[j]; el.querySelector('[data-cnt]').textContent = fmt(n);
-    });
-    var active = (state.watch ? 1 : 0) + (state.lang ? 1 : 0) + (state.priced ? 1 : 0) + (state.cov ? 1 : 0) + state.type.size + (state.supertype ? 1 : 0) + (state.set ? 1 : 0) + (state.series ? 1 : 0) + (state.rarity ? 1 : 0) + state.reg.size + state.legal.size;
-    $('fcount').hidden = !active; $('fcount').textContent = active;
+    covOptions(c.cov);
+    var active = (state.watch ? 1 : 0) + (state.lang ? 1 : 0) + (state.priced ? 1 : 0) + (state.cov ? 1 : 0) + (state.set ? 1 : 0) + (state.min != null || state.max != null ? 1 : 0);
+    $('reset').hidden = !active;
   }
 
   function langTally() {
@@ -1077,7 +1064,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     var chg = !isNaN(cv) && cp >= 2 && Math.abs(cv) >= 1 ? '<span class="chg ' + (cv > 0 ? 'up">▲' : 'down">▼') + Math.abs(cv).toFixed(0) + '%</span>' : '';
     return '<button type="button" class="tile' + (o.known ? '' : ' unpriced') + '" data-id="' + id + '"><div class="face">' + dataFace(t, false) +
       (watchSet.has(t[0]) ? '<span class="wstar" title="To watch">★</span>' : '') +
-      (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + langBadge(id) + scoreHTML(o.score, 'tag') + '</div>' +
+      (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + langBadge(id) + (o.score.score > 0 ? scoreHTML(o.score, 'tag') : '<span class="cov tag" hidden></span>') + '</div>' +
       '<div class="cap"><div class="row2"><span class="n1">' + esc(t[1]) + '</span>' + priceTag(id, o) + '</div><div class="row2"><span class="n2">' + esc(set.c || set.id.toUpperCase()) + ' · ' + esc(numLabel(t, set)) + (t[6] ? ' · ' + esc(t[6]) : '') + '</span>' + chg + '</div></div></button>';
   }
 
@@ -1174,27 +1161,44 @@ a.ext { color: var(--accent); font-weight: 700 }
   }
   // The card details: the same sections in the same order for every card, each with its status (updated when, or never
   // collected), so nothing appears or disappears from one card to the next.
+  var NAV = [['score', 'Score'], ['graded', 'Graded'], ['every', 'Every price'], ['listings', 'Listings'], ['eba', 'For sale'], ['ebs', 'Sold'], ['guide', 'Price guide'], ['tcg', 'TCGplayer'], ['langs', 'Prints'], ['card', 'Card'], ['meta', 'Details']];
   function openCard(id) {
     var t = cat.cards[id], c = PTCG.expand(t), set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(c.img);
     var h = '<button class="close" type="button" id="dclose" aria-label="Close">×</button>';
-    h += '<div><div class="face">' + dataFace(t, true) + (img ? '<img alt="' + esc(c.name) + '" src="' + esc(img.large) + '" style="background:url(' + esc(img.small) + ') center/cover">' : '') + '</div></div>';
-    h += '<div class="info"><div><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print · ' : 'English print · ') + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div><h2>' + esc(c.name) + '</h2>' +
-      '<div class="subl">' + esc(set.n) + ' · <span class="mono">' + esc(numLabel(t, set)) + '</span>' + (c.rarity ? ' · ' + esc(c.rarity) : '') + '</div><div id="watchSlot">' + watchButton(id) + '</div></div>';
+    h += '<div class="hero"><div class="hero-img"><div class="face">' + dataFace(t, true) + (img ? '<img alt="' + esc(c.name) + '" src="' + esc(img.large) + '" style="background:url(' + esc(img.small) + ') center/cover">' : '') + '</div></div>' +
+      '<div class="hero-main"><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print' : 'English print') + ' · ' + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div>' +
+      '<h2>' + esc(c.name) + '</h2><div class="subl"><button class="link" data-set="' + esc(set.id) + '">' + esc(set.n) + '</button><span class="mono">' + esc(numLabel(t, set)) + '</span>' + (c.rarity ? '<span>' + esc(c.rarity) + '</span>' : '') + (c.artist ? '<span>' + esc(c.artist) + '</span>' : '') + '</div>' +
+      '<div id="watchSlot">' + watchButton(id) + '</div><div class="kpis" id="kpis">' + kpiPart(id) + '</div></div></div>';
+    h += '<nav class="secnav" aria-label="Sections">' + NAV.map(function (n) { return '<button type="button" data-jump="sec-' + n[0] + '">' + n[1] + '</button>'; }).join('') + '</nav>';
     sel = null; cmArticles = null; ebayData = null; openHist = null; pcData = null;
     h += '<div id="pnow">' + pricePart(id, c) + '</div>';
-    h += '<div class="prices">' + sec('card', 'Card text', '', null, cardText(c)) + sec('meta', 'Details', '', null, metaPart(c, t, set)) + '</div></div>';
     $('sheet').innerHTML = h;
     var d = $('dlg');
     if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute('open', '');
     $('sheet').scrollTop = 0;
     openId = id; liveWant([id], true); loadDetail(id, c, set);
   }
+  // the six key figures under the card's name
+  function kpiPart(id) {
+    var o = priceOf(id), t = cat.cards[id], hz = HOURLY && HOURLY.cards[t[0]], own = o.lang;
+    var seg = PRICES.mergeSegments([(hz && hz.b) || {}]), find = function (kind, lang, grade) { var x = null; for (var k in seg) { var g = seg[k]; if (g.kind === kind && (lang == null || g.lang === lang) && g.grade === grade && (!x || g.n > x.n)) x = g; } return x; };
+    var sold = find('S', own, '') || find('S', null, ''), psa = find('S', null, 'PSA 10') || find('L', null, 'PSA 10');
+    var chg = cat.chg.any[id], fresh = o.score.parts.filter(function (p) { return p.state === 'fresh'; }).length, nApp = o.score.parts.filter(function (p) { return p.state !== 'n/a'; }).length;
+    var tile = function (label, value, note, cls) { return '<div class="kpi' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span><b>' + value + '</b><small>' + (note || '&nbsp;') + '</small></div>'; };
+    return tile('Price', o.head ? (o.head.src === 'thin' ? '~' : '') + moneyText(o.head.eur, 'EUR') : '—', o.head ? esc(HEAD_LABEL[o.head.src]) : 'no price yet', 'main') +
+      tile('Cardmarket from', o.la ? moneyText(o.la.min, 'EUR') : o.guide && o.guide.rows[0] && o.guide.rows[0][2] != null ? moneyText(o.guide.rows[0][2], 'EUR') : '—',
+        o.la ? fmt(o.la.n) + ' copies, ' + esc(PRICES.LANGS[own]) + ' ' + settings.cond + '+' : o.guide ? 'price guide “from”' : 'not collected') +
+      tile('Sold, raw', sold ? moneyText(sold.med, 'EUR') : '—', sold ? 'median of ' + fmt(sold.n) + ' sales' + (sold.lang !== own ? ', ' + esc(PRICES.LANGS[sold.lang] || 'any language') : '') : 'no sales collected') +
+      tile('PSA 10', psa ? moneyText(psa.med, 'EUR') : o.graded && o.graded.g && o.graded.g[5] != null ? moneyText(o.graded.g[5], 'USD') : '—', psa ? (psa.kind === 'S' ? 'median of ' + fmt(psa.n) + ' sales' : fmt(psa.n) + ' for sale') : o.graded && o.graded.g && o.graded.g[5] != null ? 'PriceCharting' : 'not collected') +
+      tile('Data score', scoreHTML(o.score, true), fresh + ' of ' + nApp + ' parts up to date') +
+      tile('7 days', isNaN(chg) ? '—' : '<span class="chg ' + (chg >= 0 ? 'up">▲' : 'down">▼') + Math.abs(chg).toFixed(1) + '%</span>', isNaN(chg) ? 'no history' : 'price change');
+  }
   // one section: title, its key figure, its status pill (from the data score's part), body
   var STATE_TEXT = { fresh: 'up to date', aging: 'ageing', stale: 'out of date', missing: 'never collected', 'n/a': 'not applicable' };
-  function sec(key, title, figure, part, body) {
+  function sec(key, title, figure, part, body, wide) {
     var pill = part ? '<span class="st st-' + part.state.replace('/', '') + '" title="' + esc(STATE_TEXT[part.state] + (part.at ? ', ' + whenText(part.at) : '')) + '">' +
       (part.at ? esc(agoIso(part.at)) : esc(STATE_TEXT[part.state])) + '</span>' : '';
-    return '<details class="sec" data-k="' + key + '" open><summary><h4>' + esc(title) + '</h4><span class="fig">' + (figure || '') + '</span>' + pill + '</summary>' + body + '</details>';
+    return '<details class="sec' + (wide ? ' wide' : '') + '" id="sec-' + key + '" data-k="' + key + '" open><summary><h4>' + esc(title) + '</h4><span class="fig">' + (figure || '') + '</span>' + pill + '</summary><div class="pb">' + body + '</div></details>';
   }
   function partOf(o, key) { return o.score.parts.filter(function (p) { return p.key === key; })[0]; }
   function cardText(c) {
@@ -1288,43 +1292,42 @@ a.ext { color: var(--accent); font-weight: 700 }
   function hh(col, label) { return '<div class="hh" data-col="' + col + '" data-label="' + esc(label) + '"></div>'; }
 
   function pricePart(id, c) {
-    var o = priceOf(id), h = '<div class="prices">', P = function (k) { return partOf(o, k); };
+    var o = priceOf(id), t = cat.cards[id], set = cat.sets[cat.setIx[id]], P = function (k) { return partOf(o, k); }, h = '<div class="pgrid">';
     var liveMsg = !live.on ? 'Live checks are paused.' : o.busy ? 'Checking live sources…' : o.err ? 'A live check failed (offline?).' : o.checked ? 'Checked live ' + ago(o.checked) + '.' : '';
-    // 1. overview: the headline price and the data score with every part
-    h += '<div class="pstat ' + (o.head ? 'known' : 'unknown') + '"><div class="hl">' + (o.head ?
-      '<b>' + (o.head.src === 'thin' ? '~' : '') + moneyText(o.head.eur, 'EUR') + '</b><span>' + esc(HEAD_LABEL[o.head.src]) + (o.head.src === 'listings' ? ' (' + esc(PRICES.LANGS[o.lang]) + ', ' + settings.cond + ' or better)' : '') + ' · see “' + HEAD_SECTION[o.head.src] + '”</span>'
-      : '<b>No price known</b><span>no source has a price for this ' + (c.lang === 'ja' ? 'Japanese ' : '') + 'print yet</span>') + '</div>' +
-      '<div class="score"><div class="sh"><span>Data score</span>' + scoreHTML(o.score, true) + '</div><table class="parts">' + o.score.parts.map(function (p) {
-        return '<tr class="st-' + p.state.replace('/', '') + '"><td>' + esc(p.label) + '</td><td class="w">' + (p.state === 'n/a' ? '—' : p.weight.toFixed(2)) + '</td><td><span class="dot"></span>' + esc(STATE_TEXT[p.state]) +
-          (p.part < 1 && p.state !== 'missing' ? ' (partly)' : '') + '</td><td class="a">' + (p.at ? esc(agoIso(p.at)) : '') + '</td></tr>'; }).join('') + '</table></div>' +
-      '<span class="nolang">' + esc(liveMsg) + '</span>' + ev([FX_SRC ? A(ECB, 'exchange rate: ' + FX_SRC) : '']) + '</div>';
-    // 2. every price by grade, language, for sale and sold; 3. all prints and languages
-    h += everyPart(id) + bundlePart(id);
-    // 4. Cardmarket price guide
-    var gb = o.guide ? '<p class="src">' + (c.lang === 'ja' ? 'Japanese-language copies only (separate Cardmarket products).' : 'All European languages pooled into one figure.') + (o.guide.thin ? ' Few recent sales: a rough guide.' : '') + ' ' + srcLine(o.guide.src, o.guide.at, 'api.tcgdex.net') + '</p>' +
-      ptable(['Variant', 'Trend', 'From', '1-day', '7-day', '30-day'], o.guide.rows.map(function (r) { return [esc(r[0]), money(r[1]), money(r[2]), money(r[3]), money(r[4]), money(r[5])]; }), 1)
-      : '<p class="nolang">No Cardmarket price guide entry for this card.</p>';
-    gb += guideEvidence(id, o) + (c.hist && c.hist.e ? spark(c.hist.e, AXES.e, 'EUR', 'Cardmarket trend, snapshot history') : '') + hh(2, 'Cardmarket trend, price store history');
-    h += sec('guide', 'Cardmarket price guide', o.guide && o.guide.trend != null ? 'trend ' + moneyText(o.guide.trend, 'EUR') : '—', P('guide'), gb);
-    // 5. Cardmarket listings
+    // data score, every part
+    h += sec('score', 'Data score', scoreHTML(o.score), null, '<table class="parts">' + o.score.parts.map(function (p) {
+        return '<tr class="st-' + p.state.replace('/', '') + '"><td><span class="dot"></span>' + esc(p.label) + '</td><td class="w">' + (p.state === 'n/a' ? '—' : p.weight.toFixed(2)) + '</td><td>' + esc(STATE_TEXT[p.state]) +
+          (p.part < 1 && p.state !== 'missing' ? ' (partly)' : '') + '</td><td class="a">' + (p.at ? esc(agoIso(p.at)) : '') + '</td></tr>'; }).join('') + '</table>' +
+      '<p class="src">How much of everything there is to collect for this print is collected, and how fresh (weight per part). ' + esc(liveMsg) + '</p>' + ev([FX_SRC ? A(ECB, 'exchange rate: ' + FX_SRC) : '']));
+    // graded prices
+    h += sec('graded', 'Graded prices', o.graded && o.graded.g && o.graded.g[5] != null ? 'PSA 10 ' + moneyText(o.graded.g[5], 'USD') : '—', P('graded'), gradedBody(id, o, c));
+    // every price by grade, language, for sale and sold
+    h += everyPart(id);
+    // Cardmarket listings
     var lb = listingMatrix(o);
     if (o.listings) lb += '<details class="sub" data-k="everyl"><summary>Every listing (' + fmt(o.listings.n) + ')</summary><div id="cmList">' + (o.listings.n ? '<p class="nolang">Loading…</p>' : '<p class="nolang">No listings on Cardmarket when checked ' + esc(whenText(o.listings.at)) + '.</p>') + '</div></details>';
     if (o.listings && o.listings.lc != null && o.listings.lc < 1) lb += '<p class="src">' + Math.round(o.listings.lc * 100) + '% of the views loaded reached the last offer; the rest show each language and condition’s cheapest offers.</p>';
-    lb += ev([cmLink(id), o.listings && o.listings.n ? storeLink(storeRel('cardmarket', id), 'all listings as collected (store file)') : '']) + hh(3, 'Listing average (' + (PRICES.LANGS[o.lang] || '') + ', ' + settings.cond + ' or better), price store history');
-    h += sec('listings', 'Cardmarket listings', o.listings ? fmt(o.listings.n) + ' listed' : '—', P('listings'), lb);
-    // 6. TCGplayer
+    lb += ev([cmLink(id), o.listings && o.listings.n ? storeLink(storeRel('cardmarket', id), 'all listings as collected (store file)') : '']) + hh(3, 'Listing average (' + (PRICES.LANGS[o.lang] || '') + ', ' + settings.cond + ' or better), history');
+    h += sec('listings', 'Cardmarket listings', o.listings ? fmt(o.listings.n) + ' listed' : '—', P('listings'), lb, true);
+    // eBay for sale and sold (eBay and PriceCharting): filled by renderEbay when the store files are loaded
+    var en = o.ebay ? o.ebay.en : [0, 0], nSold = en[1] + (o.graded && o.graded.n || 0);
+    h += sec('eba', 'eBay · for sale', o.ebay ? fmt(en[0]) + ' items' : '—', P('ebay'), '<div id="ebActive">' + (o.ebay ? '<p class="nolang">Loading…</p>' : notCollected('ebay')) + '</div><div id="ebEvA"></div>');
+    h += sec('ebs', 'Sold', nSold ? fmt(nSold) + ' sales' : '—', P('sold'), '<div id="ebSold">' + (o.ebay || (o.graded && o.graded.n) ? '<p class="nolang">Loading…</p>' : '<p class="nolang">No sales collected yet (eBay sold, PriceCharting).</p>') + '</div><div id="ebEvS"></div>' + hh(5, 'Sold median (raw copies), history'));
+    // Cardmarket price guide and TCGplayer: market figures
+    var gb = o.guide ? '<p class="src">' + (c.lang === 'ja' ? 'Japanese-language copies only (separate Cardmarket products).' : 'All European languages pooled into one figure.') + (o.guide.thin ? ' Few recent sales: a rough guide.' : '') + ' ' + srcLine(o.guide.src, o.guide.at, 'api.tcgdex.net') + '</p>' +
+      ptable(['Variant', 'Trend', 'From', '1-day', '7-day', '30-day'], o.guide.rows.map(function (r) { return [esc(r[0]), money(r[1]), money(r[2]), money(r[3]), money(r[4]), money(r[5])]; }), 1)
+      : '<p class="nolang">No Cardmarket price guide entry for this card.</p>';
+    gb += guideEvidence(id, o) + (c.hist && c.hist.e ? spark(c.hist.e, AXES.e, 'EUR', 'Cardmarket trend, snapshot history') : '') + hh(2, 'Cardmarket trend, history');
+    h += sec('guide', 'Cardmarket price guide', o.guide && o.guide.trend != null ? 'trend ' + moneyText(o.guide.trend, 'EUR') : '—', P('guide'), gb);
     var tb = c.lang === 'ja' ? '<p class="nolang">TCGplayer only lists English prints.</p>' : o.tcg ? '<p class="src">US market, English copies, US dollar converted. ' + srcLine(o.tcg.src, o.tcg.at, 'api.pokemontcg.io') + '</p>' +
       ptable(['Finish', 'Market', 'Low', 'Mid', 'High'], o.tcg.rows.map(function (r) { return [r[5] ? A('https://www.tcgplayer.com/product/' + r[5], r[0]) : esc(r[0]), money(r[1], 'USD'), money(r[2], 'USD'), money(r[3], 'USD'), money(r[4], 'USD')]; }), 1)
       : '<p class="nolang">No TCGplayer price for this card.</p>';
-    if (c.lang !== 'ja') tb += tcgEvidence(id, o) + (c.hist && c.hist.u ? spark(c.hist.u, AXES.u, 'USD', 'TCGplayer market, snapshot history') : '') + hh(4, 'TCGplayer market, price store history');
+    if (c.lang !== 'ja') tb += tcgEvidence(id, o) + (c.hist && c.hist.u ? spark(c.hist.u, AXES.u, 'USD', 'TCGplayer market, snapshot history') : '') + hh(4, 'TCGplayer market, history');
     h += sec('tcg', 'TCGplayer', o.tcg && o.tcg.market != null ? 'market ' + moneyText(o.tcg.market, 'USD') : '—', P('tcg'), tb);
-    // 7. eBay for sale, 8. sold (eBay and PriceCharting): filled by renderEbay when the store files are loaded
-    var en = o.ebay ? o.ebay.en : [0, 0];
-    h += sec('eba', 'eBay · for sale', o.ebay ? fmt(en[0]) + ' items' : '—', P('ebay'), '<div id="ebActive">' + (o.ebay ? '<p class="nolang">Loading…</p>' : notCollected('ebay')) + '</div><div id="ebEvA"></div>');
-    var nSold = en[1] + (o.graded && o.graded.n || 0);
-    h += sec('ebs', 'Sold', nSold ? fmt(nSold) + ' sales' : '—', P('sold'), '<div id="ebSold">' + (o.ebay || (o.graded && o.graded.n) ? '<p class="nolang">Loading…</p>' : '<p class="nolang">No sales collected yet (eBay sold, PriceCharting).</p>') + '</div><div id="ebEvS"></div>' + hh(5, 'Sold median (raw copies), price store history'));
-    // 9. graded prices
-    h += sec('graded', 'Graded prices', o.graded && o.graded.g && o.graded.g[5] != null ? 'PSA 10 ' + moneyText(o.graded.g[5], 'USD') : '—', P('graded'), gradedBody(id, o, c));
+    // every print and language of this card
+    h += bundlePart(id);
+    // the card itself
+    h += sec('card', 'Card text', c.hp ? 'HP ' + c.hp : '', null, cardText(c)) + sec('meta', 'Details', '', null, metaPart(c, t, set));
     return h + '</div>';
   }
   var G_LABELS = ['Ungraded', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 9.5', 'PSA 10'];
@@ -1342,6 +1345,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (openId < 0 || !$('pnow')) return;
     var open = {}; document.querySelectorAll('#pnow details[data-k]').forEach(function (d) { open[d.dataset.k] = d.open; });
     $('pnow').innerHTML = pricePart(openId, PTCG.expand(cat.cards[openId]));
+    if ($('kpis')) $('kpis').innerHTML = kpiPart(openId);
     document.querySelectorAll('#pnow details[data-k]').forEach(function (d) { if (d.dataset.k in open) d.open = open[d.dataset.k]; });
     afterPrices();
   }
@@ -1373,8 +1377,8 @@ a.ext { color: var(--accent); font-weight: 700 }
     var list = all.filter(function (r) { return everyFilter === 'all' || (everyFilter === 'graded') === !!r.grade; }).sort(function (a, b) {
       return PRICES.gradeOrder(a.grade, b.grade) || (b.lang === own) - (a.lang === own) || b.n - a.n;
     });
-    var h = '<details class="sec" data-k="every" open><summary><h4>Every price</h4><span>' + (all.length ? all.length + ' groups' : 'none yet') + '</span></summary>';
-    if (!all.length) return h + '<p class="nolang">No listings or sales collected for ' + (ids.length > 1 ? 'these prints' : 'this card') + ' yet. The price guide and TCGplayer are below.</p></details>';
+    var h = '<details class="sec wide" id="sec-every" data-k="every" open><summary><h4>Every price</h4><span class="fig">' + (all.length ? all.length + ' groups' : '—') + '</span></summary><div class="pb">';
+    if (!all.length) return h + '<p class="nolang">No listings or sales collected for ' + (ids.length > 1 ? 'these prints' : 'this card') + ' yet. The price guide and TCGplayer are below.</p></div></details>';
     h += '<div class="seg3 fseg">' + [['all', 'All', all.length], ['raw', 'Raw', nRaw], ['graded', 'Graded', nGr]].map(function (f) {
       return '<button type="button" class="chip plain" data-evf="' + f[0] + '" aria-pressed="' + (everyFilter === f[0]) + '">' + f[1] + ' <span class="n">' + f[2] + '</span></button>'; }).join('') + '</div>';
     var cell = function (c) {
@@ -1394,7 +1398,7 @@ a.ext { color: var(--accent); font-weight: 700 }
       'Cardmarket (CM) and CardTrader (CT): current listings of plain copies in any condition (the Cardmarket section splits by condition); a seller comment naming a grade counts as graded. ' +
       'eBay: language from the title or the card name it uses, else the language the site was searched in. PriceCharting (PC): sales in this print’s language; grades without a named company show as “Graded”. ' +
       'The Cardmarket price guide (European languages pooled) and TCGplayer (English, raw) are market figures, below.</p>';
-    return h + '</details>';
+    return h + '</div></details>';
   }
 
   // ---- all languages of this card: every print, and Cardmarket listings per language across all of them ----
@@ -1413,13 +1417,13 @@ a.ext { color: var(--accent); font-weight: 700 }
     });
     var langs = {}; Object.keys(merged).forEach(function (k) { langs[k.split('|')[0]] = 1; });
     var lt = Object.keys(langs).map(function (l) { var a = PRICES.listingAvg(merged, +l, settings.cond); return a ? [+l, a] : null; }).filter(Boolean).sort(function (a, b) { return b[1].n - a[1].n; });
-    var h = '<details class="sec" data-k="langs" open><summary><h4>All prints &amp; languages</h4><span class="fig">' + ids.length + (ids.length === 1 ? ' print' : ' prints') + '</span></summary><p class="src">' +
+    var h = '<details class="sec wide" id="sec-langs" data-k="langs" open><summary><h4>All prints &amp; languages</h4><span class="fig">' + ids.length + (ids.length === 1 ? ' print' : ' prints') + '</span></summary><div class="pb"><p class="src">' +
       (ids.length > 1 ? 'The same card in other languages and same-art reprints, matched by Cardmarket’s card id (metacard) and illustrator. Open any print for its own prices and evidence.' : 'No other language or same-art reprint of this card is matched in the catalog.') + '</p>' +
       '<div class="ptable"><table class="bt"><thead><tr><th>Lang</th><th>Print</th><th>Price</th><th>CM trend</th><th>TCGplayer</th><th>Data</th><th>Cardmarket</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
     if (lt.length) h += '<h5 class="subh">Cardmarket listings per language, all prints together, ' + settings.cond + ' or better</h5><div class="ptable"><table><thead><tr><th>Language</th><th>Copies</th><th>Average</th><th>From</th></tr></thead><tbody>' +
       lt.map(function (x) { return '<tr><td>' + esc(PRICES.LANGS[x[0]] || x[0]) + '</td><td>' + x[1].n + '</td><td class="hl">' + moneyText(x[1].avg, 'EUR') + '</td><td>' + moneyText(x[1].min, 'EUR') + '</td></tr>'; }).join('') + '</tbody></table></div>';
     else h += '<p class="nolang">No Cardmarket listings collected for these prints yet' + (HOURLY && HOURLY.sources && HOURLY.sources.listings && !HOURLY.sources.listings.ok ? ' (' + esc(HOURLY.sources.listings.note) + ')' : '') + '.</p>';
-    return h + '</details>';
+    return h + '</div></details>';
   }
   // ---- Cardmarket listings: language x condition matrix and a calculator for any language / condition ----
   var sel = null, cmArticles = null; // current selection and the loaded listing file of the open card
@@ -1620,36 +1624,31 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (openId >= 0) { rerenderPrices(); renderEbay(); }
   }
   document.querySelector('.cur').addEventListener('click', function (e) { var b = e.target.closest('[data-cur]'); if (b) setCurrency(b.dataset.cur); });
-  $('hints').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; setQuery(b.textContent); });
   function setQuery(q) { qEl.value = q; state.q = q; $('clear').hidden = !q; run(); window.scrollTo({ top: 0 }); }
-  $('filtersBtn').addEventListener('click', function () { var r = $('rail'), o = !r.classList.contains('open'); r.classList.toggle('open', o); this.setAttribute('aria-expanded', o); });
-  $('rail').addEventListener('click', function (e) {
+  $('fbar').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.type) { toggle(state.type, b.dataset.type, b); }
-    else if (b.dataset.lang !== undefined) { state.lang = b.dataset.lang; document.querySelectorAll('#fLang [data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
-    else if (b.dataset.super !== undefined) { state.supertype = b.dataset.super; document.querySelectorAll('#fSuper [data-super]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
-    else if (b.dataset.reg) { toggle(state.reg, b.dataset.reg, b); }
+    if (b.dataset.lang !== undefined) { state.lang = b.dataset.lang; document.querySelectorAll('#fLang [data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
     else if (b.dataset.priced !== undefined) { setPriced(b.dataset.priced); }
-    else if (b.dataset.cov !== undefined) { state.cov = b.dataset.cov; document.querySelectorAll('#fCov [data-cov]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
     else if (b.id === 'fWatch') { state.watch = !state.watch; b.setAttribute('aria-pressed', state.watch); }
     else if (b.id === 'reset') { resetFilters(); }
     else return;
     run();
   });
+  $('fCov').addEventListener('change', function (e) { state.cov = e.target.value; run(); });
+  var rangeT = 0;
+  function readRange() {
+    var n = function (el) { var v = parseFloat(String(el.value).replace(',', '.')); return isNaN(v) ? null : v; };
+    state.min = n($('fMin')); state.max = n($('fMax')); run();
+  }
+  ['fMin', 'fMax'].forEach(function (k) { $(k).addEventListener('input', function () { clearTimeout(rangeT); rangeT = setTimeout(readRange, 300); }); });
   function toggle(set, v, el) { if (set.has(v)) set.delete(v); else set.add(v); el.setAttribute('aria-pressed', set.has(v)); }
   function setPriced(v) { state.priced = v; document.querySelectorAll('#fPriced [data-priced]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.priced === v); }); }
   function resetFilters() {
-    state.watch = false; state.type.clear(); state.reg.clear(); state.legal.clear(); state.supertype = ''; state.lang = ''; state.set = ''; state.series = ''; state.rarity = ''; state.priced = ''; state.cov = '';
-    document.querySelectorAll('#rail [aria-pressed]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.super === '' || x.dataset.lang === '' || x.dataset.priced === '' || x.dataset.cov === ''); });
-    $('fSet').value = ''; $('fSeries').value = ''; $('fRarity').value = ''; $('fStd').checked = false; $('fExp').checked = false; $('fSales').checked = false;
+    state.watch = false; state.lang = ''; state.set = ''; state.priced = ''; state.cov = ''; state.min = state.max = null;
+    document.querySelectorAll('#fLang [data-lang], #fPriced [data-priced]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.lang === '' || x.dataset.priced === ''); });
+    $('fWatch').setAttribute('aria-pressed', 'false'); $('fSet').value = ''; $('fCov').value = ''; $('fMin').value = ''; $('fMax').value = '';
   }
   $('fSet').addEventListener('change', function (e) { state.set = e.target.value; run(); });
-  $('fSeries').addEventListener('change', function (e) { state.series = e.target.value; run(); });
-  $('fRarity').addEventListener('change', function (e) { state.rarity = e.target.value; run(); });
-  $('fStd').addEventListener('change', function (e) { e.target.checked ? state.legal.add('standard') : state.legal.delete('standard'); run(); });
-  $('fSales').addEventListener('change', function (e) { e.target.checked ? state.legal.add('sales') : state.legal.delete('sales'); run(); });
-  $('fBundle').addEventListener('change', function (e) { settings.bundle = e.target.checked; saveSettings(); run(); });
-  $('fExp').addEventListener('change', function (e) { e.target.checked ? state.legal.add('expanded') : state.legal.delete('expanded'); run(); });
   $('results').addEventListener('click', function (e) {
     if (e.target.id === 'more') { more(); return; }
     var pb = e.target.closest('[data-priced]'); if (pb) { setPriced(pb.dataset.priced); run(); return; }
@@ -1660,6 +1659,7 @@ a.ext { color: var(--accent); font-weight: 700 }
   $('dlg').addEventListener('click', function (e) {
     if (e.target === this || e.target.id === 'dclose') { closeCard(); return; }
     var wb = e.target.closest('[data-watch]'); if (wb) { watchToggle(+wb.dataset.watch); return; }
+    var jb = e.target.closest('[data-jump]'); if (jb) { var tgt = document.getElementById(jb.dataset.jump); if (tgt) { tgt.open = true; tgt.scrollIntoView({ behavior: 'smooth', block: 'start' }); } return; }
     var b = e.target.closest('button'); if (!b) return;
     if (b.dataset.q) { closeCard(); setQuery(b.dataset.q); }
     else if (b.dataset.set) { closeCard(); resetFilters(); state.set = b.dataset.set; $('fSet').value = b.dataset.set; state.sort = 'oldest'; $('sort').value = 'oldest'; setQuery(''); }
@@ -1776,18 +1776,22 @@ a.ext { color: var(--accent); font-weight: 700 }
     h += '<section class="dcard"><h3>To watch <span>' + fmt(wl.length) + ' cards · scraped first</span></h3>' + (wl.length ? '<table class="dtable">' + wl.map(function (cid) {
       var i = idIx.get(cid); if (i == null) return '<tr><td>' + esc(cid) + '</td><td class="r" colspan="3">no longer in the catalog</td></tr>';
       var o = priceOf(i), last = o.score.parts.map(function (p) { return p.at; }).filter(Boolean).sort().pop();
-      return '<tr><td>★ ' + cardLink(cid) + '</td><td>' + scoreHTML(o.score) + '</td><td class="r">' + (o.head ? moneyText(o.head.eur, 'EUR') : '—') + '</td><td class="r">' + (last ? esc(agoIso(last)) : 'never') + '</td></tr>';
+      return '<tr><td class="wl"><i>★</i>' + cardLink(cid) + '</td><td>' + scoreHTML(o.score) + '</td><td class="r">' + (o.head ? moneyText(o.head.eur, 'EUR') : '—') + '</td><td class="r">' + (last ? esc(agoIso(last)) : 'never') + '</td></tr>';
     }).join('') + '</table>' : '<p class="nolang">Nothing yet: use ☆ Watch on a card.</p>') + '</section>';
-    // catalog coverage per site
-    h += '<section class="dcard"><h3>Catalog scraped <span>browser scraper</span></h3>' + (hs ? Object.keys(SITE_NAMES).map(function (k) {
-      var x = hs.sites[k], pct = x.eligible ? Math.round(1000 * x.fresh / x.eligible) / 10 : 0;
-      return '<div class="sitebar"><div class="row"><b>' + SITE_NAMES[k] + '</b><small>' + (x.watch.n ? '★ ' + x.watch.current + '/' + x.watch.n + ' up to date · ' : '') + 'last ' + (x.lastAt ? esc(agoIso(x.lastAt)) : 'never') + '</small></div>' +
-        '<div class="pbar"><i style="width:' + Math.max(pct, x.fresh ? 0.4 : 0) + '%"></i></div><small>' + fmt(x.fresh) + ' of ' + fmt(x.eligible) + ' cards scraped this week (' + pct + '%)</small></div>';
-    }).join('') : '<p class="nolang">Shown when the helper runs.</p>');
-    var src = (HOURLY && HOURLY.sources) || {};
-    h += '<h3 style="margin-top:6px">Hourly collector <span>' + (HOURLY ? esc(agoIso(HOURLY.at)) : '') + '</span></h3><ul class="srcs">' + [['fx', 'Exchange rates'], ['guide', 'Cardmarket price guide'], ['tcg', 'TCGplayer'], ['listings', 'Cardmarket API listings'], ['cardtrader', 'CardTrader'], ['ebay', 'eBay API']].map(function (k) {
-      var x = src[k[0]]; return '<li class="' + (x ? (x.ok ? 'y' : 'n') : '') + '"><b>' + k[1] + '</b> ' + (x ? esc((x.ok ? 'ok' : 'off') + (x.note ? ' · ' + x.note : '') + (x.count != null ? ' · ' + fmt(x.count) + ' cards' : '')) : '—') + '</li>';
-    }).join('') + '</ul></section>';
+    // every data source together: the free bulk feeds (hourly, in the cloud) and the scraper (this computer)
+    var src = (HOURLY && HOURLY.sources) || {}, N = cat.N;
+    var row = function (name, kind, ok, line, n, of, extra) {
+      var pct = of ? Math.round(1000 * n / of) / 10 : null;
+      return '<div class="srcrow"><div class="row"><b>' + name + '<span class="kind">' + kind + '</span></b><small' + (ok === false ? ' class="bad"' : '') + '>' + line + '</small></div>' +
+        (pct != null ? '<div class="pbar"><i style="width:' + Math.max(pct, n ? 0.4 : 0) + '%"></i></div><small>' + fmt(n) + ' of ' + fmt(of) + ' cards (' + pct + '%)' + (extra ? ' · ' + extra : '') + '</small>' : extra ? '<small>' + extra + '</small>' : '') + '</div>';
+    };
+    var feedRow = function (k, name) { var x = src[k]; return row(name, 'hourly feed', x ? x.ok : null, x ? (x.ok ? 'updated ' + esc(agoIso(x.at)) : esc(x.note || 'failed')) : 'no run yet', x && x.count != null ? x.count : 0, k === 'fx' ? 0 : N, x && x.note && x.ok ? esc(x.note) : ''); };
+    var scr = function (k, name) { if (!hs) return row(name, 'scraper', null, 'helper not running', 0, 0, ''); var x = hs.sites[k];
+      return row(name, 'scraper', null, x.lastAt ? 'last ' + esc(agoIso(x.lastAt)) : 'never', x.fresh, x.eligible, x.watch.n ? '★ ' + x.watch.current + '/' + x.watch.n + ' watched up to date' : ''); };
+    h += '<section class="dcard"><h3>Data sources <span>' + (HOURLY ? 'feeds ' + esc(agoIso(HOURLY.at)) : '') + '</span></h3>' +
+      scr('cardmarket', 'Cardmarket listings') + scr('ebay', 'eBay for sale &amp; sold') + scr('pricecharting', 'PriceCharting graded &amp; sales') +
+      feedRow('guide', 'Cardmarket price guide') + feedRow('tcg', 'TCGplayer') + row('Exchange rates', 'hourly feed', src.fx ? src.fx.ok : null, src.fx ? (src.fx.ok ? esc(src.fx.note || '') : esc(src.fx.note || 'failed')) : 'no run yet', 0, 0, '') +
+      '<small class="nolang">Scraper: this week, by the browser extension on this computer. Hourly feeds: Cardmarket’s and TCGplayer’s bulk price files, fetched in the cloud for every card.</small></section>';
     // data score across the catalog
     var bins = new Array(10).fill(0), tot = 0, sum = 0, ge5 = 0, ge9 = 0;
     for (var i = 0; i < cat.N; i++) { var b = cat.cov[i], v = b / 20; bins[Math.min(9, Math.floor(b / 2))]++; tot++; sum += v; if (b >= 10) ge5++; if (b >= 18) ge9++; }
@@ -1817,7 +1821,7 @@ a.ext { color: var(--accent); font-weight: 700 }
   function alertDash(t) { var m = document.querySelector('#dashBody .runmsg'); if (m) { m.textContent = t; m.className = 'runmsg wait'; } }
 
   function openSettings() {
-    var s = settings, src = HOURLY && HOURLY.sources || {};
+    var s = settings;
     $('setForm').innerHTML =
       '<h2>Settings</h2>' +
       '<fieldset><legend>Show every price in</legend><label class="check"><input type="radio" name="cur" value="EUR"' + (s.currency === 'EUR' ? ' checked' : '') + '> Euro (dollar prices converted)</label>' +
@@ -1826,12 +1830,11 @@ a.ext { color: var(--accent); font-weight: 700 }
       '<label class="fld">Headline price <select name="headline"><option value="trend"' + (s.headline === 'trend' ? ' selected' : '') + '>Cardmarket trend (sales)</option><option value="listings"' + (s.headline === 'listings' ? ' selected' : '') + '>Cardmarket listing average (asking prices)</option></select></label>' +
       '<label class="fld">Listing average uses condition <select name="cond">' + PRICES.CONDS.map(function (x) { return '<option value="' + x + '"' + (s.cond === x ? ' selected' : '') + '>' + x + ' · ' + PRICES.COND_NAMES[x] + ' or better</option>'; }).join('') + '</select></label>' +
       '<label class="check"><input type="checkbox" name="live"' + (s.live ? ' checked' : '') + '> Check cards on screen live from this browser (TCGdex, pokemontcg.io)</label>' +
+      '<label class="check"><input type="checkbox" name="bundle"' + (s.bundle ? ' checked' : '') + '> One tile per card: prints in other languages bundled (badge EN · JP)</label>' +
       '<label class="fld">Scraper helper (for the To watch list) <input name="helper" value="' + esc(s.helper) + '" spellcheck="false"></label>' +
       '<p class="nolang">' + (watchSynced ? 'Connected: ' + fmt(watchSet.size) + ' cards to watch.' : 'Not reachable now: To watch changes are kept in this browser until it runs (npm run helper).') + '</p>' +
-      '<h3>Price store</h3><p class="nolang">' + (HOURLY ? 'Last collector run ' + esc(whenText(HOURLY.at)) + ' (' + ago(Date.parse(HOURLY.at)) + '). This page re-reads it every ' + s.interval + ' minutes; last check ' + ago(lastRefresh) + '.' : 'Not reachable' + (hourlyErr ? ': ' + esc(hourlyErr) : '') + '.') + '</p>' +
-      '<ul class="srcs">' + [['fx', 'Exchange rates'], ['guide', 'Cardmarket price guide'], ['tcg', 'TCGplayer'], ['listings', 'Cardmarket listings'], ['ebay', 'eBay']].map(function (k) {
-        var x = src[k[0]]; return '<li class="' + (x ? (x.ok ? 'y' : 'n') : '') + '"><b>' + k[1] + '</b> ' + (x ? esc((x.ok ? 'ok' : 'off') + (x.note ? ' · ' + x.note : '') + (x.count != null ? ' · ' + fmt(x.count) + ' cards' : '')) : '—') + '</li>';
-      }).join('') + '</ul>' +
+      '<p class="nolang">Data sources, the scraper and the To watch list: the <button type="button" class="link" data-act="dash">Scraping dashboard</button>.</p>' +
+      '<details class="how"><summary>Search tips</summary><p><code>charizard</code> any word, in any language (<code>glurak</code>, <code>リザードン</code>), typos are forgiven. Fields: <code>name:</code> <code>artist:"mitsuhiro arita"</code> <code>set:base1</code> <code>attack:</code> <code>rarity:</code> <code>type:fire</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code> <code>lang:ja</code> <code>price&gt;50</code> <code>score&gt;=0.5</code> <code>has:price</code>; <code>-word</code> excludes.</p></details>' +
       '<div class="row"><button type="button" class="btn ghost" data-act="refresh">Refresh now</button><button type="submit" class="btn">Save</button><button type="button" class="btn ghost" data-act="close">Close</button></div>';
     $('settings').showModal();
   }
@@ -1842,6 +1845,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     settings.interval = Math.max(5, Math.min(1440, +f.interval.value || 60));
     settings.headline = f.headline.value; settings.cond = f.cond.value;
     live.on = settings.live = f.live.checked;
+    var bundleWas = settings.bundle; settings.bundle = f.bundle.checked; if (bundleWas !== settings.bundle) run();
     settings.helper = (f.helper.value || '').trim() || 'http://127.0.0.1:8787'; watchSync();
     saveSettings(); scheduleRefresh(); liveStatus(); $('settings').close();
     if (before !== settings.headline + settings.cond) { applyAll(); run(); }
@@ -1851,6 +1855,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     var a = e.target.dataset.act;
     if (a === 'close') $('settings').close();
     else if (a === 'refresh') { e.target.textContent = 'Refreshing…'; refreshCycle().then(function (ch) { e.target.textContent = ch ? 'Updated' : 'Up to date'; }); }
+    else if (a === 'dash') { $('settings').close(); openDash(); }
   });
   $('sheet').addEventListener('error', function (e) { if (e.target.tagName === 'IMG') e.target.remove(); }, true);
   $('status').addEventListener('click', function (e) {
