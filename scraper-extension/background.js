@@ -18,7 +18,7 @@
 importScripts('match.js', 'governor.js');
 const DEFAULT_HELPER = 'http://127.0.0.1:8787';
 const MARK = '#pocketmoney-scrape';           // tells the capture extension's panel to stay out of the way
-const LOAD_TIMEOUT = 45e3, CHECK_TIMEOUT = 10 * 60e3;
+const LOAD_TIMEOUT = 45e3, CHECK_TIMEOUT = 10 * 60e3, DEEP_MAX_MS = 3 * 60e3;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const SITE_NAME = { cardmarket: 'Cardmarket', ebay: 'eBay', pricecharting: 'PriceCharting' };
 const LANG_NAME = { 1: 'English', 2: 'French', 3: 'German', 4: 'Spanish', 5: 'Italian', 6: 'S-Chinese', 7: 'Japanese', 8: 'Portuguese', 9: 'Russian', 10: 'Korean', 11: 'T-Chinese', 12: 'Dutch', 13: 'Polish' };
@@ -272,6 +272,7 @@ async function loadAllOffers(maxClicks) {
     const r = window.PTCG_PARSE.cardmarket(document, location); if (!r.more) return i;
     const before = r.rowsSeen; r.more.click();
     for (let t = 0; t < 40 && !window.__ptcgStop && window.PTCG_PARSE.cardmarket(document, location).rowsSeen === before; t++) await new Promise(ok => setTimeout(ok, 250));
+    if (window.PTCG_PARSE.cardmarket(document, location).rowsSeen === before) return i; // the click loaded nothing: stop clicking
     await new Promise(ok => setTimeout(ok, 800 + Math.random() * 700));
   }
   return maxClicks;
@@ -280,12 +281,18 @@ async function deepView(w, url, max, what) {
   const tabId = await visit(w, url);
   await run(tabId, () => 0, [], ['parsers.js']);
   let page = await run(tabId, readPage);
+  // gives up when "load more" stops adding offers (Cardmarket ignoring the click, a banner in the way) or after
+  // DEEP_MAX_MS, so one crowded card can never hold the Cardmarket worker for long
+  const end = Date.now() + DEEP_MAX_MS;
   for (let done = 0; page.more && done < max; ) {
     w.step(what + ': loading every offer… ' + page.data.found);
-    const n = Math.min(5, max - done); await cpuPermit(0); await run(tabId, loadAllOffers, [n]); done += n;
+    const before = page.data.found, n = Math.min(5, max - done);
+    await cpuPermit(0); await run(tabId, loadAllOffers, [n]); done += n;
     if (gov) gov.spend(n * pageLoadMs() / 3); // each "load more" re-renders part of the page
     if (stopped()) throw new Stop();
     page = await run(tabId, readPage);
+    if (page.more && page.data.found <= before) { log(what + ': "load more" added nothing, keeping the ' + page.data.found + ' offers read'); break; }
+    if (page.more && Date.now() > end) { log(what + ': still more offers after ' + Math.round(DEEP_MAX_MS / 60e3) + ' min, keeping the ' + page.data.found + ' read'); break; }
   }
   return page;
 }
