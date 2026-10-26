@@ -22,7 +22,7 @@ The scraper works through a queue of **jobs**: one card on one site. Every `scra
 
 | Reason | When | Order |
 |---|---|---|
-| **watchlist** | the card is on your watchlist and its data is older than `staleHours.watchlist` (6 h) or missing | always first |
+| **watchlist** | the card is on your watchlist and its data is older than `staleHours.watchlist` (24 h) or missing | always first |
 | **missing** | the store has no data from that site for the card yet | most valuable first, then newest prints; at most `missingPerPlan` (20) per plan |
 | **outdated** | the data is older than the card's tier allows: hot ≥ €50 → 12 h, warm ≥ €5 → 72 h, cold → 14 days | most overdue × most valuable first; at most `outdatedPerPlan` (40) per plan |
 
@@ -78,7 +78,7 @@ Everything lives under `scrape` in `config/prices.config.json`:
 | `idleCloseMinutes` | `5` | close Chrome after this long without work |
 | `humanCheckBackoffMinutes` | `30` | pause after a check nobody completed |
 | `maxAttempts` | `3` | tries per job before it is dropped |
-| `staleHours` | watchlist 6, hot 12, warm 72, cold 336 | when data counts as outdated |
+| `staleHours` | watchlist 24, hot 12, warm 72, cold 336 | when data counts as outdated |
 | `missingPerPlan`, `outdatedPerPlan` | `20`, `40` | queue size per plan |
 | `ebayMarketplaces`, `ebaySold` | DE, US; `true` | which eBay sites, and sold listings too |
 

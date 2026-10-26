@@ -55,7 +55,7 @@
     "humanCheckBackoffMinutes": 30,
     "maxAttempts": 3,
     "staleHours": {
-      "watchlist": 6,
+      "watchlist": 24,
       "hot": 12,
       "warm": 72,
       "cold": 336
