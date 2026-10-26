@@ -1,5 +1,5 @@
 // How a card's summary entry is updated from Cardmarket listings and eBay items, and how the headline and history are
-// derived. Shared by the API collector (scripts/collect.js) and the browser scrapers (scripts/scrape.js), so both
+// derived. Shared by the API collector (scripts/collect.js) and the scraper extension (via scripts/ingest-server.js), so both
 // write exactly the same store format.
 const P = require('../../src/prices.js');
 const { SCHEMA, addPoint } = require('./store.js');

@@ -90,4 +90,10 @@ function relevant(card, rows) {
   return rows.filter(r => { const t = norm(r[1]); return sameCardNumber(r[1], card[3]) && (!words.length || words.some(w => t.includes(w))); });
 }
 
-module.exports = { Ebay, credentials, query, relevant, defaultLang, activeRow, soldRow, SCOPE, INSIGHTS };
+// eBay's own search results page for the same query (the scraper extension reads these in your browser)
+const HOST = { EBAY_US: 'www.ebay.com', EBAY_GB: 'www.ebay.co.uk', EBAY_DE: 'www.ebay.de', EBAY_FR: 'www.ebay.fr', EBAY_IT: 'www.ebay.it', EBAY_ES: 'www.ebay.es', EBAY_AT: 'www.ebay.at' };
+function searchUrl(mp, q, sold) {
+  return 'https://' + (HOST[mp] || HOST.EBAY_US) + '/sch/i.html?_nkw=' + encodeURIComponent(q).replace(/%20/g, '+') + '&_sacat=' + CATEGORY + '&_ipg=60' + (sold ? '&LH_Sold=1&LH_Complete=1' : '');
+}
+
+module.exports = { Ebay, credentials, query, relevant, defaultLang, searchUrl, activeRow, soldRow, SCOPE, INSIGHTS };

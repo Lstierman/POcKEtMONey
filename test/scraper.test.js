@@ -11,11 +11,6 @@ const map = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, 'data/car
 const cards = new Map(map.cards.map(c => [c[0], c]));
 const H = 3600e3, now = Date.parse('2026-10-23T12:00:00Z'), ago = h => new Date(now - h * H).toISOString();
 
-test('the scraper extension ships the same page parsers as the capture extension', () => {
-  assert.strictEqual(fs.readFileSync(path.join(root, 'scraper-extension/parsers.js'), 'utf8'), fs.readFileSync(path.join(root, 'extension/parsers.js'), 'utf8'),
-    'copy extension/parsers.js to scraper-extension/parsers.js');
-});
-
 test('plan: URLs per site', () => {
   const c = cards.get('base1-4');
   const cm = PLAN.plan('cardmarket', c, { cfg, urls: { cardmarket: { [c[6][0][0]]: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Base-Set/Charizard' } } });
@@ -40,31 +35,41 @@ test('plan: URLs per site', () => {
   assert.ok(jpc.match.ja && /pokemon%20japanese/.test(jpc.search));
 });
 
-test('pickCards: always list first, recent captures skipped, misses rechecked after a week', () => {
-  const entries = { 'base1-2': { h: 900 }, 'base1-3': { h: 500 } };
-  const base = { cards, entries, cfg, n: 5, now };
-  let list = PLAN.pickCards('ebay', Object.assign({ state: {} }, base)).map(c => c[0]);
-  assert.deepStrictEqual(list.slice(0, 5), [...cfg.schedule.always, 'base1-2', 'base1-3'].slice(0, 5));
+test('pickCards: To watch first, then never-scraped cards by value, then the oldest; misses and failures held back', () => {
+  const entries = { 'base1-2': { h: 900 }, 'base1-3': { h: 500 }, 'base1-5': { h: 50 } };
+  const watch = ['sv3pt5-199', 'base1-4'];
+  const ids = (state, extra) => PLAN.pickCards('ebay', Object.assign({ cards, entries, cfg, n: 5, now, state, watch }, extra)).map(([c, ph]) => c[0] + ':' + ph);
+  assert.deepStrictEqual(ids({}), ['sv3pt5-199:watch', 'base1-4:watch', 'base1-2:catalog', 'base1-3:catalog', 'base1-5:catalog']);
 
-  const state = { capture: { ebay: { 'base1-2': ago(2) } }, misses: { ebay: { 'base1-3': ago(24) } } };
-  list = PLAN.pickCards('ebay', Object.assign({ state }, base)).map(c => c[0]);
-  assert.ok(!list.includes('base1-2'), 'captured 2 h ago: fresh');
-  assert.ok(!list.includes('base1-3'), 'no match a day ago: skipped for a week');
+  // watched card scraped 30 min ago: current; 2 h ago: again. Catalog: scraped within a week is current.
+  let state = { capture: { ebay: { 'sv3pt5-199': ago(0.5), 'base1-4': ago(2), 'base1-2': ago(24) } } };
+  assert.deepStrictEqual(ids(state).slice(0, 3), ['base1-4:watch', 'base1-3:catalog', 'base1-5:catalog']);
 
-  state.misses.ebay['base1-3'] = ago(8 * 24);
-  assert.ok(PLAN.pickCards('ebay', Object.assign({ state }, base)).some(c => c[0] === 'base1-3'), 'no match 8 days ago: tried again');
+  // every never-scraped card comes before any scraped one; scraped cards: oldest first
+  const all = [...cards.keys()], stamps = {};
+  all.forEach((id, k) => { if (id !== 'base1-7') stamps[id] = ago(200 + (k % 50)); });
+  state = { capture: { ebay: stamps } };
+  const order = PLAN.pickCards('ebay', { cards, entries, cfg, n: 3, now, state, watch: [] }).map(([c]) => c[0]);
+  assert.strictEqual(order[0], 'base1-7');
+  assert.ok(Date.parse(stamps[order[1]]) <= Date.parse(stamps[order[2]]));
 
-  state.capture.ebay['base1-2'] = ago(20); state.misses.ebay['base1-2'] = ago(30);
-  assert.ok(PLAN.pickCards('ebay', Object.assign({ state }, base)).some(c => c[0] === 'base1-2'), 'a miss older than the last capture does not hold the card back');
+  // no match a day ago: catalog cards wait a week, watched cards a day; a failure waits 12 h
+  state = { misses: { ebay: { 'base1-2': ago(30), 'base1-4': ago(30) } }, fails: { ebay: { 'base1-3': ago(2) } } };
+  let got = ids(state, { n: 4 });
+  assert.ok(got.includes('base1-4:watch') && !got.some(x => /base1-[23]:/.test(x)), got.join(' '));
+  state.fails.ebay['base1-3'] = ago(13);
+  assert.ok(ids(state, { n: 5 }).includes('base1-3:catalog'));
 
-  const set = PLAN.pickCards('cardmarket', Object.assign({ state }, base, { n: 500, only: 'base1' }));
-  assert.ok(set.length > 50 && set.every(c => c[1] === 'base1' && c[6].length), '"only" expands a set, Cardmarket needs a product id');
-  assert.deepStrictEqual(PLAN.pickCards('ebay', Object.assign({ state }, base, { only: 'base1-2, base1-4' })).map(c => c[0]).sort(), ['base1-2', 'base1-4'], '"only" ignores freshness');
+  // only: card ids or sets, ignoring all of the above
+  assert.deepStrictEqual(ids(state, { only: 'base1-2, base1-4' }).sort(), ['base1-2:only', 'base1-4:only']);
+  const set = PLAN.pickCards('cardmarket', { cards, entries, cfg, n: 500, now, state, only: 'base1' });
+  assert.ok(set.length > 50 && set.every(([c]) => c[1] === 'base1' && c[6].length), 'a whole set; Cardmarket needs a product id');
 });
 
-test('siteStatus: last scrape per site, removed cards ignored', () => {
-  const s = PLAN.siteStatus({ capture: { ebay: { 'base1-4': ago(3), 'base1-2': ago(1), 'gone-1': ago(0) } }, scrape: { ebay: { 'base1-5': ago(10) } } }, cards);
-  assert.strictEqual(s.ebay.cards, 3); assert.strictEqual(s.ebay.lastAt, ago(1));
+test('siteStatus: last scrape, cards with prices, watched cards up to date; removed cards ignored', () => {
+  const s = PLAN.siteStatus({ capture: { ebay: { 'base1-4': ago(3), 'base1-2': ago(0.5), 'gone-1': ago(0) } }, scrape: { ebay: { 'base1-5': ago(300) } } }, cards, cfg, ['base1-2', 'base1-4'], now);
+  assert.strictEqual(s.ebay.cards, 3); assert.strictEqual(s.ebay.fresh, 2); assert.strictEqual(s.ebay.lastAt, ago(0.5));
+  assert.deepStrictEqual(s.ebay.watch, { n: 2, current: 1 });
   assert.deepStrictEqual([s.cardmarket.lastAt, s.cardmarket.cards], [null, 0]);
   assert.ok(s.cardmarket.eligible < s.ebay.eligible);
 });
@@ -103,7 +108,7 @@ test('match: picks the right search result', () => {
 
 test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip', async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ptcg-helper-')), port = 18700 + Math.floor(Math.random() * 200);
-  const proc = cp.spawn(process.execPath, ['--require', path.join(__dirname, 'mock-fetch.js'), path.join(root, 'scripts/ingest-server.js'), '--store=' + dir, '--port=' + port],
+  const proc = cp.spawn(process.execPath, ['--require', path.join(__dirname, 'mock-fetch.js'), path.join(root, 'scripts/ingest-server.js'), '--store=' + dir, '--port=' + port, '--journal=' + path.join(dir, '..', path.basename(dir) + '-journal.jsonl')],
     { env: Object.assign({}, process.env, { MOCK_LOG: path.join(dir, '..', path.basename(dir) + '-req.json') }), stdio: ['ignore', 'pipe', 'pipe'] });
   t.after(() => proc.kill());
   await new Promise((ok, no) => { proc.stdout.on('data', d => /capture helper on/.test(d) && ok()); proc.on('exit', c => no(new Error('helper exited ' + c))); setTimeout(() => no(new Error('helper did not start')), 15000); });
@@ -162,6 +167,32 @@ test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip
   assert.strictEqual(r.status, 500, 'invalid price refused');
   r = await post('/ingest', { site: 'pricecharting', url: pc.url, cardId: 'base1-2', data: pc, via: 'scraper' });
   assert.strictEqual(r.status, 200, 'the next capture still works: ' + JSON.stringify(r.data));
+
+  // To watch: starts with the collector's `always` cards; add / remove; unknown ids ignored; stored in the store; first in the queue
+  let w = await get('/watch');
+  assert.deepStrictEqual(w.cards.map(c => c.id), cfg.schedule.always);
+  r = await post('/watch', { add: ['base1-15', 'nope-1'], remove: [cfg.schedule.always[0]] });
+  assert.strictEqual(r.status, 200); assert.deepStrictEqual(r.data.unknown, ['nope-1']);
+  assert.deepStrictEqual(r.data.cards, cfg.schedule.always.slice(1).concat('base1-15'));
+  const wl = JSON.parse(fs.readFileSync(path.join(dir, 'watchlist.json')));
+  assert.deepStrictEqual(wl.cards.map(x => x[0]), r.data.cards);
+  q = await get('/queue?site=pricecharting&n=6');
+  const phases = q.items.map(i => i.phase), nw = r.data.cards.length;
+  assert.deepStrictEqual(phases.slice(0, nw), Array(nw).fill('watch')); assert.ok(phases.slice(nw).every(p => p === 'catalog'));
+  assert.ok(q.items.slice(0, nw).some(i => i.card === 'base1-15'));
+  sites = await get('/sites');
+  assert.strictEqual(sites.watch, nw); assert.strictEqual(sites.sites.pricecharting.watch.n, nw);
+  // a failed card is held back from the queue
+  const failing = q.items[nw].card;
+  await post('/skip', { site: 'pricecharting', card: failing, kind: 'fail', reason: 'test' });
+  assert.ok(!(await get('/queue?site=pricecharting&n=6')).items.some(i => i.card === failing));
+  // the site (another origin) may call the helper: CORS with private network access
+  const pre = await fetch(url + '/watch', { method: 'OPTIONS' });
+  assert.strictEqual(pre.headers.get('access-control-allow-private-network'), 'true');
+  assert.match(pre.headers.get('access-control-allow-methods'), /POST/);
+  // every change is journaled, so it survives a reset to the collector's newer version
+  const journal = fs.readFileSync(path.join(dir, '..', path.basename(dir) + '-journal.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
+  assert.ok(journal.some(j => j.watch && j.watch.add.includes('base1-15')) && journal.some(j => j.skip && j.skip.card === failing));
 
   assert.strictEqual((await post('/publish', {})).status, 400, 'pushing needs npm run helper');
 });
@@ -294,4 +325,60 @@ test('scraper extension: a normal card is one request', async () => {
   assert.strictEqual(await sim.run(ITEM, false), 1);
   assert.strictEqual(sim.requests, 1); assert.strictEqual(sim.navigations, 1); // the tab's first load, then one fetch
   assert.strictEqual(sim.ingested[0].data.articles.length, 50);
+});
+
+test('scraper extension run: To watch before the catalog, until the queue is empty; failures reported; pushed at the end; Stop', async () => {
+  const vm = require('vm');
+  function setup(queues) {
+    const calls = [], storage = {};
+    const ctx = {
+      console, URL, URLSearchParams, Map, Set, JSON, Math, Date, Promise, Object, Array, String, Error, AbortController,
+      setTimeout: (fn, ms) => setTimeout(fn, Math.min(ms || 0, 5)), clearTimeout, setInterval: () => 0, clearInterval: () => {},
+      importScripts: () => { ctx.PTCG_MATCH = require('../scraper-extension/match.js'); },
+      fetch: async (u, o) => {
+        const url = new URL(u), b = o && o.body ? JSON.parse(o.body) : null; calls.push([url.pathname, b]);
+        const json = d => ({ status: 200, json: async () => d });
+        if (url.pathname === '/sites') return json({ watch: 2 });
+        if (url.pathname === '/queue') { const q = queues[url.searchParams.get('site')]; return json({ items: q.splice(0, +url.searchParams.get('n')), pace: { gap: 0, conc: 1 } }); }
+        return json({ ok: true });
+      },
+      chrome: {
+        storage: { local: { get: async () => ({}), set: async o => Object.assign(storage, o), remove: async () => {} } },
+        action: { setBadgeText() {}, setBadgeBackgroundColor() {} }, runtime: { onMessage: { addListener() {} }, getPlatformInfo() {} },
+        notifications: { create() {}, clear() {} }, windows: { create: async () => ({ id: 1, tabs: [{ id: 2 }] }), get: async () => ({}), update: async () => {}, remove: async () => {} },
+        tabs: { get: async () => ({ status: 'complete' }), create: async () => ({ id: 3 }), update: async () => {} }, scripting: { executeScript: async () => [{ result: '' }] }
+      }
+    };
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(root, 'scraper-extension/background.js'), 'utf8'), ctx);
+    const order = [];
+    vm.runInContext('SCRAPE', ctx).ebay = async (w, item) => { order.push(item.card); await new Promise(r => setTimeout(r, 2)); if (item.card === 'bad') throw new Error('page broke'); return 1; };
+    return { ctx, calls, order, job: () => vm.runInContext('job', ctx), running: () => vm.runInContext('running', ctx) };
+  }
+  const until = async (f, ms = 3000) => { for (const end = Date.now() + ms; !f(); ) { if (Date.now() > end) throw new Error('timeout'); await new Promise(r => setTimeout(r, 5)); } };
+  const it = (card, phase) => ({ site: 'ebay', card, label: card, phase, pages: [] });
+
+  const q = [it('w1', 'watch'), it('w2', 'watch')].concat(Array.from({ length: 23 }, (_, k) => it(k === 4 ? 'bad' : 'c' + k, 'catalog')));
+  const A = setup({ ebay: q.slice() });
+  await new Promise(r => setImmediate(r));
+  const r = await vm.runInContext('start', A.ctx)({ sites: ['ebay'] });
+  assert.ok(r.ok);
+  await until(() => A.job().status === 'done' && !A.running());
+  assert.deepStrictEqual(A.order, q.map(x => x.card), 'every card once, To watch first, until the queue is empty');
+  assert.strictEqual(A.calls.filter(c => c[0] === '/queue').length, 4, 'batches of 10, then an empty answer ends the run');
+  assert.deepStrictEqual(A.calls.filter(c => c[0] === '/skip').map(c => c[1]), [{ site: 'ebay', card: 'bad', kind: 'fail', reason: 'page broke' }]);
+  assert.strictEqual(A.calls[A.calls.length - 1][0], '/publish', 'pushed when the run ends');
+  assert.deepStrictEqual([A.job().saved, A.job().failed, A.job().done.watch, A.job().done.catalog], [24, 1, 2, 22]);
+
+  // Stop: the run ends after the card in progress, pushes, and the next Scrape all asks the helper again (the helper
+  // knows what was saved, so it continues where this run stopped)
+  const B = setup({ ebay: q.slice() });
+  await new Promise(r => setImmediate(r));
+  await vm.runInContext('start', B.ctx)({ sites: ['ebay'] });
+  await until(() => B.order.length >= 3);
+  vm.runInContext('job.stop = true', B.ctx);
+  await until(() => !B.running());
+  assert.strictEqual(B.job().status, 'stopped'); assert.match(B.job().message, /continue where it stopped/);
+  assert.ok(B.order.length < q.length);
+  assert.strictEqual(B.calls[B.calls.length - 1][0], '/publish');
 });

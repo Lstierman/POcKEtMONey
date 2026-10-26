@@ -94,23 +94,25 @@ The store keeps this per card as `b` in `summary.json.gz`: `"eb|S|3|PSA 10": [n,
 
 A card's details open with **Every price**: one table across all its prints, raw copies per language first, then every grade, with the median for sale and sold, how many, and which marketplaces. The Cardmarket price guide (European languages pooled) and TCGplayer (English, raw) can't be split this way and stay in their own sections.
 
-### Scraper extension
+### To watch and the scraper
 
-For the data the APIs don't give (every Cardmarket listing, eBay for sale and sold, PriceCharting graded prices), the **scraper extension** (`scraper-extension/`) collects them in your own Chrome, where the "are you a robot" checks see a normal browser. It opens one tab per site in a separate window and loads the first page normally (any check or login happens there, once). Every other page is fetched from inside that tab, with your cookies, and read without rendering: about a second per page, two at a time per site (`scrape.secondsBetweenRequests`, `scrape.parallelRequests`). The three sites run at the same time. A "too many requests" answer halves the pace; a check or block loads the page in the tab for you to complete.
+For the data the APIs don't give (every Cardmarket listing, eBay for sale and sold, PriceCharting graded prices), the **scraper extension** (`scraper-extension/`) collects them in your own Chrome, where the "are you a robot" checks see a normal browser.
 
-1. In the project folder: `npm run helper`. It works on a copy of the `prices` branch in `store/`.
-2. Chrome → `chrome://extensions` → *Developer mode* → *Load unpacked* → pick `scraper-extension/`.
-3. Click the extension: each site shows when it was last scraped. Press *Scrape* for one site, or *Scrape all sites*.
-4. If a site asks for a human check or a login, the window comes to the front with a notification; complete it and the run continues.
-5. *Push to GitHub* publishes what you scraped to the `prices` branch (also done when you stop the helper with Ctrl+C). Until then everything stays in `store/` on your PC.
+**Setup, once:** in the project folder run `npm run helper` (leave it running), then Chrome → `chrome://extensions` → *Developer mode* → *Load unpacked* → pick `scraper-extension/`.
 
-Which cards: the `always` list, then the most valuable cards not scraped on that site in the last `scrape.staleHours` (12). *Only* takes card ids or set ids/codes (`base1-4, sv3pt5`). Cards a site has no match for are tried again after `scrape.missRecheckHours` (168, one week). The helper re-reads `data/card-map.json.gz` when the daily build changes it, so added cards are queued and removed cards are forgotten.
+**To watch:** the cards you care about most. Add them with **☆ Watch** on a card on the site, or by searching in the extension's popup; remove them the same way. The site's filter rail has *★ Only cards I watch*. The list is kept in the price store (`watchlist.json`), so it is pushed with the prices and shows on every device. Changes made on the site while the helper isn't running wait in that browser and are sent the next time it is. The hourly collector also refreshes watched cards on every run.
 
-**Cardmarket: every language and condition.** One request shows a product's cheapest offers (about 50), which is all of them for most cards. When there are more, the product is fetched per language (`?language=`, all 13 Cardmarket languages), and a language that is still cut off per condition (`?minCondition=` Mint … Played, "this or better"), so every language × condition has its cheapest offers. A crowded card like Base Set Charizard takes about 25 requests, under a minute. *Every single Cardmarket offer (slow)* in the popup also opens the cut-off languages in the tab and presses "load more" to the end (`scrape.cardmarket.maxLoadMore`, 40). All views are merged, each offer once; the listing file records every view and whether it was complete (`coverage`).
+**Scrape all:** one button. Each site works through:
+1. the To watch list: every watched card not scraped on that site in the last hour (`scrape.watchStaleHours`);
+2. then the whole catalog: cards that have never been scraped there first, most valuable first; after that the oldest, once older than a week (`scrape.staleHours`).
 
-How it finds each card: eBay uses the same localized searches as the API collector and keeps only items naming the card and its number. Cardmarket opens product pages it has seen before, else the pokemontcg.io redirect (English prints), else a Cardmarket search; a page only counts for a card when its product id is one of that card's Cardmarket ids. PriceCharting uses the known page, else a search, and accepts a page only when its URL has the card's name, number and language. Found page addresses are remembered in `state.json`.
+It keeps going until the catalog is done or you press *Stop*. Every card is saved the moment it is finished, and the helper pushes to the `prices` branch every 15 minutes, when a run ends, and when you stop it with Ctrl+C. A stop, a crash or a closed browser loses at most the card in progress; the next *Scrape all* continues where it stopped. Cards a site has no match for are tried again after a week (watched cards after a day), cards that failed after 12 hours. The popup shows, per site, how much of the catalog has prices and how many watched cards are up to date. *Advanced* has a field to scrape only some cards or sets (for testing) and the slow every-single-Cardmarket-offer mode.
 
-The capture extension (`extension/`) still works for saving the single page you are looking at; both use `extension/parsers.js` (`scraper-extension/parsers.js` is a copy, checked by `npm test`).
+**How it stays fast:** one tab per site in a separate window loads the first page normally (any check or login happens there, once). Every other page is fetched from inside that tab, with your cookies, and read without rendering: about a second per page, two at a time per site (`scrape.secondsBetweenRequests`, `scrape.parallelRequests`). The three sites run at the same time. A "too many requests" answer halves the pace; a check or block loads the page in the tab for you to complete, with a notification.
+
+**Cardmarket: every language and condition.** One request shows a product's cheapest offers (about 50), which is all of them for most cards. When there are more, the product is fetched per language (`?language=`, all 13 Cardmarket languages), and a language that is still cut off per condition (`?minCondition=` Mint … Played, "this or better"), so every language × condition has its cheapest offers. A crowded card like Base Set Charizard takes about 25 requests, under a minute. *Every single Cardmarket offer (slow)* also opens the cut-off languages and presses "load more" to the end (`scrape.cardmarket.maxLoadMore`, 40). The listing file records every view and whether it was complete (`coverage`).
+
+How it finds each card: eBay uses the same localized searches as the API collector and keeps only items naming the card and its number. Cardmarket opens product pages it has seen before, else the pokemontcg.io redirect (English prints), else a search for the product's exact name within its expansion (from Cardmarket's public product catalog), else a name search; a page only counts for a card when its product id is one of that card's Cardmarket ids. PriceCharting uses the known page, else a search, and accepts a page only when its URL has the card's name, number and language. Found page addresses are remembered in `state.json`. The helper re-reads `data/card-map.json.gz` when the daily build changes it, so added cards are queued and removed cards are forgotten.
 
 ### Evidence
 
@@ -159,10 +161,9 @@ scripts/fetch-tcgdex-sets.js   TCGdex set and card numbers, for mapping cards to
 scripts/fetch-tcgdex-products.js Cardmarket ids TCGdex knows for English cards (cached, incremental)
 scripts/fetch-pricecharting.js refreshes graded prices from the PriceCharting API (optional token)
 scripts/collect.js             hourly price collector (writes the price store)
-scripts/ingest-server.js       local helper for both extensions: stores captures, plans scraper runs, pushes to prices
-scripts/lib/scrape-plan.js     which cards and URLs the scraper visits next
-extension/                     capture extension: save the page you are looking at
-scraper-extension/             scraper extension: visits the sites for you in your own Chrome
+scripts/ingest-server.js       the scraper's local helper (npm run helper): To watch list, what to scrape next, stores and pushes
+scripts/lib/scrape-plan.js     which cards and URLs the scraper visits next (To watch first, then the catalog)
+scraper-extension/             scraper extension: collects prices in your own Chrome
 scripts/lib/                   store (schemas, atomic writes, history), public sources, Cardmarket and eBay clients
 src/prices.js                  listing statistics, currency conversion, data-coverage label (page + collector)
 prices.config.json             interval, budgets, marketplaces, schedule

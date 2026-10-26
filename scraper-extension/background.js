@@ -33,11 +33,6 @@ let job = null, running = false, saveTimer = null;
 async function save() { clearTimeout(saveTimer); saveTimer = null; await chrome.storage.local.set({ job }); badge(); }
 function saveSoon() { if (!saveTimer) saveTimer = setTimeout(save, 250); }
 function log(t) { job.log.unshift(new Date().toLocaleTimeString().slice(0, 5) + ' ' + t); job.log.length = Math.min(job.log.length, 60); saveSoon(); }
-function badge() {
-  const t = !job || ['done', 'stopped', 'error'].includes(job.status) ? '' : job.status === 'waiting' ? '!' : String(job.items.length - job.i);
-  chrome.action.setBadgeText({ text: t });
-  chrome.action.setBadgeBackgroundColor({ color: job && job.status === 'waiting' ? '#d97706' : '#2149c4' });
-}
 function stopped() { return !job || job.stop; }
 class Stop extends Error {}
 // one per site worker: what it is doing right now, shown in the popup
@@ -345,22 +340,45 @@ async function scrapePricecharting(w, item) {
 }
 
 // ---------- the run: one worker per site, all at the same time ----------
+// "Scrape all" works through the To watch list, then the whole catalog, until it is done or stopped. Each worker asks
+// the helper for its next few cards (GET /queue: watched cards first, then never-scraped, then oldest); every card is
+// saved the moment it is done, so a stop, crash or closed browser loses at most the card in progress, and the next
+// run continues where this one stopped. The helper pushes to GitHub every 15 minutes and when the run ends.
+const BATCH = 10;
 const SCRAPE = { ebay: scrapeEbay, cardmarket: scrapeCardmarket, pricecharting: scrapePricecharting };
+async function nextItem(site) {
+  const buf = job.buf[site] = job.buf[site] || [];
+  if (!buf.length && !job.ended[site]) {
+    const r = await helper('/queue?' + new URLSearchParams({ site, n: BATCH, only: job.only || '' }));
+    if (r.status === 0) throw new Stop(r.data.error);
+    if (r.status !== 200) throw new Error(r.data.error || 'helper said ' + r.status);
+    if (r.data.pace) job.pace = Object.assign({}, job.pace, r.data.pace);
+    // with "only", each card once; otherwise ask again until the catalog is done
+    const items = job.only ? r.data.items.filter(it => !(job.seen[site] || []).includes(it.card)) : r.data.items;
+    if (job.only) job.seen[site] = (job.seen[site] || []).concat(items.map(it => it.card));
+    if (!items.length) { job.ended[site] = true; return null; }
+    buf.push(...items);
+  }
+  return buf.shift() || null;
+}
 async function siteWorker(site) {
   const w = worker(site);
   for (;;) {
     if (stopped()) throw new Stop();
-    const k = job.items.findIndex((it, x) => it.site === site && !job.st[x]);
-    if (k < 0) { delete job.cur[site]; delete job.steps[site]; saveSoon(); return; }
-    const item = job.items[k]; job.st[k] = 'busy'; job.cur[site] = item.label; job.steps[site] = ''; saveSoon();
+    const item = await nextItem(site);
+    if (!item) { delete job.cur[site]; delete job.steps[site]; log(SITE_NAME[site] + ': ' + (job.only ? 'done' : 'the whole catalog is up to date')); saveSoon(); return; }
+    job.cur[site] = (item.phase === 'watch' ? '★ ' : '') + item.label; job.steps[site] = ''; job.inFlight[site] = item; saveSoon();
     try {
       const n = await SCRAPE[site](w, item);
-      job.st[k] = n ? 'saved' : 'skipped'; if (n) job.saved++; else job.skipped++;
+      if (n) job.saved++; else job.skipped++;
+      job.done[item.phase] = (job.done[item.phase] || 0) + 1;
     } catch (e) {
-      if (e instanceof Stop) { job.st[k] = null; throw e; }
-      job.st[k] = 'failed'; job.failed++; log('✗ ' + SITE_NAME[site] + ' ' + item.label + ': ' + e.message);
+      if (e instanceof Stop) { (job.buf[site] = job.buf[site] || []).unshift(item); throw e; } // retried on resume
+      job.failed++; log('✗ ' + SITE_NAME[site] + ' ' + item.label + ': ' + e.message);
+      await helper('/skip', { site, card: item.card, kind: 'fail', reason: e.message }); // retried after a while, not straight away
     }
-    job.i++; saveSoon();
+    delete job.inFlight[site];
+    saveSoon();
   }
 }
 
@@ -368,56 +386,63 @@ async function loop() {
   if (running || !job) return; running = true;
   const keepAlive = setInterval(() => chrome.runtime.getPlatformInfo(), 20e3);
   try {
-    job.status = 'running'; job.waiting = 0; job.cur = {}; job.steps = {};
-    job.st = job.st || []; job.st.forEach((s, k) => { if (s === 'busy') job.st[k] = null; });
-    job.ready = {}; await save();
-    const sites = [...new Set(job.items.map(i => i.site))];
-    const results = await Promise.allSettled(sites.map(siteWorker));
-    const errs = results.map((r, k) => r.status === 'rejected' && !job.stop ? SITE_NAME[sites[k]] + ': ' + (r.reason && r.reason.message || 'stopped') : null).filter(Boolean);
-    if (job.stop) { job.status = 'stopped'; job.message = `Stopped after ${job.i} of ${job.items.length} cards.`; }
-    else if (errs.length) { job.status = 'error'; job.message = 'Paused: ' + errs.join('; '); }
+    job.status = 'running'; job.waiting = 0; job.cur = {}; job.steps = {}; job.ready = {}; job.inFlight = {}; job.message = '';
+    await save();
+    const results = await Promise.allSettled(job.sites.map(siteWorker));
+    const errs = results.map((r, k) => r.status === 'rejected' && !job.stop ? SITE_NAME[job.sites[k]] + ': ' + (r.reason && r.reason.message || 'stopped') : null).filter(Boolean);
+    const total = job.saved + job.skipped + job.failed, mins = Math.max(1, Math.round((Date.now() - Date.parse(job.startedAt)) / 60e3));
+    if (job.stop) { job.status = 'stopped'; job.message = `Stopped. ${total} cards done; press Scrape all to continue where it stopped.`; }
+    else if (errs.length) { job.status = 'error'; job.message = 'Paused: ' + errs.join('; ') + '. Press Scrape all to continue.'; }
     else {
-      job.status = 'done'; job.message = `Finished in ${Math.max(1, Math.round((Date.now() - Date.parse(job.startedAt)) / 60e3))} min: ${job.saved} saved, ${job.skipped} not found, ${job.failed} failed.`;
+      job.status = 'done'; job.message = `All done in ${mins} min: ${job.saved} saved, ${job.skipped} not found, ${job.failed} failed.`;
       chrome.notifications.create('done', { type: 'basic', iconUrl: 'icon128.png', title: 'POcKEtMONey scraper finished', message: job.message });
     }
     log(job.message);
   } finally {
     clearInterval(keepAlive); running = false; job.cur = {}; job.steps = {};
     await closeWindow(); await save();
+    const p = await helper('/publish', {}); // push what this run collected
+    if (p.status === 200 && p.data.ok && !p.data.nothing) log('pushed to GitHub');
+    await save();
   }
 }
 
-async function start(sites, n, only, deep) {
-  if (running) return { error: 'A run is already going. Stop it first.' };
-  const items = []; let pace = { gap: 1.5, conc: 2, pageSize: 50 };
-  for (const site of sites) {
-    const r = await helper('/queue?' + new URLSearchParams({ site, n, only: only || '' }));
-    if (r.status !== 200) return { error: r.data.error || 'helper said ' + r.status };
-    items.push(...r.data.items); if (r.data.pace) pace = Object.assign(pace, r.data.pace);
-  }
-  if (!items.length) return { error: 'Nothing to scrape: every card was scraped recently.' };
-  job = { sites, items, st: [], i: 0, saved: 0, skipped: 0, failed: 0, pace, deep: !!deep, log: [], status: 'running', startedAt: new Date().toISOString(), cur: {}, steps: {}, message: '', tabs: {}, ready: {} };
-  log('started: ' + items.length + ' cards on ' + sites.map(s => SITE_NAME[s]).join(', ') + (deep ? ' (every single Cardmarket offer)' : ''));
+// opts: { only: card ids or sets (for testing), deep: every single Cardmarket offer, sites }
+async function start(opts = {}) {
+  if (running) return { error: 'A run is already going.' };
+  const r = await helper('/sites');
+  if (r.status !== 200) return { error: r.data.error || 'Helper not running. Start it in the project folder: npm run helper' };
+  const sites = (opts.sites && opts.sites.length ? opts.sites : ['cardmarket', 'ebay', 'pricecharting']).filter(s => SCRAPE[s]);
+  job = { sites, only: (opts.only || '').trim(), deep: !!opts.deep, buf: {}, seen: {}, ended: {}, done: {}, inFlight: {}, saved: 0, skipped: 0, failed: 0,
+    pace: { gap: 1.5, conc: 2, pageSize: 50 }, log: [], status: 'running', startedAt: new Date().toISOString(), cur: {}, steps: {}, message: '', tabs: {}, ready: {} };
+  log(job.only ? 'started: only ' + job.only : 'started: To watch first (' + r.data.watch + ' cards), then the whole catalog' + (job.deep ? '; every single Cardmarket offer' : ''));
   await save();
   loop();
-  return { ok: true, count: items.length };
+  return { ok: true };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   (async () => {
-    if (msg.type === 'start') return start(msg.sites, msg.n, msg.only, msg.deep);
+    if (msg.type === 'start') return start(msg);
     if (msg.type === 'stop') { if (job) { job.stop = true; if (!running) { job.status = 'stopped'; await save(); } } return { ok: true }; }
-    if (msg.type === 'resume') { if (job && !running && job.i < job.items.length) { job.stop = false; loop(); } return { ok: true }; }
-    if (msg.type === 'clear') { if (!running) { job = null; await chrome.storage.local.remove('job'); badge(); } return { ok: true }; }
     if (msg.type === 'helper') return helper(msg.path, msg.body);
     return { error: 'unknown request' };
   })().then(reply);
   return true;
 });
 
-// a restarted service worker picks up a run that was going
+function badge() {
+  const active = job && (job.status === 'running' || job.status === 'waiting');
+  chrome.action.setBadgeText({ text: !active ? '' : job.status === 'waiting' ? '!' : '▶' });
+  chrome.action.setBadgeBackgroundColor({ color: job && job.status === 'waiting' ? '#d97706' : '#2149c4' });
+}
+
+// a restarted service worker (or browser) picks up a run that was going, with the cards it was on
 (async () => {
   job = (await chrome.storage.local.get('job')).job || null;
-  if (job && !job.st) job = null; // a run from the older version of the extension
-  if (job && (job.status === 'running' || job.status === 'waiting') && !job.stop) loop(); else badge();
+  if (job && !job.buf) job = null; // a run from an older version of the extension
+  if (job && (job.status === 'running' || job.status === 'waiting') && !job.stop) {
+    for (const [site, item] of Object.entries(job.inFlight || {})) (job.buf[site] = job.buf[site] || []).unshift(item);
+    loop();
+  } else badge();
 })();

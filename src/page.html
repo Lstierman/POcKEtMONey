@@ -213,6 +213,10 @@ details.how code { font-family: var(--f-mono); font-size: 12px }
 .resbar .ms { font-family: var(--f-mono); font-size: 12px; color: var(--muted) }
 .resbar .note { font-size: 13px; color: var(--warn) }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px 14px }
+.wstar { position: absolute; top: 6px; left: 6px; z-index: 2; width: 22px; height: 22px; border-radius: 50%; background: #c79a1e; color: #fff; font-size: 13px; line-height: 22px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.3) }
+.watchbtn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--raised); color: var(--ink); font: 700 13px/1 var(--f-display); cursor: pointer }
+.watchbtn[aria-pressed="true"] { background: #c79a1e; border-color: #c79a1e; color: #fff }
+.watchnote { display: block; margin-top: 4px; font-size: 12px; color: var(--muted) }
 .tile { border: 0; padding: 0; background: none; text-align: left; cursor: pointer; display: grid; gap: 7px; min-width: 0 }
 .face { position: relative; aspect-ratio: 63 / 88; max-width: 100%; border-radius: 4.6% / 3.3%; overflow: hidden; background: var(--raised); box-shadow: var(--shadow); border: 3px solid var(--card-edge); transition: transform .15s ease, box-shadow .15s ease }
 .tile:hover .face, .tile:focus-visible .face { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(20,26,36,.18) }
@@ -345,6 +349,7 @@ a.ext { color: var(--accent); font-weight: 700 }
       <label class="check"><input type="checkbox" id="fStd"> Standard legal</label>
       <label class="check"><input type="checkbox" id="fExp"> Expanded legal</label>
     </div>
+    <div class="group"><h3>To watch</h3><button type="button" class="chip plain" id="fWatch" aria-pressed="false">★ Only cards I watch <span class="n" id="fWatchN">0</span></button></div>
     <div class="group"><h3>Price</h3><div class="seg seg3" id="fPriced"></div></div>
     <div class="group"><h3>Price data (at least)</h3><div class="chips" id="fCov"></div></div>
     <div class="group"><h3>Sales data</h3>
@@ -392,12 +397,12 @@ a.ext { color: var(--accent); font-weight: 700 }
   var $ = function (id) { return document.getElementById(id); };
   var DATES = { eur: '', usd: '', ja: '' }, AXES = { e: [], u: [] };
   var cat = null, imagesOK = false, mode = 'bundle', results = null, shown = 0, meta = {};
-  var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set(), priced: '', cov: '' };
+  var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set(), priced: '', cov: '', watch: false };
 
   // ---------- settings (defaults from prices.config.json, kept per browser) ----------
   var CONFIG = "__CONFIG__", PRICES_URL = "__PRICES_URL__";
   if (typeof CONFIG === 'string') CONFIG = {};
-  var settings = { currency: CONFIG.displayCurrency || 'EUR', interval: CONFIG.intervalMinutes || 60, headline: CONFIG.headline || 'trend', cond: CONFIG.listingCondition || 'NM', live: true, bundle: true };
+  var settings = { currency: CONFIG.displayCurrency || 'EUR', interval: CONFIG.intervalMinutes || 60, headline: CONFIG.headline || 'trend', cond: CONFIG.listingCondition || 'NM', live: true, bundle: true, helper: 'http://127.0.0.1:8787' };
   try { Object.assign(settings, JSON.parse(localStorage.getItem('ptcg-settings') || '{}')); } catch (e) {}
   settings.interval = Math.max(5, Math.min(1440, +settings.interval || 60));
   state.currency = settings.currency === 'USD' ? 'usd' : 'eur';
@@ -606,6 +611,54 @@ a.ext { color: var(--accent); font-weight: 700 }
     return getMeta('hourly').then(function (buf) { return buf ? gunzipJSON(buf).then(useHourly) : false; }).catch(function () { return false; });
   }
 
+  // ---------- To watch ----------
+  // The list lives in the price store (watchlist.json), kept by the scraper's helper on your computer (npm run helper),
+  // which scrapes these cards first. Changes made here go to the helper straight away when it is running; otherwise
+  // they wait in this browser and are sent the next time it is.
+  var watchStore = [], watchOps = { add: {}, remove: {} }, watchSet = new Set(), watchSynced = null;
+  try { watchOps = JSON.parse(localStorage.getItem('ptcg-watch-ops')) || watchOps; } catch (e) {}
+  function watchSaveOps() { try { localStorage.setItem('ptcg-watch-ops', JSON.stringify(watchOps)); } catch (e) {} }
+  function watchCompute() {
+    var s = new Set(watchStore); Object.keys(watchOps.add).forEach(function (id) { s.add(id); }); Object.keys(watchOps.remove).forEach(function (id) { s.delete(id); });
+    watchSet = s; $('fWatchN').textContent = fmt(s.size);
+  }
+  function watchPending() { return Object.keys(watchOps.add).length + Object.keys(watchOps.remove).length; }
+  function watchSync() { // sends pending changes to the helper and takes its list; quietly does nothing if it isn't running
+    var ops = { add: Object.keys(watchOps.add), remove: Object.keys(watchOps.remove) };
+    return fetch(settings.helper.replace(/\/$/, '') + '/watch', { method: ops.add.length || ops.remove.length ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' },
+      body: ops.add.length || ops.remove.length ? JSON.stringify(ops) : undefined })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var ids = Array.isArray(d.cards) ? d.cards.map(function (c) { return typeof c === 'string' ? c : c.id; }) : null; if (!ids) throw new Error('bad answer');
+        ops.add.forEach(function (id) { delete watchOps.add[id]; }); ops.remove.forEach(function (id) { delete watchOps.remove[id]; });
+        watchSaveOps(); watchStore = ids; watchSynced = true; watchChanged();
+      }).catch(function () { watchSynced = false; watchChanged(); });
+  }
+  function watchLoad() {
+    return storeGet('watchlist.json').then(function (w) { if (w && Array.isArray(w.cards) && watchSynced !== true) watchStore = w.cards.map(function (x) { return x[0]; }); }, function () {})
+      .then(function () { watchChanged(); return watchSync(); });
+  }
+  function watchChanged() {
+    watchCompute();
+    document.querySelectorAll('#grid .tile').forEach(function (el) {
+      var id = cat.cards[+el.dataset.id][0], has = !!el.querySelector('.wstar'), want = watchSet.has(id);
+      if (has !== want) { if (want) el.querySelector('.face').insertAdjacentHTML('afterbegin', '<span class="wstar" title="To watch">★</span>'); else el.querySelector('.wstar').remove(); }
+    });
+    if (openId >= 0 && $('watchSlot')) $('watchSlot').innerHTML = watchButton(openId);
+    if (state.watch) run();
+  }
+  function watchToggle(i) {
+    var id = cat.cards[i][0];
+    if (watchSet.has(id)) { delete watchOps.add[id]; watchOps.remove[id] = 1; } else { delete watchOps.remove[id]; watchOps.add[id] = 1; }
+    watchSaveOps(); watchChanged(); watchSync();
+  }
+  function watchButton(i) {
+    var on = watchSet.has(cat.cards[i][0]), n = watchPending();
+    return '<button type="button" class="watchbtn" data-watch="' + i + '" aria-pressed="' + on + '">' + (on ? '★ Watching' : '☆ Watch') + '</button>' +
+      '<span class="watchnote">' + (on ? 'Scraped first by the scraper. ' : 'Add it to the cards the scraper updates first. ') +
+      (n && watchSynced === false ? n + (n === 1 ? ' change waits' : ' changes wait') + ' in this browser until the scraper helper runs (npm run helper).' : watchSynced ? 'Saved in the scraper’s list.' : '') + '</span>';
+  }
+
   // ---------- price model ----------
   // Every source keeps its native currency; FX converts (euro per unit). The freshest copy of each source wins:
   // the built-in snapshot, a live check from this browser, or the hourly store.
@@ -679,6 +732,7 @@ a.ext { color: var(--accent); font-weight: 700 }
   function scheduleRefresh() { clearInterval(refreshT); refreshT = setInterval(refreshCycle, settings.interval * 60e3); }
   function refreshCycle() {
     lastRefresh = Date.now();
+    watchLoad();
     return loadHourly().then(function (changed) {
       if (changed) { applyAll(); recount(); refreshShown(); }
       status();
@@ -824,6 +878,7 @@ a.ext { color: var(--accent); font-weight: 700 }
         Promise.all([liveLoad(), loadHourlyCached()]).then(function () { applyAll(); run(); liveStatus(); status(); })
           .then(function () { return Promise.all([loadHourly(), liveFx()]); })
           .then(function (x) { if (x[0] || x[1]) { applyAll(); run(); } status(); scheduleRefresh(); });
+        watchLoad();
       });
     }).catch(function (e) {
       $('loadMsg').textContent = 'The catalog could not be loaded. Reload the page to try again.';
@@ -881,6 +936,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     cancelAnimationFrame(pending);
     pending = requestAnimationFrame(function () {
       results = bundleResults(cat.search(state.q, state, state.sort));
+      if (state.watch) { results.ids = results.ids.filter(function (i) { return watchSet.has(cat.cards[i][0]); }); results.total = results.ids.length; }
       results.cut = -1; // price sorts: index of the first card without a price in the chosen currency
       if (state.sort === 'price' || state.sort === 'priceAsc') {
         var px = cat[state.currency];
@@ -909,7 +965,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     document.querySelectorAll('#fCov [data-cov]').forEach(function (el) {
       var k = +el.dataset.cov || 0, n = 0; for (var j = k; j <= 6; j++) n += c.cov[j]; el.querySelector('[data-cnt]').textContent = fmt(n);
     });
-    var active = (state.lang ? 1 : 0) + (state.priced ? 1 : 0) + (state.cov ? 1 : 0) + state.type.size + (state.supertype ? 1 : 0) + (state.set ? 1 : 0) + (state.series ? 1 : 0) + (state.rarity ? 1 : 0) + state.reg.size + state.legal.size;
+    var active = (state.watch ? 1 : 0) + (state.lang ? 1 : 0) + (state.priced ? 1 : 0) + (state.cov ? 1 : 0) + state.type.size + (state.supertype ? 1 : 0) + (state.set ? 1 : 0) + (state.series ? 1 : 0) + (state.rarity ? 1 : 0) + state.reg.size + state.legal.size;
     $('fcount').hidden = !active; $('fcount').textContent = active;
   }
 
@@ -965,6 +1021,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     var cv = cat.chg.any[id], cp = cat.eur[id];
     var chg = !isNaN(cv) && cp >= 2 && Math.abs(cv) >= 1 ? '<span class="chg ' + (cv > 0 ? 'up">▲' : 'down">▼') + Math.abs(cv).toFixed(0) + '%</span>' : '';
     return '<button type="button" class="tile' + (o.known ? '' : ' unpriced') + '" data-id="' + id + '"><div class="face">' + dataFace(t, false) +
+      (watchSet.has(t[0]) ? '<span class="wstar" title="To watch">★</span>' : '') +
       (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + langBadge(id) + covHTML(o.cov, 'tag') + '</div>' +
       '<div class="cap"><div class="row2"><span class="n1">' + esc(t[1]) + '</span>' + priceTag(id, o) + '</div><div class="row2"><span class="n2">' + esc(set.c || set.id.toUpperCase()) + ' · ' + esc(numLabel(t, set)) + (t[6] ? ' · ' + esc(t[6]) : '') + '</span>' + chg + '</div></div></button>';
   }
@@ -1064,7 +1121,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     var t = cat.cards[id], c = PTCG.expand(t), set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(c.img);
     var h = '<button class="close" type="button" id="dclose" aria-label="Close">×</button>';
     h += '<div><div class="face">' + dataFace(t, true) + (img ? '<img alt="' + esc(c.name) + '" src="' + esc(img.large) + '" style="background:url(' + esc(img.small) + ') center/cover">' : '') + '</div></div>';
-    h += '<div class="info"><div><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print · ' : 'English print · ') + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div><h2>' + esc(c.name) + '</h2></div>';
+    h += '<div class="info"><div><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print · ' : 'English print · ') + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div><h2>' + esc(c.name) + '</h2><div id="watchSlot">' + watchButton(id) + '</div></div>';
     if (c.hp || c.types.length) h += '<div class="hpline">' + (c.hp ? 'HP ' + c.hp : '') + ' ' + pips(c.types) + (c.evolvesFrom ? ' <span style="font-weight:400;color:var(--muted)">Evolves from <button class="link" data-q="name:&quot;' + esc(c.evolvesFrom) + '&quot;">' + esc(c.evolvesFrom) + '</button></span>' : '') + '</div>';
     c.abilities.forEach(function (a) { h += '<div class="move"><div class="row"><span class="tag">' + esc(a[0]) + '</span><span class="nm">' + esc(a[1]) + '</span></div><p>' + esc(a[2]) + '</p></div>'; });
     c.attacks.forEach(function (a) { h += '<div class="move"><div class="row">' + pips(a[1]) + '<span class="nm">' + esc(a[0]) + '</span><span class="dmg">' + esc(a[2]) + '</span></div>' + (a[3] ? '<p>' + esc(a[3]) + '</p>' : '') + '</div>'; });
@@ -1496,6 +1553,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     else if (b.dataset.reg) { toggle(state.reg, b.dataset.reg, b); }
     else if (b.dataset.priced !== undefined) { setPriced(b.dataset.priced); }
     else if (b.dataset.cov !== undefined) { state.cov = b.dataset.cov; document.querySelectorAll('#fCov [data-cov]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }
+    else if (b.id === 'fWatch') { state.watch = !state.watch; b.setAttribute('aria-pressed', state.watch); }
     else if (b.id === 'reset') { resetFilters(); }
     else return;
     run();
@@ -1503,7 +1561,7 @@ a.ext { color: var(--accent); font-weight: 700 }
   function toggle(set, v, el) { if (set.has(v)) set.delete(v); else set.add(v); el.setAttribute('aria-pressed', set.has(v)); }
   function setPriced(v) { state.priced = v; document.querySelectorAll('#fPriced [data-priced]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.priced === v); }); }
   function resetFilters() {
-    state.type.clear(); state.reg.clear(); state.legal.clear(); state.supertype = ''; state.lang = ''; state.set = ''; state.series = ''; state.rarity = ''; state.priced = ''; state.cov = '';
+    state.watch = false; state.type.clear(); state.reg.clear(); state.legal.clear(); state.supertype = ''; state.lang = ''; state.set = ''; state.series = ''; state.rarity = ''; state.priced = ''; state.cov = '';
     document.querySelectorAll('#rail [aria-pressed]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.super === '' || x.dataset.lang === '' || x.dataset.priced === '' || x.dataset.cov === ''); });
     $('fSet').value = ''; $('fSeries').value = ''; $('fRarity').value = ''; $('fStd').checked = false; $('fExp').checked = false; $('fSales').checked = false;
   }
@@ -1523,6 +1581,7 @@ a.ext { color: var(--accent); font-weight: 700 }
   $('results').addEventListener('error', function (e) { if (e.target.tagName === 'IMG') e.target.remove(); }, true);
   $('dlg').addEventListener('click', function (e) {
     if (e.target === this || e.target.id === 'dclose') { closeCard(); return; }
+    var wb = e.target.closest('[data-watch]'); if (wb) { watchToggle(+wb.dataset.watch); return; }
     var b = e.target.closest('button'); if (!b) return;
     if (b.dataset.q) { closeCard(); setQuery(b.dataset.q); }
     else if (b.dataset.set) { closeCard(); resetFilters(); state.set = b.dataset.set; $('fSet').value = b.dataset.set; state.sort = 'oldest'; $('sort').value = 'oldest'; setQuery(''); }
@@ -1555,6 +1614,8 @@ a.ext { color: var(--accent); font-weight: 700 }
       '<label class="fld">Headline price <select name="headline"><option value="trend"' + (s.headline === 'trend' ? ' selected' : '') + '>Cardmarket trend (sales)</option><option value="listings"' + (s.headline === 'listings' ? ' selected' : '') + '>Cardmarket listing average (asking prices)</option></select></label>' +
       '<label class="fld">Listing average uses condition <select name="cond">' + PRICES.CONDS.map(function (x) { return '<option value="' + x + '"' + (s.cond === x ? ' selected' : '') + '>' + x + ' · ' + PRICES.COND_NAMES[x] + ' or better</option>'; }).join('') + '</select></label>' +
       '<label class="check"><input type="checkbox" name="live"' + (s.live ? ' checked' : '') + '> Check cards on screen live from this browser (TCGdex, pokemontcg.io)</label>' +
+      '<label class="fld">Scraper helper (for the To watch list) <input name="helper" value="' + esc(s.helper) + '" spellcheck="false"></label>' +
+      '<p class="nolang">' + (watchSynced ? 'Connected: ' + fmt(watchSet.size) + ' cards to watch.' : 'Not reachable now: To watch changes are kept in this browser until it runs (npm run helper).') + '</p>' +
       '<h3>Price store</h3><p class="nolang">' + (HOURLY ? 'Last collector run ' + esc(whenText(HOURLY.at)) + ' (' + ago(Date.parse(HOURLY.at)) + '). This page re-reads it every ' + s.interval + ' minutes; last check ' + ago(lastRefresh) + '.' : 'Not reachable' + (hourlyErr ? ': ' + esc(hourlyErr) : '') + '.') + '</p>' +
       '<ul class="srcs">' + [['fx', 'Exchange rates'], ['guide', 'Cardmarket price guide'], ['tcg', 'TCGplayer'], ['listings', 'Cardmarket listings'], ['ebay', 'eBay']].map(function (k) {
         var x = src[k[0]]; return '<li class="' + (x ? (x.ok ? 'y' : 'n') : '') + '"><b>' + k[1] + '</b> ' + (x ? esc((x.ok ? 'ok' : 'off') + (x.note ? ' · ' + x.note : '') + (x.count != null ? ' · ' + fmt(x.count) + ' cards' : '')) : '—') + '</li>';
@@ -1569,6 +1630,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     settings.interval = Math.max(5, Math.min(1440, +f.interval.value || 60));
     settings.headline = f.headline.value; settings.cond = f.cond.value;
     live.on = settings.live = f.live.checked;
+    settings.helper = (f.helper.value || '').trim() || 'http://127.0.0.1:8787'; watchSync();
     saveSettings(); scheduleRefresh(); liveStatus(); $('settings').close();
     if (before !== settings.headline + settings.cond) { applyAll(); run(); }
     setCurrency(f.querySelector('[name=cur]:checked').value);

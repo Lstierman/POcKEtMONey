@@ -17,6 +17,7 @@
 //   listings/cardtrader/<set>/<card>.json       every CardTrader listing of the card (same row format as Cardmarket)
 //   listings/pricecharting/<set>/<card>.json    PriceCharting graded prices and sales, captured with the extension
 //   cardtrader-map.json                        CardTrader blueprint id -> card id per expansion, refreshed weekly
+//   watchlist.json                             the To watch list: [[card id, added at]], edited on the site / in the scraper
 //
 // Every write is validated first and goes to a temp file that is renamed into place, so a crash never leaves half a file.
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
@@ -103,6 +104,10 @@ function validate(kind, o) {
     case 'pcListing':
       if (o.v !== SCHEMA || !o.id || !isIso(o.at) || !Array.isArray(o.g) || o.g.length !== 6 || !o.g.every(isNum) || !Array.isArray(o.sold)) return 'header';
       for (const s of o.sold) if (!Array.isArray(s) || s.length !== 5 || !/^\d{4}-\d{2}-\d{2}$/.test(s[0]) || !(s[3] > 0)) return 'sale ' + JSON.stringify(s).slice(0, 80);
+      return null;
+    case 'watchlist':
+      if (o.v !== SCHEMA || !isIso(o.at) || !Array.isArray(o.cards)) return 'header';
+      for (const w of o.cards) if (!Array.isArray(w) || typeof w[0] !== 'string' || !isIso(w[1])) return 'card ' + JSON.stringify(w).slice(0, 60);
       return null;
     case 'ctMap':
       if (o.v !== SCHEMA || !o.expansions || typeof o.expansions !== 'object') return 'header';

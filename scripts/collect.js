@@ -74,11 +74,13 @@ if (process.env.PRICE_INTERVAL_MINUTES) cfg.intervalMinutes = +process.env.PRICE
 
   // ---- which cards get the per-card (budgeted) fetches this run ----
   const S = cfg.schedule;
+  // the To watch list (edited on the site, kept in the store by the scraper helper) is refreshed every run, like `always`
+  const watched = new Set(S.always.concat((store.read('watchlist.json', { cards: [] }).cards || []).map(w => w[0])));
   function due(stamps, eligible) {
     const list = [];
     for (const c of eligible) {
       const v = (entries[c[0]] && entries[c[0]].h) || 0, last = stamps[c[0]] ? Date.parse(stamps[c[0]]) : 0;
-      const hot = S.always.includes(c[0]) || v >= S.hotEur;
+      const hot = watched.has(c[0]) || v >= S.hotEur;
       const period = (hot ? cfg.intervalMinutes / 60 : v >= S.warmEur ? S.warmEveryHours : S.coldEveryHours) * 3600e3;
       const overdue = (now - last) / period;
       if (forced.includes(c[0])) list.push([c, Infinity]);

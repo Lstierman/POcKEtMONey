@@ -1,12 +1,9 @@
 'use strict';
 const $ = id => document.getElementById(id);
-const SITES = [
-  ['cardmarket', 'Cardmarket', 'every listing: language, condition, seller'],
-  ['ebay', 'eBay', 'for sale and sold'],
-  ['pricecharting', 'PriceCharting', 'graded prices and sales']
-];
+const SITES = [['cardmarket', 'Cardmarket'], ['ebay', 'eBay'], ['pricecharting', 'PriceCharting']];
 const send = msg => new Promise(ok => chrome.runtime.sendMessage(msg, ok));
-
+const helper = (path, body) => send({ type: 'helper', path, body });
+const fmt = n => (n || 0).toLocaleString('en-US');
 function ago(iso) {
   if (!iso) return 'never';
   const m = Math.round((Date.now() - Date.parse(iso)) / 60e3);
@@ -14,88 +11,103 @@ function ago(iso) {
   const h = Math.round(m / 60); if (h < 48) return h + ' h ago';
   return Math.round(h / 24) + ' days ago';
 }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
-let status = null, job = null;
+let status = null, job = null, watch = [];
+const active = () => job && (job.status === 'running' || job.status === 'waiting');
 
-function renderSites() {
-  const busy = job && (job.status === 'running' || job.status === 'waiting');
-  $('sites').innerHTML = '';
-  for (const [key, name, what] of SITES) {
-    const s = status && status.sites[key];
-    const div = document.createElement('div'); div.className = 'site';
-    div.innerHTML = '<div class="name"></div><button>Scrape</button><div class="when"></div>';
-    div.querySelector('.name').textContent = name;
-    div.querySelector('.when').textContent = s ? 'Last scraped ' + ago(s.lastAt) + (s.cards ? ' · ' + s.cards.toLocaleString() + ' cards' : '') + ' · ' + what : what;
-    const b = div.querySelector('button'); b.disabled = !status || busy;
-    b.onclick = () => start([key]);
-    $('sites').appendChild(div);
-  }
-  $('all').disabled = !status || busy;
-}
-
+// ---------- helper status, sites, push ----------
 function renderHelper(r) {
-  if (r.status !== 200) {
+  if (!r || r.status !== 200) {
     status = null;
     $('helper').innerHTML = '<b class="err">Helper not running.</b> In the project folder run <code>npm run helper</code>';
   } else {
     status = r.data;
-    $('helper').innerHTML = '<b class="ok">Helper connected.</b> ' + (status.publish ? 'Working on a copy of the prices branch.' : 'Saving locally only.');
+    $('helper').innerHTML = '<b class="ok">Helper connected.</b> ' + (status.publish ? 'Saves every card and pushes to GitHub every 15 min.' : 'Saving locally only (started without --publish).');
   }
+  $('sites').innerHTML = !status ? '' : SITES.map(([k, name]) => {
+    const s = status.sites[k], pct = s.eligible ? Math.round(1000 * s.fresh / s.eligible) / 10 : 0;
+    return '<div class="site"><span class="name">' + name + '</span><span class="w">' + (s.watch.n ? '★ ' + s.watch.current + '/' + s.watch.n + ' up to date' : '') + '</span>' +
+      '<div class="bar"><i style="width:' + Math.max(pct, s.fresh ? 0.5 : 0) + '%"></i></div>' +
+      '<span class="when">' + fmt(s.fresh) + ' of ' + fmt(s.eligible) + ' cards (' + pct + '%) · last ' + ago(s.lastAt) + '</span></div>';
+  }).join('');
   const p = status ? status.pending : 0;
-  $('pending').textContent = p + (p === 1 ? ' capture' : ' captures') + ' waiting';
+  $('pending').textContent = p ? p + (p === 1 ? ' change' : ' changes') + ' not pushed yet' : 'Everything pushed';
   $('push').disabled = !status || !status.publish || !p;
   $('pushnote').textContent = !status ? '' : !status.publish ? 'Start the helper with npm run helper to push.'
-    : status.lastPublish ? (status.lastPublish.ok ? 'Last push ' + ago(status.lastPublish.at) : 'Last push failed: ' + status.lastPublish.error) : 'Saved locally until you push.';
-  renderSites();
+    : status.lastPublish ? (status.lastPublish.ok ? 'Last push ' + ago(status.lastPublish.at) : 'Last push failed: ' + status.lastPublish.error) : 'Pushed every 15 min and when a run ends.';
+  renderButton();
 }
+async function refresh() { renderHelper(await helper('/sites')); }
 
+// ---------- To watch ----------
+function renderWatch() {
+  $('wcount').textContent = watch.length ? watch.length + (watch.length === 1 ? ' card' : ' cards') + ' · scraped first' : '';
+  $('wl').innerHTML = !status ? '<div class="empty">Start the helper to see and edit the list.</div>' : !watch.length ? '<div class="empty">Nothing yet. Add cards here or with ★ on the site.</div>' :
+    watch.map(w => '<div class="wi"><span class="star">★</span><span class="n" title="' + esc(w.label) + '">' + esc(w.label) + '</span><span class="p">' + (w.price != null ? '€' + w.price.toFixed(2) : '') +
+      '</span><button class="x" data-rm="' + esc(w.id) + '" title="Remove from To watch">×</button></div>').join('');
+}
+async function loadWatch() { const r = await helper('/watch'); if (r && r.status === 200) watch = r.data.cards; renderWatch(); }
+$('wl').addEventListener('click', async e => {
+  const id = e.target.dataset && e.target.dataset.rm; if (!id) return;
+  await helper('/watch', { remove: [id] }); loadWatch(); refresh();
+});
+let qTimer = null;
+$('q').addEventListener('input', () => {
+  clearTimeout(qTimer); const q = $('q').value.trim();
+  if (q.length < 2) { $('sug').innerHTML = ''; return; }
+  qTimer = setTimeout(async () => {
+    const r = await helper('/cards?q=' + encodeURIComponent(q));
+    if (!r || r.status !== 200) return;
+    const have = new Set(watch.map(w => w.id));
+    $('sug').innerHTML = r.data.filter(c => !have.has(c.id)).slice(0, 8).map(c => '<button data-add="' + esc(c.id) + '"><b>' + esc(c.name) + '</b>' + (c.en && c.en !== c.name ? ' (' + esc(c.en) + ')' : '') +
+      ' <small>' + esc(c.lang.toUpperCase() + ' · ' + c.set + ' · ' + c.number) + '</small></button>').join('') || '<div class="empty">No card found.</div>';
+  }, 250);
+});
+$('sug').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-add]'); if (!b) return;
+  await helper('/watch', { add: [b.dataset.add] }); $('q').value = ''; $('sug').innerHTML = ''; loadWatch(); refresh();
+});
+
+// ---------- the run ----------
+function renderButton() {
+  $('go').textContent = active() ? 'Stop' : 'Scrape all';
+  $('go').className = active() ? 'main stop' : 'pr main';
+  $('go').disabled = !status && !active();
+}
 function renderJob() {
+  renderButton();
   const el = $('job');
-  if (!job) { el.hidden = true; renderSites(); return; }
+  if (!job) { el.hidden = true; return; }
   el.hidden = false;
-  const active = job.status === 'running' || job.status === 'waiting', total = job.items.length;
   el.className = 'job' + (job.status === 'waiting' ? ' waiting' : '');
-  const mins = (Date.now() - Date.parse(job.startedAt || Date.now())) / 60e3, rate = job.i && mins > 0.2 ? ' · ' + (job.i / mins).toFixed(1) + ' cards/min' : '';
-  $('msg').textContent = job.message || (active ? job.i + ' of ' + total + ' done' + rate : job.status);
-  $('bar').style.width = Math.round(100 * job.i / total) + '%';
-  const NAMES = { cardmarket: 'Cardmarket', ebay: 'eBay', pricecharting: 'PriceCharting' };
-  $('cur').textContent = active ? Object.keys(job.cur || {}).map(s => NAMES[s] + ': ' + job.cur[s] + (job.steps && job.steps[s] ? ' — ' + job.steps[s] : '')).join('\n') : '';
-  $('counts').textContent = job.saved + ' saved · ' + job.skipped + ' not found · ' + job.failed + ' failed';
+  const done = job.saved + job.skipped + job.failed, mins = (Date.now() - Date.parse(job.startedAt)) / 60e3;
+  $('msg').textContent = job.message || (active() ? (job.done && job.done.catalog ? 'To watch done · working through the catalog' : job.only ? 'Scraping ' + job.only : 'Updating To watch first') : job.status);
+  $('cur').textContent = active() ? Object.keys(job.cur || {}).map(s => (SITES.find(x => x[0] === s) || [s, s])[1] + ': ' + job.cur[s] + (job.steps && job.steps[s] ? ' — ' + job.steps[s] : '')).join('\n') : '';
+  $('counts').textContent = done + ' cards · ' + job.saved + ' saved · ' + job.skipped + ' not found · ' + job.failed + ' failed' + (done && mins > 0.3 ? ' · ' + (done / mins).toFixed(1) + '/min' : '');
   $('log').textContent = job.log.join('\n');
-  $('stop').hidden = !active;
-  $('resume').hidden = active || job.i >= total;
-  $('clear').hidden = active;
-  renderSites();
 }
-
-async function refresh() { renderHelper(await send({ type: 'helper', path: '/sites' })); }
-
-async function start(sites) {
-  const n = Math.max(1, Math.min(500, +$('n').value || 20)), only = $('only').value.trim();
-  const deep = $('deep').checked;
-  chrome.storage.local.set({ n, only, deep });
-  const r = await send({ type: 'start', sites, n, only, deep });
-  if (r && r.error) { job = { items: [{}], i: 0, saved: 0, skipped: 0, failed: 0, log: [], status: 'error', message: r.error }; renderJob(); }
-}
-
-$('all').onclick = () => start(SITES.map(s => s[0]));
-$('stop').onclick = () => send({ type: 'stop' });
-$('resume').onclick = () => send({ type: 'resume' });
-$('clear').onclick = async () => { await send({ type: 'clear' }); job = null; renderJob(); };
+$('go').onclick = async () => {
+  if (active()) { send({ type: 'stop' }); return; }
+  const only = $('only').value.trim(), deep = $('deep').checked;
+  chrome.storage.local.set({ deep }); // "only" is not remembered, so a test filter never sticks to the next Scrape all
+  const r = await send({ type: 'start', only, deep });
+  if (r && r.error) { job = { log: [], saved: 0, skipped: 0, failed: 0, startedAt: new Date().toISOString(), status: 'error', message: r.error }; renderJob(); }
+};
 $('push').onclick = async () => {
   $('push').disabled = true; $('pushnote').textContent = 'Pushing…';
-  const r = await send({ type: 'helper', path: '/publish', body: {} });
-  if (r.status !== 200 || r.data.ok === false) $('pushnote').textContent = 'Push failed: ' + (r.data.error || r.status);
-  await refresh();
+  const r = await helper('/publish', {});
+  if (!r || r.status !== 200 || r.data.ok === false) $('pushnote').textContent = 'Push failed: ' + ((r && r.data && r.data.error) || (r && r.status));
+  refresh();
 };
-$('saveaddr').onclick = () => chrome.storage.local.set({ helper: $('addr').value.trim().replace(/\/$/, '') }, refresh);
+$('addr').addEventListener('change', () => chrome.storage.local.set({ helper: $('addr').value.trim().replace(/\/$/, '') }, () => { refresh(); loadWatch(); }));
 
-chrome.storage.onChanged.addListener(ch => { if (ch.job) { job = ch.job.newValue || null; renderJob(); if (job && job.status !== 'running') refresh(); } });
-chrome.storage.local.get(['job', 'helper', 'n', 'only', 'deep'], s => {
-  $('deep').checked = !!s.deep;
+chrome.storage.onChanged.addListener(ch => { if (ch.job) { job = ch.job.newValue || null; renderJob(); } });
+chrome.storage.local.get(['job', 'helper', 'deep'], async s => {
   if (s.helper) $('addr').value = s.helper;
-  if (s.n) $('n').value = s.n;
-  if (s.only) $('only').value = s.only;
-  job = s.job || null; renderJob(); refresh();
+  $('deep').checked = !!s.deep;
+  job = s.job || null; renderJob();
+  await refresh(); loadWatch();
 });
 setInterval(refresh, 5000);
+setInterval(loadWatch, 15000);

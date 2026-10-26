@@ -40,11 +40,8 @@
     "dailyDays": 180
   },
   "scrape": {
-    "sites": [
-      "ebay"
-    ],
-    "top": 20,
-    "staleHours": 12,
+    "watchStaleHours": 1,
+    "staleHours": 168,
     "missRecheckHours": 168,
     "secondsBetweenRequests": 1.5,
     "parallelRequests": 2,
@@ -74,6 +71,8 @@
         7
       ],
       "conditions": true
-    }
+    },
+    "watchMissRecheckHours": 24,
+    "failRecheckHours": 12
   }
 }

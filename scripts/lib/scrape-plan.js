@@ -1,8 +1,8 @@
 // What the scraper extension (scraper-extension/) should visit next, and when each site was last scraped.
 // Used by the local helper (scripts/ingest-server.js): the extension asks it for a queue, opens the pages in your own
-// Chrome, reads them with extension/parsers.js and sends the result back to /ingest.
+// Chrome, reads them with scraper-extension/parsers.js and sends the result back to /ingest.
 const EBQ = require('./ebay.js');
-const { searchUrl: ebaySearchUrl } = require('../scrape/ebay.js');
+const ebaySearchUrl = EBQ.searchUrl;
 
 const SITES = ['cardmarket', 'ebay', 'pricecharting'];
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -12,14 +12,29 @@ const isJa = c => c[5] === 'ja';
 const enName = c => (isJa(c) ? c[9] || c[2] : c[2]);
 const label = c => `${c[2]}${isJa(c) && c[9] ? ' (' + c[9] + ')' : ''} · ${c[11]} ${c[3]}${c[4] ? '/' + c[4] : ''}`;
 
-// when each site was last scraped by a browser (extension captures and the Node scraper), and for how many cards
-function siteStatus(state, cards) {
-  const out = {};
+const H = 3600e3;
+function ages(cfg) {
+  const sc = cfg.scrape || {};
+  return { watch: (sc.watchStaleHours || 1) * H, catalog: (sc.staleHours || 168) * H, miss: (sc.missRecheckHours || 168) * H,
+    watchMiss: (sc.watchMissRecheckHours || 24) * H, fail: (sc.failRecheckHours || 12) * H };
+}
+const stampsOf = (state, site) => Object.assign({}, (state.scrape || {})[site], (state.capture || {})[site]);
+
+// per site: when it was last scraped, how many cards have browser-scraped prices (fresh: within staleHours), and how
+// many watched cards are up to date (within watchStaleHours)
+function siteStatus(state, cards, cfg = {}, watch = [], now = Date.now()) {
+  const out = {}, A = ages(cfg);
   for (const site of SITES) {
-    const stamps = Object.assign({}, (state.scrape || {})[site], (state.capture || {})[site]);
-    let last = null, n = 0;
-    for (const [id, at] of Object.entries(stamps)) { if (!cards.has(id)) continue; n++; if (!last || at > last) last = at; }
-    out[site] = { lastAt: last, cards: n, eligible: [...cards.values()].filter(c => eligible(site, c)).length };
+    const stamps = stampsOf(state, site);
+    let last = null, n = 0, fresh = 0, eligibleN = 0;
+    for (const c of cards.values()) {
+      if (!eligible(site, c)) continue; eligibleN++;
+      const at = stamps[c[0]]; if (!at) continue;
+      n++; if (!last || at > last) last = at; if (now - Date.parse(at) < A.catalog) fresh++;
+    }
+    const w = watch.filter(id => cards.has(id) && eligible(site, cards.get(id)));
+    out[site] = { lastAt: last, cards: n, fresh, eligible: eligibleN,
+      watch: { n: w.length, current: w.filter(id => stamps[id] && now - Date.parse(stamps[id]) < A.watch).length } };
   }
   return out;
 }
@@ -35,21 +50,34 @@ function expandOnly(only, cards) {
   return out;
 }
 
-// the next n cards for a site: explicit cards/sets first; otherwise the `always` list, then the most valuable cards.
-// Skipped: cards scraped on that site within staleHours, and cards the site had no match for within missRecheckHours
-// (a week by default: sites add products, and the card map gains cards, so they are tried again)
-function pickCards(site, { cards, entries, state, cfg, n = 20, only, now = Date.now() }) {
-  const sc = cfg.scrape || {}, stale = (sc.staleHours || 12) * 3600e3, missAge = (sc.missRecheckHours || 168) * 3600e3;
-  const stamps = Object.assign({}, (state.scrape || {})[site], (state.capture || {})[site]), misses = (state.misses || {})[site] || {};
+// the next n cards for a site, in the order "Scrape all" works through them:
+//   1. watched cards (the To watch list, in the order added) not scraped on this site within watchStaleHours (1 h)
+//   2. the rest of the catalog: cards never scraped on this site first, most valuable first; then the oldest
+//      scrape first, once it is older than staleHours (a week)
+// Held back: cards the site had no match for (rechecked after missRecheckHours, a week; watched cards after a day)
+// and cards that failed (retried after failRecheckHours). `only` (card ids or sets) ignores all of that.
+function pickCards(site, { cards, entries, state, cfg, n = 20, only, watch = [], now = Date.now() }) {
+  const A = ages(cfg), stamps = stampsOf(state, site), misses = (state.misses || {})[site] || {}, fails = (state.fails || {})[site] || {};
   const recent = (at, age) => at && now - Date.parse(at) < age;
-  // a miss counts only when it is newer than the last capture
-  const fresh = c => recent(stamps[c[0]], stale) || (recent(misses[c[0]], missAge) && !(stamps[c[0]] > misses[c[0]]));
+  // a miss or failure counts only when it is newer than the last capture
+  const held = (c, watched) => { const at = stamps[c[0]] || '';
+    return (recent(misses[c[0]], watched ? A.watchMiss : A.miss) && misses[c[0]] > at) || (recent(fails[c[0]], A.fail) && fails[c[0]] > at); };
   const listed = expandOnly(only, cards);
-  if (listed) return listed.filter(c => eligible(site, c)).slice(0, n);
-  const always = new Set((cfg.schedule && cfg.schedule.always) || []);
-  const value = c => (always.has(c[0]) ? Infinity : (entries[c[0]] && entries[c[0]].h) || 0);
-  return [...cards.values()].filter(c => eligible(site, c) && !fresh(c))
-    .sort((a, b) => value(b) - value(a) || (a[0] < b[0] ? -1 : 1)).slice(0, n);
+  if (listed) return listed.filter(c => eligible(site, c)).slice(0, n).map(c => [c, 'only']);
+  const out = [], watched = new Set();
+  for (const id of watch) {
+    const c = cards.get(id); if (!c || watched.has(id)) continue; watched.add(id);
+    if (eligible(site, c) && !recent(stamps[id], A.watch) && !held(c, true)) out.push([c, 'watch']);
+    if (out.length >= n) return out;
+  }
+  const value = c => (entries[c[0]] && entries[c[0]].h) || 0;
+  const rest = [...cards.values()].filter(c => !watched.has(c[0]) && eligible(site, c) && !recent(stamps[c[0]], A.catalog) && !held(c, false))
+    .sort((a, b) => { const sa = stamps[a[0]] || '', sb = stamps[b[0]] || '';
+      if (!sa !== !sb) return sa ? 1 : -1;                    // never scraped first
+      if (!sa) return value(b) - value(a) || (a[0] < b[0] ? -1 : 1); // then by value
+      return sa < sb ? -1 : sa > sb ? 1 : 0; });              // scraped: oldest first
+  for (const c of rest) { if (out.length >= n) break; out.push([c, 'catalog']); }
+  return out;
 }
 
 // one queue item: everything the extension needs to scrape this card on this site
@@ -99,4 +127,4 @@ function plan(site, c, { cfg, urls = {}, cmInfo = null }) {
   throw new Error('unknown site ' + site);
 }
 
-module.exports = { SITES, siteStatus, pickCards, plan, expandOnly, slug, cmSearchUrl };
+module.exports = { SITES, siteStatus, pickCards, plan, expandOnly, slug, cmSearchUrl, label };

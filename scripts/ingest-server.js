@@ -1,18 +1,22 @@
-// Local helper for the capture extension (extension/). Receives what the extension read on a Cardmarket, eBay or
-// PriceCharting page you opened, works out which card it is, and stores it in the price store, in the same files and
-// format as the hourly collector (listings/<site>/<set>/<card>.json, summary.json.gz, history/, validated on write).
+// Local helper for the scraper extension (scraper-extension/) and the site's To watch list.
 //
-//   npm run ingest -- [--store=store] [--port=8787] [--publish] [--publish-minutes=10]
-//   npm run helper    (the same with --publish --publish-minutes=0: works on a copy of the prices branch, pushes only
-//                      when you click "Push to GitHub" in the scraper extension, or when you stop it with Ctrl+C)
+//   npm run helper    works on a copy of the "prices" branch in store/, pushes new data every 15 minutes, when you
+//                     click "Push to GitHub" in the extension, when a run stops, and when you stop it with Ctrl+C
+//   node scripts/ingest-server.js [--store=store] [--port=8787] [--publish] [--publish-minutes=15]
+//                     without --publish: a local store only, nothing is pushed
 //
-// The scraper extension (scraper-extension/) also asks it what to visit: GET /sites (when each site was last scraped),
-// GET /queue?site=…&n=…&only=… (the next cards with their URLs, scripts/lib/scrape-plan.js), POST /publish.
+// It decides what to scrape (scripts/lib/scrape-plan.js), stores what the extension read in the same files and
+// format as the hourly collector (listings/<site>/<set>/<card>.json, summary.json.gz, history/, validated on write),
+// and keeps the To watch list (watchlist.json in the store, so it is pushed and the site can show it).
 //
-// --publish: the store becomes a worktree of the "prices" branch; every few minutes new captures are pushed. If the
-// hourly collector pushed in between, the store is reset to that version and the captures are replayed on top
-// (journal: build/ingest-journal.jsonl), so neither side loses data.
-// It also serves the store at http://127.0.0.1:<port>/store/ so a locally built page sees captures immediately.
+//   GET  /sites                  per site: last scrape, cards with prices, watched cards up to date
+//   GET  /queue?site=&n=&only=   the next cards to scrape: To watch first, then the catalog
+//   POST /ingest                 one page's prices          POST /skip   no match (or failed) for a card
+//   GET  /watch                  the To watch list          POST /watch  { add: [ids], remove: [ids] }
+//   GET  /cards?q=               card search                POST /publish   push now
+//
+// Every change is also written to a journal (build/ingest-journal.jsonl). If the hourly collector pushed in between,
+// the store is reset to its version and the changes not pushed yet are replayed on top, so neither side loses data.
 const http = require('http'), fs = require('fs'), path = require('path'), zlib = require('zlib'), cp = require('child_process');
 const P = require('../src/prices.js');
 const { Store, SCHEMA } = require('./lib/store.js');
@@ -23,9 +27,9 @@ const PLAN = require('./lib/scrape-plan.js'), EBQ = require('./lib/ebay.js');
 const root = path.join(__dirname, '..');
 const arg = (n, d) => { const a = process.argv.find(x => x === '--' + n || x.startsWith('--' + n + '=')); return a ? (a.includes('=') ? a.split('=').slice(1).join('=') : true) : d; };
 const dir = path.resolve(root, String(arg('store', 'store'))), port = +arg('port', 8787);
-const journalF = path.join(root, 'build/ingest-journal.jsonl'), debugDir = path.join(root, 'build/ingest-debug');
+const journalF = path.resolve(root, String(arg('journal', 'build/ingest-journal.jsonl'))), debugDir = path.join(root, 'build/ingest-debug');
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
-const every = +arg('publish-minutes', 10); // with --publish: push every N minutes; 0 = only when asked (POST /publish) and on exit
+const every = +arg('publish-minutes', 15); // with --publish: push every N minutes; 0 = only when asked (POST /publish) and on exit
 
 // ---------- card lookup ----------
 // The card map changes with the daily build (cards added or removed): it is re-read whenever the file changes, so a
@@ -97,7 +101,24 @@ function load() {
   state.urls = state.urls || {}; state.urls.cardmarket = state.urls.cardmarket || {}; state.urls.pricecharting = state.urls.pricecharting || {};
   for (const [pc, id] of byPc) if (!state.urls.pricecharting[id]) state.urls.pricecharting[id] = pc;
   if (sum && sum.fx) { fx = sum.fx; fxDate = sum.fxDate; }
+  // the To watch list; a new store starts with the collector's `always` cards
+  watch = store.read('watchlist.json', null);
+  if (!watch) watch = { v: SCHEMA, at: new Date().toISOString(), cards: ((cfg.schedule && cfg.schedule.always) || []).map(id => [id, new Date().toISOString()]) };
 }
+let watch = null;
+const watchIds = () => watch.cards.map(w => w[0]);
+function applyWatch(op, at) { // { add: [ids], remove: [ids] }; returns whether anything changed
+  const have = new Set(watchIds()); let changed = false;
+  for (const id of op.remove || []) if (have.has(id)) { watch.cards = watch.cards.filter(w => w[0] !== id); have.delete(id); changed = true; }
+  for (const id of op.add || []) if (cards.has(id) && !have.has(id)) { watch.cards.push([id, at]); have.add(id); changed = true; }
+  if (changed) { watch.at = at; store.write('watchlist.json', watch, 'watchlist'); store.written = []; }
+  return changed;
+}
+function applySkip(k, at) { // { site, card, kind: 'miss' | 'fail' }
+  const key = k.kind === 'fail' ? 'fails' : 'misses';
+  (state[key] = state[key] || {}); (state[key][k.site] = state[key][k.site] || {})[k.card] = at;
+}
+function journal(j) { fs.mkdirSync(path.dirname(journalF), { recursive: true }); fs.appendFileSync(journalF, JSON.stringify(j) + '\n'); pending++; }
 const entries = () => (sum = sum || { v: SCHEMA, at: new Date().toISOString(), sources: {}, cards: {} }).cards;
 function saveAll(ids) {
   const at = new Date().toISOString(), E = entries();
@@ -168,14 +189,19 @@ function pull() {
 function replay() {
   if (!fs.existsSync(journalF)) return 0;
   const lines = fs.readFileSync(journalF, 'utf8').split('\n').filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(j => j && !j.published);
-  const ids = [];
+  const ids = []; let n = 0;
+  if (!lines.length) return 0;
   for (const j of lines) {
-    const c = cards.get(j.card); if (!c) continue;
-    try { apply(j.m, c); (state.capture[j.m.site] = state.capture[j.m.site] || {})[c[0]] = j.at; ids.push(c[0]); }
-    catch (e) { console.warn('skipped an old capture of ' + j.card + ': ' + e.message); }
+    try {
+      if (j.watch) { applyWatch(j.watch, j.at); n++; continue; }
+      if (j.skip) { applySkip(j.skip, j.at); n++; continue; }
+      const c = cards.get(j.card); if (!c) continue;
+      apply(j.m, c); (state.capture[j.m.site] = state.capture[j.m.site] || {})[c[0]] = j.at; ids.push(c[0]); n++;
+    } catch (e) { console.warn('skipped an old change (' + (j.card || 'watch list') + '): ' + e.message); }
   }
-  if (ids.length) { saveAll(ids); store.written = []; }
-  return ids.length;
+  if (ids.length) saveAll(ids); else store.write('state.json', state, 'state');
+  store.written = [];
+  return n;
 }
 async function publish() {
   if (publishing) return { ok: false, error: 'already pushing' };
@@ -207,7 +233,8 @@ async function publish() {
 
 // ---------- http ----------
 function send(res, code, body, type) {
-  res.writeHead(code, { 'Content-Type': type || 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type', 'Cache-Control': 'no-store' });
+  res.writeHead(code, { 'Content-Type': type || 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Private-Network': 'true', 'Cache-Control': 'no-store' });
   res.end(type ? body : JSON.stringify(body));
 }
 function body(req) { return new Promise((ok, no) => { let b = ''; req.on('data', c => { b += c; if (b.length > 30e6) req.destroy(); }); req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { no(e); } }); }); }
@@ -218,23 +245,33 @@ async function handle(req, res) {
   if (u.pathname === '/status') return send(res, 200, { ok: true, store: dir, publish: !!arg('publish'), pending, cards: Object.keys(entries()).length, fx: fx && fx.USD, scrapedAt: meta && meta.scrapedAt });
   if (u.pathname === '/sites' || u.pathname === '/queue') refreshCards();
   if (u.pathname === '/sites') return send(res, 200, {
-    sites: PLAN.siteStatus(state || {}, cards), publish: !!arg('publish'), pending, lastPublish,
+    sites: PLAN.siteStatus(state || {}, cards, cfg, watchIds()), watch: watch.cards.length, publish: !!arg('publish'), pending, lastPublish,
     collectorAt: (meta && meta.at) || null, store: dir });
+  if (u.pathname === '/watch' && req.method === 'GET') return send(res, 200, { at: watch.at, cards: watch.cards.map(([id, at]) => {
+    const c = cards.get(id), e = entries()[id];
+    return c ? { id, at, label: PLAN.label(c), name: c[2], lang: c[5], price: e && e.h != null ? e.h : null } : { id, at, label: id + ' (no longer in the catalog)' };
+  }) });
+  if (u.pathname === '/watch' && req.method === 'POST') {
+    const m = await body(req), op = { add: [].concat(m.add || []).map(String), remove: [].concat(m.remove || []).map(String) };
+    const unknown = op.add.filter(id => !cards.has(id)), at = new Date().toISOString();
+    if (applyWatch(op, at)) { journal({ at, watch: op }); console.log(`${at.slice(11, 19)} To watch: ${op.add.length ? '+' + op.add.join(', +') : ''}${op.remove.length ? ' -' + op.remove.join(', -') : ''}`); }
+    return send(res, 200, { ok: true, cards: watchIds(), unknown });
+  }
   if (u.pathname === '/queue') {
     const site = u.searchParams.get('site');
     if (!PLAN.SITES.includes(site)) return send(res, 400, { error: 'site must be one of ' + PLAN.SITES.join(', ') });
     const n = Math.max(1, Math.min(500, +u.searchParams.get('n') || 20)), only = u.searchParams.get('only') || '';
-    const list = PLAN.pickCards(site, { cards, entries: entries(), state, cfg, n, only });
+    const list = PLAN.pickCards(site, { cards, entries: entries(), state, cfg, n, only, watch: watchIds() });
     const sc = cfg.scrape || {}, pace = { gap: sc.secondsBetweenRequests || 1.5, conc: sc.parallelRequests || 2, pageSize: (sc.cardmarket && sc.cardmarket.pageSize) || 50 };
     const info = site === 'cardmarket' ? await cmCatalog() : null;
-    return send(res, 200, { site, items: list.map(c => PLAN.plan(site, c, { cfg, urls: state.urls, cmInfo: info })), pace });
+    return send(res, 200, { site, items: list.map(([c, phase]) => Object.assign(PLAN.plan(site, c, { cfg, urls: state.urls, cmInfo: info }), { phase })), pace });
   }
   if (u.pathname === '/skip' && req.method === 'POST') { // the scraper found nothing for this card: don't queue it again for staleHours
     const m = await body(req);
     if (!PLAN.SITES.includes(m.site) || !cards.has(m.card)) return send(res, 400, { error: 'site and card required' });
-    state.misses = state.misses || {}; (state.misses[m.site] = state.misses[m.site] || {})[m.card] = new Date().toISOString();
-    store.write('state.json', state, 'state'); store.written = [];
-    console.log(`${new Date().toISOString().slice(11, 19)} ${m.card} ${m.site}: skipped (${String(m.reason || 'no match').slice(0, 120)})`);
+    const at = new Date().toISOString(), k = { site: m.site, card: m.card, kind: m.kind === 'fail' ? 'fail' : 'miss' };
+    applySkip(k, at); store.write('state.json', state, 'state'); store.written = []; journal({ at, skip: k });
+    console.log(`${at.slice(11, 19)} ${m.card} ${m.site}: ${k.kind === 'fail' ? 'failed' : 'no match'} (${String(m.reason || '').slice(0, 120)})`);
     return send(res, 200, { ok: true });
   }
   if (u.pathname === '/publish' && req.method === 'POST') {
@@ -275,8 +312,7 @@ async function handle(req, res) {
       return send(res, 500, { error: 'not saved: ' + e.message });
     }
     store.written = [];
-    fs.mkdirSync(path.dirname(journalF), { recursive: true }); fs.appendFileSync(journalF, JSON.stringify(j) + '\n');
-    pending++;
+    journal(j);
     const e = entries()[id], cov = P.coverage({ guide: e.g, listings: e.ln || e.ctn, tcg: e.t, ebayActive: e.ea, ebaySold: e.es || (e.pc && e.pc.n), graded: e.pc && e.pc.g.some(x => x != null) });
     console.log(`${at.slice(11, 19)} ${id} ${report}`);
     return send(res, 200, { ok: true, card: search(id, 1)[0], report, coverage: cov.tier + ' (' + cov.n + '/6 in the store)', pending });

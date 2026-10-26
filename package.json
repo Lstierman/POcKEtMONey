@@ -9,11 +9,6 @@
     "refresh": "npm run sources && npm run graded && npm run build",
     "collect": "node scripts/collect.js store",
     "test": "node --test test/collect.test.js test/scraper.test.js",
-    "scrape": "node scripts/scrape.js",
-    "ingest": "node scripts/ingest-server.js",
-    "helper": "node scripts/ingest-server.js --publish --publish-minutes=0"
-  },
-  "devDependencies": {
-    "puppeteer-core": "23.11.1"
+    "helper": "node scripts/ingest-server.js --publish --publish-minutes=15"
   }
 }
