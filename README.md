@@ -5,7 +5,8 @@ Every English and Japanese Pokémon TCG card in one page that works offline, sea
 - **33,641 cards**: 20,635 English (Base Set through *30th Celebration*) and 13,006 Japanese prints, each language as its own card with its own prices.
 - **Prices**: Cardmarket (EUR, per variant, 6 weeks of history), TCGplayer (USD, per variant, 2 weeks of history), and PriceCharting graded prices with recent sold listings (linked) for the cards in `data/pricecharting/`.
 - **Hourly prices**: a collector refreshes Cardmarket (price guide and every individual listing, averaged per language and condition), TCGplayer and eBay (for sale and sold) every hour into a separate price store. The cards on screen are also checked live from the browser.
-- **Price data label** on every card, from *No data* to *Complete* (all six methods), and **one currency** for everything: euro or dollar, converted at the ECB rate.
+- **Data score** on every card, from 0 to 1: how much of everything there is to collect for it is collected and up to date. **One currency** for everything: euro or dollar, converted at the ECB rate.
+- **Scraping dashboard** on the site: the browser scraper live, the To watch list, how much of the catalog is scraped, the score across the catalog.
 - **Search**: names in English, Japanese, German, French, Spanish, Italian and Portuguese (`glurak` finds Charizard), typo-tolerant (`charzard`), plus field queries.
 
 Open `index.html` in a browser. Served from GitHub Pages, card images load as well.
@@ -22,7 +23,7 @@ Open `index.html` in a browser. Served from GitHub Pages, card images load as we
 | `lang:ja pikachu` | Japanese prints only |
 | `has:sales` | cards with graded prices and sold listings |
 | `has:price`, `-has:price` | cards with / without any known price |
-| `data>=4` | cards with at least 4 of the 6 price-data methods |
+| `score>=0.5` | cards with a data score of at least 0.5 |
 | `-supporter` | excludes a word |
 
 ## Prices
@@ -131,13 +132,41 @@ Each section also holds its own history graphs: the snapshot history of that sou
 
 ### Language bundles
 
-The same card printed in different languages is bundled: one tile per card (badge `EN · JP`), with an **All languages** table in the details. The table lists every print with its price, data label and Cardmarket link, plus Cardmarket listings per language across all prints together. Prints are matched at build time when they share Cardmarket's *metacard* (its id for one card's text across all products, from Cardmarket's public product catalog) and the illustrator. For Pokémon without a Cardmarket id, the match uses Pokédex numbers, name suffix (ex, V, GX…), HP, types and illustrator. Groups with two prints in one language are split by rarity class, so a regular card and its full art stay apart. Same-art reprints are included.
+The same card printed in different languages is bundled: one tile per card (badge `EN · JP`), with an **All languages** table in the details. The table lists every print with its price, data score and Cardmarket link, plus Cardmarket listings per language across all prints together. Prints are matched at build time when they share Cardmarket's *metacard* (its id for one card's text across all products, from Cardmarket's public product catalog) and the illustrator. For Pokémon without a Cardmarket id, the match uses Pokédex numbers, name suffix (ex, V, GX…), HP, types and illustrator. Groups with two prints in one language are split by rarity class, so a regular card and its full art stay apart. Same-art reprints are included.
 
 5,753 bundles cover 12,580 prints. Cardmarket ids for about 5,800 English cards come from TCGdex (`scripts/fetch-tcgdex-products.js`, cached in `data/tcgdex-products.json`, so only new cards are looked up). The checkbox under *Language* switches bundling off.
 
-### Price data label
+### Data score
 
-Each card carries a label counting which of six methods have data for it: Cardmarket price guide · Cardmarket listings · TCGplayer · eBay for sale · sold listings (eBay or PriceCharting) · graded prices. The tiers run **No data → Thin → Fair → Good → Strong → Rich → Complete**. The label is a chip on the card face, a checklist in the card details, a filter in the side rail, and the `data>=N` query.
+Every card has a score from 0 to 1: how much of everything there is to collect for it is collected, and how fresh it is. Each part counts with its weight, gets full credit while younger than the first age, then linearly less until it counts zero:
+
+| Part | Weight | Full credit | Zero after |
+|---|---|---|---|
+| Cardmarket listings (language × condition) | 0.25 | 1 day | 30 days |
+| Sold (eBay, PriceCharting) | 0.20 | 3 days | 60 days |
+| Cardmarket price guide | 0.15 | 2 days | 30 days |
+| eBay for sale | 0.15 | 1 day | 30 days |
+| Graded prices (PriceCharting) | 0.15 | 7 days | 90 days |
+| TCGplayer | 0.10 | 2 days | 30 days |
+
+"Checked, nothing listed" counts as collected. Cardmarket listings where only each language and condition's cheapest offers were loaded count 0.6–1.0, by the share of complete views (`lc` in the store). Parts that can't apply (TCGplayer for Japanese prints) are left out and the rest re-weighted. The score is the chip on every card, a breakdown at the top of the card details, a filter in the side rail, and the `score>=0.5` query (`src/prices.js` `dataScore`).
+
+### Card details
+
+Every card shows the same sections in the same order, each with a status pill (*updated 3 h ago*, *never collected*, *not applicable*), so nothing appears or disappears from one card to the next: overview (headline price and the data score per part), every price (by grade, language, for sale and sold), all prints & languages, Cardmarket price guide, Cardmarket listings, TCGplayer, eBay for sale, sold (eBay and PriceCharting), graded prices, card text, details. PriceCharting data the scraper collected replaces the build's snapshot when it is newer.
+
+### Scraping dashboard
+
+*Scraping* in the header (or `#scraping` in the address) opens the dashboard. With the scraper extension installed and `npm run helper` running, the site talks to both directly: the extension through a small bridge script (`scraper-extension/bridge.js`, active only on pages marked `<meta name="pocketmoney" content="app">`), the helper on `http://127.0.0.1:8787` (Settings → *Scraper helper*). It shows:
+
+- connections (extension, helper, where the price store is read from, changes not pushed yet, *Push now*)
+- the run: *Scrape all* / *Stop*, what each site is working on (click to open the card), counts, cards per minute, the log
+- the To watch list with each card's score, price and last update
+- per site how much of the catalog was scraped this week, and the hourly collector's sources
+- the data score across the whole catalog
+- *Just saved*: cards as the scraper saves them
+
+While the helper runs, the site reads the price store from it rather than from GitHub, and polls it every 5 seconds for saved cards (`GET /changes`), so tiles, the open card and the dashboard update live. The header's *Scraping* dot is green while a run goes, amber when it waits for a human check.
 
 ### Currency
 
@@ -163,7 +192,7 @@ scripts/fetch-pricecharting.js refreshes graded prices from the PriceCharting AP
 scripts/collect.js             hourly price collector (writes the price store)
 scripts/ingest-server.js       the scraper's local helper (npm run helper): To watch list, what to scrape next, stores and pushes
 scripts/lib/scrape-plan.js     which cards and URLs the scraper visits next (To watch first, then the catalog)
-scraper-extension/             scraper extension: collects prices in your own Chrome
+scraper-extension/             scraper extension: collects prices in your own Chrome; bridge.js links it to the site's dashboard
 scripts/lib/                   store (schemas, atomic writes, history), public sources, Cardmarket and eBay clients
 src/prices.js                  listing statistics, currency conversion, data-coverage label (page + collector)
 prices.config.json             interval, budgets, marketplaces, schedule

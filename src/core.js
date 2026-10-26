@@ -145,9 +145,9 @@
     this.eur = new Float32Array(N).fill(NaN);
     this.usd = new Float32Array(N).fill(NaN);
     this.chg = { eur: new Float32Array(N).fill(NaN), usd: new Float32Array(N).fill(NaN), any: new Float32Array(N).fill(NaN) };
-    this.priced = new Uint32Array(W); // one bit per card with any price data (coverage >= 1)
-    this.cov = new Uint8Array(N); // price-data coverage 0..6 (see src/prices.js METHODS), set by the page
-    this.covBits = []; for (var cb = 0; cb <= 6; cb++) this.covBits.push(new Uint32Array(W));
+    this.priced = new Uint32Array(W); // one bit per card with any price data
+    this.cov = new Uint8Array(N); // data score in 0.05 steps, 0..20 (src/prices.js dataScore), set by the page
+    this.covBits = []; for (var cb = 0; cb <= 20; cb++) this.covBits.push(new Uint32Array(W));
     function med(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[b.length >> 1] : NaN; }
     function change(h) { // h = [startIdx, v...]; robust % change: median of last 3 vs median of 3 points a week earlier
       if (!h) return NaN; var v = h.slice(1).filter(function (x) { return x != null; });
@@ -221,12 +221,13 @@
     this.stats = { cards: N, sets: sets.length, terms: this.ix.all.terms.length, postings: postings, buildMs: now() - t0 };
   }
 
-  // the page's price model decided a card's headline (in EUR and USD, null when unknown) and its coverage 0..6
-  Catalog.prototype.setValue = function (id, eur, usd, cov) {
+  // the page's price model decided a card's headline (in EUR and USD, null when unknown), its data score bucket 0..20
+  // and whether any price data is known
+  Catalog.prototype.setValue = function (id, eur, usd, cov, known) {
     this.eur[id] = eur == null ? NaN : eur; this.usd[id] = usd == null ? NaN : usd;
     var w = id >>> 5, bit = (1 << (id & 31)) >>> 0, old = this.cov[id];
     if (old !== cov) { this.covBits[old][w] &= ~bit; this.covBits[cov][w] |= bit; this.cov[id] = cov; }
-    if (cov > 0) this.priced[w] |= bit; else this.priced[w] &= ~bit;
+    if (known) this.priced[w] |= bit; else this.priced[w] &= ~bit;
   };
   Catalog.prototype.isPriced = function (id) { return ((this.priced[id >>> 5] >>> (id & 31)) & 1) === 1; };
 
@@ -286,7 +287,10 @@
 
     parseQuery(q || '').forEach(function (p) {
       var field = p.field, op = p.op;
-      if (field && (field === 'hp' || field === 'dex' || field === 'no' || field === 'number' || field === 'data') && /^\d+$/.test(p.value)) {
+      if (field === 'score' && /^(0?\.\d+|1(\.0+)?|0)$/.test(p.value)) { // score>=0.5: compared in the engine's 0.05 steps
+        numeric.push({ k: 'score', op: op === ':' ? '>=' : op, v: Math.round(+p.value * 20), neg: p.neg }); return;
+      }
+      if (field && (field === 'hp' || field === 'dex' || field === 'no' || field === 'number') && /^\d+$/.test(p.value)) {
         numeric.push({ k: field === 'number' ? 'no' : field, op: op === ':' ? '=' : op, v: +p.value, neg: p.neg }); return;
       }
       if (field && (field === 'price' || field === 'eur' || field === 'usd') && op && /^\d+(\.\d+)?$/.test(p.value)) {
@@ -331,7 +335,7 @@
             var c = numeric[n], vals;
             if (c.k === 'hp') vals = [this.hp[id]];
             else if (c.k === 'dex') vals = this.dex[id] || [];
-            else if (c.k === 'data') vals = [this.cov[id]];
+            else if (c.k === 'score') vals = [this.cov[id]];
             else if (c.k === 'eur' || c.k === 'usd') vals = isNaN(this[c.k][id]) ? [] : [this[c.k][id]];
             else vals = [this.numKey[id]];
             var ok = vals.some(function (x) { return c.op === '>' ? x > c.v : c.op === '<' ? x < c.v : c.op === '>=' ? x >= c.v : c.op === '<=' ? x <= c.v : x === c.v; });
@@ -363,8 +367,8 @@
     var covCounts = this.covBits.map(function (b) { return popcount(andInto(allPriced.slice(), b)); });
     var nAll = popcount(allPriced), nKnown = popcount(andInto(allPriced, this.priced));
     if (f.priced === 'yes') andInto(bits, this.priced); else if (f.priced === 'no') andNotInto(bits, this.priced);
-    if (f.cov) { // minimum coverage 1..6
-      var cs = new Uint32Array(W); for (var ck = +f.cov; ck <= 6; ck++) orInto(cs, this.covBits[ck]); andInto(bits, cs);
+    if (f.cov) { // minimum data score, in 0.05 steps (1..20)
+      var cs = new Uint32Array(W); for (var ck = +f.cov; ck <= 20; ck++) orInto(cs, this.covBits[ck]); andInto(bits, cs);
     }
     withoutType = superSel ? andInto(bits.slice(), superSel) : bits.slice();
     withoutSuper = typeSel ? andInto(bits.slice(), typeSel) : bits.slice();

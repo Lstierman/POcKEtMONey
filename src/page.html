@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="pocketmoney" content="app">
 <title>Pokémon Card Index</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -100,19 +101,21 @@ select { height: 40px; border: 1.5px solid var(--line); background: var(--raised
 .spark .lbl { display: flex; justify-content: space-between; font: 11px/1.2 var(--f-mono); color: var(--muted) }
 .spark .big { font-family: var(--f-display); font-weight: 800; font-size: 18px; color: var(--ink); display: flex; gap: 8px; align-items: baseline }
 /* price-data label: one pip per method, coloured by tier (No data .. Complete) */
-.cov { display: inline-flex; gap: 2px; align-items: center; flex: none; --cv: var(--muted) }
-.cov i { width: 4px; height: 10px; border-radius: 1px; background: var(--line) }
-.cov i.on { background: var(--cv) }
-.cov.c1 { --cv: var(--down) } .cov.c2 { --cv: var(--warn) } .cov.c3, .cov.c4 { --cv: var(--accent) } .cov.c5, .cov.c6 { --cv: var(--up) }
-.cov.big i { width: 9px; height: 15px; border-radius: 2px }
-.cov.big b { font: 800 12px/1 var(--f-display); letter-spacing: .07em; text-transform: uppercase; margin-left: 7px; color: var(--cv) }
-.cov.c0.big b { color: var(--muted) }
-/* on a card face: dark chip, bottom right */
-.cov.tag { position: absolute; right: 5px; bottom: 5px; z-index: 1; background: rgba(15,19,26,.82); border-radius: 5px; padding: 3px 5px 3px 4px; gap: 1.5px }
-.cov.tag i { width: 3.5px; height: 9px; background: rgba(255,255,255,.22) }
-.cov.tag.c1 { --cv: #ff8a7a } .cov.tag.c2 { --cv: #f0b45a } .cov.tag.c3, .cov.tag.c4 { --cv: #8aa6ff } .cov.tag.c5, .cov.tag.c6 { --cv: #5ed38a }
-.cov.tag b { font: 800 8.5px/1 var(--f-display); letter-spacing: .08em; text-transform: uppercase; color: #fff; margin-left: 4px }
-.cov.tag.c0 b { color: #c9ced6 }
+.subl { color: var(--muted); font-size: 13px; margin: 2px 0 6px }
+details.sec > summary .fig { flex: none }
+.st { flex: none; font: 700 10.5px/1 var(--f-display); padding: 3px 7px; border-radius: 99px; background: var(--line); color: var(--muted); white-space: nowrap }
+.st-fresh { background: #d7f0df; color: #157a3d } .st-aging { background: #fbecc8; color: #8a5a00 } .st-stale { background: #f8d9d4; color: #a3271c } .st-missing { background: transparent; border: 1px dashed var(--line) } .st-na { opacity: .6 }
+.score { display: grid; gap: 6px; margin-top: 6px } .score .sh { display: flex; align-items: center; gap: 10px; font-weight: 700 }
+.parts { border-collapse: collapse; font-size: 12.5px; width: 100% } .parts td { padding: 3px 6px 3px 0; border-top: 1px solid var(--line) }
+.parts td.w, .parts td.a { color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums }
+.parts .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--line) }
+.parts .st-fresh .dot { background: #1f9d55 } .parts .st-aging .dot { background: #e0a100 } .parts .st-stale .dot { background: #d64535 } .parts .st-na td { opacity: .55 }
+.cov { position: relative; display: inline-flex; align-items: center; flex: none; width: 46px; height: 16px; border-radius: 4px; background: var(--line); overflow: hidden }
+.cov i { position: absolute; inset: 0 auto 0 0; background: var(--cv) }
+.cov b { position: relative; width: 100%; text-align: center; font: 800 10px/1 var(--f-display); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.45); font-variant-numeric: tabular-nums }
+.cov.big { width: 120px; height: 24px; border-radius: 6px } .cov.big b { font-size: 13px }
+.cov.tag { position: absolute; right: 5px; bottom: 5px; z-index: 1; width: 38px; height: 15px; background: rgba(15,19,26,.78) }
+.cov.tag b { font-size: 9px }
 ul.cl { list-style: none; margin: 2px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 12px; font-size: 12.5px }
 ul.cl li::before { content: "✓"; font-weight: 800; color: var(--up); margin-right: 6px }
 ul.cl li.n { color: var(--muted) } ul.cl li.n::before { content: "✗"; color: var(--muted) }
@@ -168,6 +171,32 @@ table.bt td:nth-child(2), table.bt th:nth-child(2) { min-width: 150px; text-alig
 .lb { font: 700 10px/1 var(--f-display); letter-spacing: .08em; background: var(--ink); color: var(--bg); border-radius: 4px; padding: 3px 4px }
 .lang.multi { background: var(--accent); color: var(--accent-ink) }
 .cv { text-decoration: underline dotted color-mix(in srgb, var(--muted) 60%, transparent); text-underline-offset: 3px }
+.scrapebtn { width: auto; padding: 0 12px; display: inline-flex; align-items: center; gap: 7px; font: 700 13px/1 var(--f-display) }
+.ldot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); flex: none }
+.ldot.idle { background: #2149c4 } .ldot.run { background: #1f9d55; animation: pulse 1.2s infinite } .ldot.wait { background: #e0a100; animation: pulse .6s infinite }
+@keyframes pulse { 50% { opacity: .35 } }
+dialog#dash { width: min(1180px, calc(100vw - 24px)) }
+.dash { padding: 22px; max-height: calc(100dvh - 24px); overflow: auto; display: grid; gap: 14px }
+.dash > header { display: flex; align-items: center; gap: 12px } .dash > header h2 { margin: 0; flex: 1; font-family: var(--f-display); font-stretch: 80%; font-size: 26px }
+.dgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; align-items: start }
+.dcard { border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--raised); display: grid; gap: 8px; min-width: 0 }
+.dcard h3 { margin: 0; font: 800 13px/1.2 var(--f-display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; gap: 8px }
+.dcard.wide { grid-column: 1 / -1 }
+.conn { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: baseline; font-size: 13.5px }
+.conn .ok { color: #157a3d; font-weight: 700 } .conn .no { color: #a3271c; font-weight: 700 } .conn small { color: var(--muted) }
+.dbtn { height: 36px; padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: 700 13.5px/1 var(--f-display); cursor: pointer }
+.dbtn.pr { background: #2149c4; border-color: #2149c4; color: #fff } .dbtn.stop { border-color: #a3271c; color: #a3271c } .dbtn:disabled { opacity: .45; cursor: default }
+.runmsg { font-weight: 700 } .runmsg.wait { color: #8a5a00 }
+.cur3 { display: grid; gap: 4px; font-size: 13px } .cur3 div { display: grid; grid-template-columns: 96px 1fr; gap: 8px } .cur3 b { color: var(--muted) } .cur3 small { color: var(--muted) }
+.dlog { max-height: 180px; overflow: auto; font: 11.5px/1.5 var(--f-mono, ui-monospace, monospace); color: var(--muted); white-space: pre-wrap; background: var(--surface); border-radius: 8px; padding: 6px 8px; margin: 0 }
+.dstat { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--muted) } .dstat b { color: var(--ink); font-variant-numeric: tabular-nums }
+.sitebar { display: grid; gap: 3px; font-size: 13px } .sitebar .row { display: flex; justify-content: space-between; gap: 8px } .sitebar small { color: var(--muted) }
+.pbar { height: 7px; border-radius: 4px; background: var(--line); overflow: hidden } .pbar i { display: block; height: 100%; background: #2149c4 }
+.hist { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; align-items: end; height: 120px }
+.hist div { display: grid; gap: 3px; align-items: end; height: 100%; text-align: center; font-size: 10px; color: var(--muted) } .hist i { display: block; border-radius: 3px 3px 0 0; min-height: 2px }
+.dtable { width: 100%; border-collapse: collapse; font-size: 13px } .dtable td { padding: 5px 6px 5px 0; border-top: 1px solid var(--line); vertical-align: middle } .dtable td.r { text-align: right; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums }
+.dtable button.link { text-align: left }
+.dopts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted) } .dopts input[type=text] { height: 32px; border: 1.5px solid var(--line); border-radius: 8px; padding: 0 8px; background: var(--surface); color: var(--ink); min-width: 180px }
 .gear { height: 40px; width: 40px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--raised); cursor: pointer; font-size: 18px; flex: none }
 dialog#settings { width: min(520px, calc(100vw - 24px)) }
 .setf { display: grid; gap: 14px; padding: 22px; max-height: calc(100dvh - 24px); overflow: auto }
@@ -327,10 +356,11 @@ a.ext { color: var(--accent); font-weight: 700 }
         <option value="falling">Falling this week</option>
       </select>
       <div class="cur" role="group" aria-label="Show prices in"><button type="button" data-cur="eur" aria-pressed="true" title="Show every price in euro">€</button><button type="button" data-cur="usd" aria-pressed="false" title="Show every price in US dollar">$</button></div>
+      <button type="button" class="gear scrapebtn" id="dashBtn" title="Scraping dashboard" aria-label="Scraping dashboard"><span class="ldot" id="ldot"></span>Scraping</button>
       <button type="button" class="gear" id="setBtn" title="Settings" aria-label="Settings">⚙</button>
     </div>
     <div class="hint" id="hints" aria-label="Example searches">
-      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">-has:price</button><button type="button">data&gt;=4</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
+      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">-has:price</button><button type="button">score&gt;=0.5</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
     </div>
   </div>
 </header>
@@ -351,7 +381,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     </div>
     <div class="group"><h3>To watch</h3><button type="button" class="chip plain" id="fWatch" aria-pressed="false">★ Only cards I watch <span class="n" id="fWatchN">0</span></button></div>
     <div class="group"><h3>Price</h3><div class="seg seg3" id="fPriced"></div></div>
-    <div class="group"><h3>Price data (at least)</h3><div class="chips" id="fCov"></div></div>
+    <div class="group"><h3>Data score (at least)</h3><div class="chips" id="fCov"></div></div>
     <div class="group"><h3>Sales data</h3>
       <label class="check"><input type="checkbox" id="fSales"> Graded prices &amp; recent sales</label>
     </div>
@@ -364,8 +394,8 @@ a.ext { color: var(--accent); font-weight: 700 }
       <p><b>Prices</b> come from three layers, newest wins per source: the snapshot built into the page, the hourly price store (Cardmarket price guide and listings, TCGplayer, eBay for sale and sold), and live checks this browser makes for the cards on screen. A green dot means the figure is newer than the snapshot. Every price is shown in the currency picked in the header (€ or $); the other currency is converted at the ECB rate, and a dotted underline shows the original.</p>
       <p><b>Evidence:</b> every price section in a card's details ends with links to its sources: the Cardmarket and TCGplayer product pages, the API response or data file each figure was read from, the exact eBay searches, and each listing's own page. Its history graphs sit in the same section.</p>
       <p><b>Languages:</b> prints of the same card in different languages (and same-art reprints) share one tile (badge <code>EN · JP</code>). Its details compare every print, matched by Cardmarket's card id and illustrator. Switch it off under Language.</p>
-      <p><b>Price data label:</b> the chip on each card counts which of six methods have data: Cardmarket price guide, Cardmarket listings by language and condition, TCGplayer, eBay for sale, sold listings, graded prices. From <i>No data</i> (greyed-out card) to <i>Complete</i>. Filter with the chips or <code>data&gt;=3</code>.</p>
-      <p><b>Query syntax:</b> <code>has:price</code> <code>data&gt;=3</code> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
+      <p><b>Data score:</b> the chip on each card, from 0 to 1: how much of everything there is to collect for it is collected and up to date (Cardmarket listings 0.25, sold 0.20, price guide 0.15, eBay for sale 0.15, graded 0.15, TCGplayer 0.10; each part loses credit as it ages). Filter with the chips or <code>score&gt;=0.5</code>.</p>
+      <p><b>Query syntax:</b> <code>has:price</code> <code>score&gt;=0.5</code> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
     </details>
   </aside>
   <section id="results" aria-live="polite" style="min-width:0">
@@ -381,6 +411,7 @@ a.ext { color: var(--accent); font-weight: 700 }
 <footer class="status"><div class="wrap" id="status">—</div></footer>
 
 <dialog id="dlg" aria-label="Card details"><div class="sheet" id="sheet"></div></dialog>
+<dialog id="dash" aria-label="Scraping dashboard"><div class="dash" id="dashBody"></div></dialog>
 <dialog id="settings" aria-label="Settings"><form class="setf" id="setForm" method="dialog"></form></dialog>
 
 <script type="application/octet-stream" id="catalog-gz">__GZ__</script>
@@ -544,7 +575,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (el) {
       var o = priceOf(i), px = el.querySelector('.px'), cv = el.querySelector('.cov');
       if (px) px.outerHTML = priceTag(i, o);
-      if (cv) cv.outerHTML = covHTML(o.cov, 'tag');
+      if (cv) cv.outerHTML = scoreHTML(o.score, 'tag');
       el.classList.toggle('unpriced', !o.known);
     }
     if (i === openId) rerenderPrices();
@@ -575,13 +606,17 @@ a.ext { color: var(--accent); font-weight: 700 }
   // ---------- hourly price store ----------
   // summary.json.gz from the collector (scripts/collect.js), kept in IndexedDB so it also works offline
   var HOURLY = null, hourlyErr = '';
+  var helperState = { on: false, sites: null, err: '' };
   function gunzipJSON(buf) {
     var u8 = new Uint8Array(buf);
     if (u8[0] !== 0x1f || u8[1] !== 0x8b) return Promise.resolve(JSON.parse(new TextDecoder().decode(u8))); // host already decoded it
     return new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text().then(JSON.parse);
   }
+  // the price store: straight from the scraper's helper when it runs on this computer (newest, not pushed yet), else
+  // the published "prices" branch
+  function storeBase() { return helperState.on ? settings.helper.replace(/\/$/, '') + '/store/' : PRICES_URL; }
   function storeGet(rel) { // a file of the price store, null if missing
-    return fetch(PRICES_URL + rel, { cache: 'no-cache' }).then(function (r) {
+    return fetch(storeBase() + rel, { cache: 'no-cache' }).then(function (r) {
       if (r.status === 404) return null;
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return /\.gz$/.test(rel) ? r.arrayBuffer().then(gunzipJSON) : r.json();
@@ -597,7 +632,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     return storeGet('meta.json').then(function (m) {
       if (!m) { hourlyErr = 'not published yet'; return false; }
       if (HOURLY && HOURLY.at === m.at && (HOURLY.scrapedAt || '') === (m.scrapedAt || '')) return false; // collector run or scraper run
-      return fetch(PRICES_URL + 'summary.json.gz', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+      return fetch(storeBase() + 'summary.json.gz', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
         .then(function (buf) {
           return gunzipJSON(buf.slice(0)).then(function (s) {
             if (!useHourly(s)) throw new Error('unexpected summary format');
@@ -693,30 +728,43 @@ a.ext { color: var(--accent); font-weight: 700 }
     o.tcg = newest(ts);
     o.listings = hz && hz.lt ? { groups: hz.l || null, at: hz.lt, n: hz.ln || 0 } : null;
     o.ebay = hz && hz.et ? { ea: hz.ea || null, es: hz.es || null, en: hz.en || [0, 0], at: hz.et, esl: hz.esl } : null;
-    o.graded = t[26] || null;
+    if (o.listings && hz.lc != null) o.listings.lc = hz.lc;
+    // PriceCharting graded prices and sales: the build's snapshot, or what the scraper collected (newer wins)
+    var pcs = [];
+    if (t[26]) pcs.push({ g: t[26].g, n: (t[26].s || []).length, url: t[26].pc, at: t[26].at || (t[26].s && t[26].s[0] && t[26].s[0][0]) || DATES.usd, src: t[26].at ? 'api' : 'snapshot' });
+    if (hz && hz.pc) pcs.push({ g: hz.pc.g, n: hz.pc.n, url: hz.pc.u, at: hz.pc.at, src: 'scraped' });
+    o.graded = newest(pcs);
     o.lang = ja ? 7 : 1;
     o.la = o.listings ? PRICES.listingAvg(o.listings.groups, o.lang, settings.cond) : null;
-    var pcSold = !!(t[26] && t[26].s && t[26].s.length), gradedAny = !!(t[26] && t[26].g.some(function (x) { return x != null; }));
-    o.cov = PRICES.coverage({ guide: o.guide && num(o.guide.trend) != null, listings: o.listings && o.listings.n > 0, tcg: o.tcg && num(o.tcg.market) != null,
-      ebayActive: o.ebay && o.ebay.ea, ebaySold: (o.ebay && o.ebay.es) || pcSold, graded: gradedAny });
+    // data score: which of everything there is to collect for this card is collected, and how fresh
+    var lsAt = [hz && hz.lt, hz && hz.ctt].filter(Boolean).sort().pop() || null;
+    var soldAt = [hz && hz.et, o.graded && o.graded.n != null ? o.graded.at : null].filter(Boolean).sort().pop() || null;
+    o.score = PRICES.dataScore({
+      listings: { at: lsAt, part: o.listings && o.listings.lc != null ? 0.6 + 0.4 * o.listings.lc : 1 },
+      sold: { at: soldAt },
+      guide: { at: o.guide ? o.guide.at : null },
+      ebay: { at: hz && hz.et || null },
+      graded: { at: o.graded ? o.graded.at : null },
+      tcg: ja ? { na: true } : { at: o.tcg ? o.tcg.at : null }
+    });
     var cand = {
       trend: o.guide && !o.guide.thin ? num(o.guide.trend) : null,
       listings: o.la ? o.la.avg : null,
       tcg: o.tcg ? num(PRICES.toEur(o.tcg.market, 'USD', FX)) : null,
       sold: o.ebay && o.ebay.es ? o.ebay.es[2] : null,
-      graded: t[26] && t[26].g[0] != null ? num(PRICES.toEur(t[26].g[0], 'USD', FX)) : null,
+      graded: o.graded && o.graded.g && o.graded.g[0] != null ? num(PRICES.toEur(o.graded.g[0], 'USD', FX)) : null,
       thin: o.guide && o.guide.thin ? num(o.guide.trend) : null };
     var order = settings.headline === 'listings' ? ['listings', 'trend', 'tcg', 'sold', 'graded', 'thin'] : ['trend', 'listings', 'tcg', 'sold', 'graded', 'thin'];
     for (var k = 0; k < order.length; k++) if (cand[order[k]] != null) { o.head = { eur: cand[order[k]], src: order[k] }; break; }
     o.head = o.head || null;
     // fresh = this figure came from the hourly store or a live check, not the built-in snapshot
     if (o.head) o.head.fresh = /trend|thin/.test(o.head.src) ? o.guide.src !== 'snapshot' : o.head.src === 'tcg' ? o.tcg.src !== 'snapshot' : o.head.src !== 'graded';
-    o.known = o.cov.n > 0;
+    o.known = !!(o.head || (o.listings && o.listings.n) || (o.ebay && (o.ebay.ea || o.ebay.es)) || (o.graded && o.graded.g && o.graded.g.some(function (x) { return x != null; })));
     return o;
   }
   function applyValue(i) {
     var o = priceOf(i), e = o.head ? o.head.eur : null;
-    cat.setValue(i, e, e != null && FX.USD ? e / FX.USD : null, o.cov.n);
+    cat.setValue(i, e, e != null && FX.USD ? e / FX.USD : null, PRICES.scoreBucket(o.score.score), o.known);
   }
   function applyAll() { for (var i = 0; i < cat.N; i++) applyValue(i); }
 
@@ -878,7 +926,9 @@ a.ext { color: var(--accent); font-weight: 700 }
         Promise.all([liveLoad(), loadHourlyCached()]).then(function () { applyAll(); run(); liveStatus(); status(); })
           .then(function () { return Promise.all([loadHourly(), liveFx()]); })
           .then(function (x) { if (x[0] || x[1]) { applyAll(); run(); } status(); scheduleRefresh(); });
-        watchLoad();
+        watchLoad(); pollHelper().then(pollChanges);
+        window.postMessage({ ptcg: 'page', kind: 'ping' }, MSG_ORIGIN);
+        if (location.hash === '#scraping') openDash();
       });
     }).catch(function (e) {
       $('loadMsg').textContent = 'The catalog could not be loaded. Reload the page to try again.';
@@ -918,9 +968,9 @@ a.ext { color: var(--accent); font-weight: 700 }
     $('fSeries').innerHTML = '<option value="">All series</option>' + Array.from(new Set(Array.from(bySeries.keys()).map(function (k) { return k.split('|')[1]; }))).map(function (s) { return '<option>' + esc(s) + '</option>'; }).join('');
     var rar = Array.from(cat.facets.rarity.entries()).map(function (e) { return [e[0], PTCGpop(e[1])]; }).sort(function (a, b) { return b[1] - a[1]; });
     $('fRarity').innerHTML = '<option value="">Any rarity</option>' + rar.map(function (r) { return '<option value="' + esc(r[0]) + '">' + esc(r[0]) + ' (' + fmt(r[1]) + ')</option>'; }).join('');
-    $('fCov').innerHTML = [''].concat([1, 2, 3, 4, 5, 6]).map(function (k) {
-      return '<button type="button" class="chip plain" data-cov="' + k + '" aria-pressed="' + (String(state.cov) === String(k)) + '"' + (k ? ' title="' + k + ' or more of the 6 price-data methods"' : '') + '>' +
-        (k ? '<span class="cov c' + k + '">' + [1, 2, 3, 4, 5, 6].map(function (x) { return '<i' + (x <= k ? ' class="on"' : '') + '></i>'; }).join('') + '</span> ' + PRICES.TIERS[k] : 'Any') + ' <span class="n" data-cnt></span></button>';
+    $('fCov').innerHTML = [['', 'Any'], [5, '≥ 0.25'], [10, '≥ 0.50'], [15, '≥ 0.75'], [18, '≥ 0.90']].map(function (k) {
+      return '<button type="button" class="chip plain" data-cov="' + k[0] + '" aria-pressed="' + (String(state.cov) === String(k[0])) + '"' + (k[0] ? ' title="data score ' + k[1] + '"' : '') + '>' +
+        k[1] + ' <span class="n" data-cnt></span></button>';
     }).join('');
     $('fPriced').innerHTML = [['', 'All'], ['yes', 'Priced'], ['no', 'No price']].map(function (p) {
       return '<button type="button" class="chip" data-priced="' + p[0] + '" aria-pressed="' + (state.priced === p[0]) + '"><span>' + p[1] + '</span><span class="n" data-cnt></span></button>';
@@ -963,7 +1013,7 @@ a.ext { color: var(--accent); font-weight: 700 }
       var v = el.dataset.priced; el.querySelector('[data-cnt]').textContent = fmt(v ? c.priced[v] : c.priced.yes + c.priced.no);
     });
     document.querySelectorAll('#fCov [data-cov]').forEach(function (el) {
-      var k = +el.dataset.cov || 0, n = 0; for (var j = k; j <= 6; j++) n += c.cov[j]; el.querySelector('[data-cnt]').textContent = fmt(n);
+      var k = +el.dataset.cov || 0, n = 0; for (var j = k; j <= 20; j++) n += c.cov[j]; el.querySelector('[data-cnt]').textContent = fmt(n);
     });
     var active = (state.watch ? 1 : 0) + (state.lang ? 1 : 0) + (state.priced ? 1 : 0) + (state.cov ? 1 : 0) + state.type.size + (state.supertype ? 1 : 0) + (state.set ? 1 : 0) + (state.series ? 1 : 0) + (state.rarity ? 1 : 0) + state.reg.size + state.legal.size;
     $('fcount').hidden = !active; $('fcount').textContent = active;
@@ -984,12 +1034,17 @@ a.ext { color: var(--accent); font-weight: 700 }
     return '<span class="px' + (thin ? ' thin' : '') + '" title="' + esc(label + (o.head.fresh ? ' · updated' : ' · snapshot')) + '">' +
       (o.head.fresh ? '<i class="ld"></i>' : '') + (thin ? '~' : '') + moneyText(o.head.eur, 'EUR') + '</span>';
   }
-  // price-data label: six pips, one per method (src/prices.js METHODS), coloured by tier
-  function covHTML(cov, big) {
-    var tip = 'Price data: ' + cov.tier + ' (' + cov.n + ' of 6) — ' + PRICES.METHODS.map(function (m, k) { return (cov.flags[k] ? '✓ ' : '✗ ') + m[1]; }).join(', ');
-    return '<span class="cov c' + cov.n + (big === 'tag' ? ' tag' : big ? ' big' : '') + '" title="' + esc(tip) + '" aria-label="' + esc(tip) + '">' +
-      cov.flags.map(function (f) { return '<i' + (f ? ' class="on"' : '') + '></i>'; }).join('') + (big ? '<b>' + esc(cov.tier) + '</b>' : '') + '</span>';
+  // data score: 0..1, how much of everything there is to collect for the card is collected and fresh (src/prices.js)
+  function scoreColor(x) { return 'hsl(' + Math.round(x * 125) + ', 62%, ' + (x > 0 ? 42 : 55) + '%)'; }
+  function scoreTip(sc) {
+    return 'Data score ' + sc.score.toFixed(2) + ' — ' + sc.parts.map(function (p) {
+      return p.label + ': ' + (p.state === 'n/a' ? 'not applicable' : p.state === 'missing' ? 'never collected' : p.state + ', ' + agoIso(p.at)); }).join('; ');
   }
+  function scoreHTML(sc, mode) {
+    return '<span class="cov' + (mode === 'tag' ? ' tag' : mode ? ' big' : '') + '" style="--cv:' + scoreColor(sc.score) + '" title="' + esc(scoreTip(sc)) + '">' +
+      '<i style="width:' + Math.round(sc.score * 100) + '%"></i><b>' + sc.score.toFixed(2) + '</b></span>';
+  }
+  function agoIso(at) { var x = Date.parse(at); return isNaN(x) ? 'unknown date' : ago(x); }
   // the same finish twice means two TCGplayer products for one card: name them apart
   function tcgRows(t) {
     var seen = {};
@@ -1022,7 +1077,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     var chg = !isNaN(cv) && cp >= 2 && Math.abs(cv) >= 1 ? '<span class="chg ' + (cv > 0 ? 'up">▲' : 'down">▼') + Math.abs(cv).toFixed(0) + '%</span>' : '';
     return '<button type="button" class="tile' + (o.known ? '' : ' unpriced') + '" data-id="' + id + '"><div class="face">' + dataFace(t, false) +
       (watchSet.has(t[0]) ? '<span class="wstar" title="To watch">★</span>' : '') +
-      (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + langBadge(id) + covHTML(o.cov, 'tag') + '</div>' +
+      (img ? '<img loading="lazy" decoding="async" alt="" src="' + esc(img.small) + '">' : '') + langBadge(id) + scoreHTML(o.score, 'tag') + '</div>' +
       '<div class="cap"><div class="row2"><span class="n1">' + esc(t[1]) + '</span>' + priceTag(id, o) + '</div><div class="row2"><span class="n2">' + esc(set.c || set.id.toUpperCase()) + ' · ' + esc(numLabel(t, set)) + (t[6] ? ' · ' + esc(t[6]) : '') + '</span>' + chg + '</div></div></button>';
   }
 
@@ -1117,11 +1172,33 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (ids.length === 1) return langOf(i) === 'JP' ? '<span class="lang">JP</span>' : '';
     return '<span class="lang multi" title="' + ids.length + ' prints: ' + esc(ids.map(function (x) { var s = cat.sets[cat.setIx[x]]; return langOf(x) + ' ' + (s.ne || s.n) + ' #' + cat.cards[x][8]; }).join(', ')) + '">' + langs.join(' · ') + (ids.length > langs.length ? ' · ' + ids.length : '') + '</span>';
   }
+  // The card details: the same sections in the same order for every card, each with its status (updated when, or never
+  // collected), so nothing appears or disappears from one card to the next.
   function openCard(id) {
     var t = cat.cards[id], c = PTCG.expand(t), set = cat.sets[cat.setIx[id]], img = imagesOK && PTCG.imgUrls(c.img);
     var h = '<button class="close" type="button" id="dclose" aria-label="Close">×</button>';
     h += '<div><div class="face">' + dataFace(t, true) + (img ? '<img alt="' + esc(c.name) + '" src="' + esc(img.large) + '" style="background:url(' + esc(img.small) + ') center/cover">' : '') + '</div></div>';
-    h += '<div class="info"><div><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print · ' : 'English print · ') + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div><h2>' + esc(c.name) + '</h2><div id="watchSlot">' + watchButton(id) + '</div></div>';
+    h += '<div class="info"><div><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print · ' : 'English print · ') + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div><h2>' + esc(c.name) + '</h2>' +
+      '<div class="subl">' + esc(set.n) + ' · <span class="mono">' + esc(numLabel(t, set)) + '</span>' + (c.rarity ? ' · ' + esc(c.rarity) : '') + '</div><div id="watchSlot">' + watchButton(id) + '</div></div>';
+    sel = null; cmArticles = null; ebayData = null; openHist = null; pcData = null;
+    h += '<div id="pnow">' + pricePart(id, c) + '</div>';
+    h += '<div class="prices">' + sec('card', 'Card text', '', null, cardText(c)) + sec('meta', 'Details', '', null, metaPart(c, t, set)) + '</div></div>';
+    $('sheet').innerHTML = h;
+    var d = $('dlg');
+    if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute('open', '');
+    $('sheet').scrollTop = 0;
+    openId = id; liveWant([id], true); loadDetail(id, c, set);
+  }
+  // one section: title, its key figure, its status pill (from the data score's part), body
+  var STATE_TEXT = { fresh: 'up to date', aging: 'ageing', stale: 'out of date', missing: 'never collected', 'n/a': 'not applicable' };
+  function sec(key, title, figure, part, body) {
+    var pill = part ? '<span class="st st-' + part.state.replace('/', '') + '" title="' + esc(STATE_TEXT[part.state] + (part.at ? ', ' + whenText(part.at) : '')) + '">' +
+      (part.at ? esc(agoIso(part.at)) : esc(STATE_TEXT[part.state])) + '</span>' : '';
+    return '<details class="sec" data-k="' + key + '" open><summary><h4>' + esc(title) + '</h4><span class="fig">' + (figure || '') + '</span>' + pill + '</summary>' + body + '</details>';
+  }
+  function partOf(o, key) { return o.score.parts.filter(function (p) { return p.key === key; })[0]; }
+  function cardText(c) {
+    var h = '';
     if (c.hp || c.types.length) h += '<div class="hpline">' + (c.hp ? 'HP ' + c.hp : '') + ' ' + pips(c.types) + (c.evolvesFrom ? ' <span style="font-weight:400;color:var(--muted)">Evolves from <button class="link" data-q="name:&quot;' + esc(c.evolvesFrom) + '&quot;">' + esc(c.evolvesFrom) + '</button></span>' : '') + '</div>';
     c.abilities.forEach(function (a) { h += '<div class="move"><div class="row"><span class="tag">' + esc(a[0]) + '</span><span class="nm">' + esc(a[1]) + '</span></div><p>' + esc(a[2]) + '</p></div>'; });
     c.attacks.forEach(function (a) { h += '<div class="move"><div class="row">' + pips(a[1]) + '<span class="nm">' + esc(a[0]) + '</span><span class="dmg">' + esc(a[2]) + '</span></div>' + (a[3] ? '<p>' + esc(a[3]) + '</p>' : '') + '</div>'; });
@@ -1131,25 +1208,20 @@ a.ext { color: var(--accent); font-weight: 700 }
       h += '<div class="wrr"><div><span>Weakness</span><em>' + wr(c.weaknesses) + '</em></div><div><span>Resistance</span><em>' + wr(c.resistances) + '</em></div><div><span>Retreat</span><em>' + (c.retreat ? pips(new Array(c.retreat).fill('Colorless')) : '—') + '</em></div></div>';
     }
     if (c.flavor) h += '<p class="flavor">' + esc(c.flavor) + '</p>';
-    sel = null; cmArticles = null; ebayData = null; openHist = null;
-    h += '<div id="pnow">' + pricePart(id, c) + '</div>' + gradedBlock(c) + listsPart(id, c);
-    h += '<dl class="meta">' +
-      '<dt>Set</dt><dd><button class="link" data-set="' + esc(set.id) + '">' + esc(set.n) + '</button> <span class="mono" style="color:var(--muted)">' + esc(set.c || set.id) + ' · ' + esc(set.d) + '</span></dd>' +
-      '<dt>Number</dt><dd class="mono">' + esc(numLabel(t, set)) + '</dd>' +
-      (c.rarity ? '<dt>Rarity</dt><dd>' + esc(c.rarity) + '</dd>' : '') +
-      (c.artist ? '<dt>Illustrator</dt><dd><button class="link" data-q="artist:&quot;' + esc(c.artist) + '&quot;">' + esc(c.artist) + '</button></dd>' : '') +
-      (c.dex.length ? '<dt>Pokédex</dt><dd>' + c.dex.map(function (d) { return '<button class="link mono" data-q="dex:' + d + '">#' + String(d).padStart(4, '0') + '</button>'; }).join(' ') + '</dd>' : '') +
-      (c.reg ? '<dt>Regulation</dt><dd class="mono">' + esc(c.reg) + '</dd>' : '') +
-      '<dt>Formats</dt><dd>' + ([c.legal.indexOf('S') >= 0 ? 'Standard' : '', c.legal.indexOf('E') >= 0 ? 'Expanded' : '', c.legal.indexOf('U') >= 0 ? 'Unlimited' : ''].filter(Boolean).join(', ') || '—') + '</dd>' +
-      (c.names ? '<dt>Other names</dt><dd>' + Object.keys(c.names).map(function (l) { return '<span class="mono" style="color:var(--muted)">' + l.toUpperCase() + '</span> ' + esc(c.names[l]); }).join(' · ') + '</dd>' : '') +
-      (c.alias && c.lang === 'ja' ? '<dt>English name</dt><dd>' + esc(c.alias) + '</dd>' : '') +
-      '<dt>Card ID</dt><dd class="mono">' + esc(c.id) + '</dd>' +
-      '</dl></div>';
-    $('sheet').innerHTML = h;
-    var d = $('dlg');
-    if (d.showModal) { if (!d.open) d.showModal(); } else d.setAttribute('open', '');
-    $('sheet').scrollTop = 0;
-    openId = id; liveWant([id], true); loadDetail(id, c, set);
+    return h || '<p class="nolang">No card text in the catalog for this print.</p>';
+  }
+  function metaPart(c, t, set) {
+    var row = function (k, v) { return '<dt>' + k + '</dt><dd>' + (v || '<span class="nolang">—</span>') + '</dd>'; };
+    return '<dl class="meta">' +
+      row('Set', '<button class="link" data-set="' + esc(set.id) + '">' + esc(set.n) + '</button> <span class="mono" style="color:var(--muted)">' + esc(set.c || set.id) + ' · ' + esc(set.d) + '</span>') +
+      row('Number', '<span class="mono">' + esc(numLabel(t, set)) + '</span>') + row('Language', c.lang === 'ja' ? 'Japanese' : 'English') + row('Rarity', esc(c.rarity)) +
+      row('Illustrator', c.artist ? '<button class="link" data-q="artist:&quot;' + esc(c.artist) + '&quot;">' + esc(c.artist) + '</button>' : '') +
+      row('Pokédex', c.dex.map(function (d) { return '<button class="link mono" data-q="dex:' + d + '">#' + String(d).padStart(4, '0') + '</button>'; }).join(' ')) +
+      row('Regulation', c.reg ? '<span class="mono">' + esc(c.reg) + '</span>' : '') +
+      row('Formats', [c.legal.indexOf('S') >= 0 ? 'Standard' : '', c.legal.indexOf('E') >= 0 ? 'Expanded' : '', c.legal.indexOf('U') >= 0 ? 'Unlimited' : ''].filter(Boolean).join(', ')) +
+      row('Other names', c.names ? Object.keys(c.names).map(function (l) { return '<span class="mono" style="color:var(--muted)">' + l.toUpperCase() + '</span> ' + esc(c.names[l]); }).join(' · ') : '') +
+      row('English name', c.lang === 'ja' ? esc(c.alias) : esc(c.name)) +
+      row('Card ID', '<span class="mono">' + esc(c.id) + '</span>') + '</dl>';
   }
   function ptable(heads, rows, hlIdx) {
     return '<div class="ptable"><table><thead><tr>' + heads.map(function (x) { return '<th>' + x + '</th>'; }).join('') + '</tr></thead><tbody>' +
@@ -1216,43 +1288,53 @@ a.ext { color: var(--accent); font-weight: 700 }
   function hh(col, label) { return '<div class="hh" data-col="' + col + '" data-label="' + esc(label) + '"></div>'; }
 
   function pricePart(id, c) {
-    var o = priceOf(id), h = '<div class="prices">';
+    var o = priceOf(id), h = '<div class="prices">', P = function (k) { return partOf(o, k); };
     var liveMsg = !live.on ? 'Live checks are paused.' : o.busy ? 'Checking live sources…' : o.err ? 'A live check failed (offline?).' : o.checked ? 'Checked live ' + ago(o.checked) + '.' : '';
-    var checklist = '<ul class="cl">' + PRICES.METHODS.map(function (m, k) { return '<li class="' + (o.cov.flags[k] ? 'y' : 'n') + '">' + esc(m[1]) + '</li>'; }).join('') + '</ul>';
-    if (o.head) {
-      h += '<div class="pstat known"><div class="hl"><b>' + (o.head.src === 'thin' ? '~' : '') + moneyText(o.head.eur, 'EUR') + '</b><span>' + esc(HEAD_LABEL[o.head.src]) +
-        (o.head.src === 'listings' ? ' (' + esc(PRICES.LANGS[o.lang]) + ', ' + settings.cond + ' or better)' : '') + ' · ' + (o.head.fresh ? 'updated' : 'snapshot') + '</span></div>' +
-        covHTML(o.cov, true) + checklist + '<span class="nolang">' + esc(liveMsg) + ' Source and evidence: the “' + HEAD_SECTION[o.head.src] + '” section below.</span>' +
-        ev([FX_SRC ? A(ECB, 'exchange rate: ' + FX_SRC) : '', FX_SRC ? A('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP', 'rate API') : '']) + '</div>';
-    } else {
-      h += '<div class="pstat unknown"><b>No price known</b>' + covHTML(o.cov, true) + checklist + '<span>No source has price data for this ' + (c.lang === 'ja' ? 'Japanese ' : '') + 'print' +
-        (o.busy ? '. Checking live sources…' : o.checked ? ', checked live ' + ago(o.checked) + '.' : '.') + '</span></div>';
-    }
+    // 1. overview: the headline price and the data score with every part
+    h += '<div class="pstat ' + (o.head ? 'known' : 'unknown') + '"><div class="hl">' + (o.head ?
+      '<b>' + (o.head.src === 'thin' ? '~' : '') + moneyText(o.head.eur, 'EUR') + '</b><span>' + esc(HEAD_LABEL[o.head.src]) + (o.head.src === 'listings' ? ' (' + esc(PRICES.LANGS[o.lang]) + ', ' + settings.cond + ' or better)' : '') + ' · see “' + HEAD_SECTION[o.head.src] + '”</span>'
+      : '<b>No price known</b><span>no source has a price for this ' + (c.lang === 'ja' ? 'Japanese ' : '') + 'print yet</span>') + '</div>' +
+      '<div class="score"><div class="sh"><span>Data score</span>' + scoreHTML(o.score, true) + '</div><table class="parts">' + o.score.parts.map(function (p) {
+        return '<tr class="st-' + p.state.replace('/', '') + '"><td>' + esc(p.label) + '</td><td class="w">' + (p.state === 'n/a' ? '—' : p.weight.toFixed(2)) + '</td><td><span class="dot"></span>' + esc(STATE_TEXT[p.state]) +
+          (p.part < 1 && p.state !== 'missing' ? ' (partly)' : '') + '</td><td class="a">' + (p.at ? esc(agoIso(p.at)) : '') + '</td></tr>'; }).join('') + '</table></div>' +
+      '<span class="nolang">' + esc(liveMsg) + '</span>' + ev([FX_SRC ? A(ECB, 'exchange rate: ' + FX_SRC) : '']) + '</div>';
+    // 2. every price by grade, language, for sale and sold; 3. all prints and languages
     h += everyPart(id) + bundlePart(id);
-    // Cardmarket price guide, with its history graphs
-    h += '<details class="sec" data-k="guide" open><summary><h4>Cardmarket price guide</h4><span>' + (o.guide && o.guide.trend != null ? 'trend ' + moneyText(o.guide.trend, 'EUR') : 'none') + '</span></summary>';
-    if (o.guide) {
-      h += '<p class="src">' + (c.lang === 'ja' ? 'Japanese-language copies only (separate Cardmarket products).' : 'All European languages pooled into one figure.') +
-        (o.guide.thin ? ' Few recent sales: a rough guide.' : '') + ' ' + srcLine(o.guide.src, o.guide.at, 'api.tcgdex.net') + '</p>';
-      h += ptable(['Variant', 'Trend', 'From', '1-day', '7-day', '30-day'], o.guide.rows.map(function (r) { return [esc(r[0]), money(r[1]), money(r[2]), money(r[3]), money(r[4]), money(r[5])]; }), 1);
-    } else h += '<p class="nolang">No Cardmarket price guide entry for this card.</p>';
-    h += guideEvidence(id, o);
-    if (c.hist && c.hist.e) h += spark(c.hist.e, AXES.e, 'EUR', 'Cardmarket trend, snapshot history' + (c.lang === 'ja' ? ' (Japanese copies)' : ''));
-    h += hh(2, 'Cardmarket trend, price store history') + '</details>';
-    // Cardmarket listings by language and condition, every listing, history
-    h += '<details class="sec" data-k="listings" open><summary><h4>Cardmarket listings</h4><span>' + (o.listings ? fmt(o.listings.n) + ' listed' : 'not collected') + '</span></summary>' + listingMatrix(o);
-    if (o.listings) h += '<details class="sub" data-k="every"><summary>Every listing (' + fmt(o.listings.n) + ')</summary><div id="cmList">' + (o.listings.n ? '<p class="nolang">Loading…</p>' : '<p class="nolang">No listings on Cardmarket when checked ' + esc(whenText(o.listings.at)) + '.</p>') + '</div></details>';
-    h += ev([cmLink(id), o.listings && o.listings.n ? storeLink(storeRel('cardmarket', id), 'all listings as collected (store file)') : '', o.listings ? A('https://api.cardmarket.com/ws/documentation/API_2.0:Articles', 'Cardmarket API: articles') : '']);
-    h += hh(3, 'Listing average (' + (PRICES.LANGS[o.lang] || '') + ', ' + settings.cond + ' or better), price store history') + '</details>';
-    // TCGplayer, with its history graphs
-    h += '<details class="sec" data-k="tcg"' + (o.tcg ? '' : ' open') + '><summary><h4>TCGplayer</h4><span>' + (o.tcg && o.tcg.market != null ? 'market ' + moneyText(o.tcg.market, 'USD') : 'none') + '</span></summary>';
-    if (o.tcg) h += '<p class="src">US market, English copies, US dollar converted. ' + srcLine(o.tcg.src, o.tcg.at, 'api.pokemontcg.io') + '</p>' +
-      ptable(['Finish', 'Market', 'Low', 'Mid', 'High'], o.tcg.rows.map(function (r) { return [r[5] ? A('https://www.tcgplayer.com/product/' + r[5], r[0]) : esc(r[0]), money(r[1], 'USD'), money(r[2], 'USD'), money(r[3], 'USD'), money(r[4], 'USD')]; }), 1);
-    else h += '<p class="nolang">' + (c.lang === 'ja' ? 'TCGplayer prices are only matched for English prints.' : 'No TCGplayer price for this card.') + '</p>';
-    if (c.lang !== 'ja') h += tcgEvidence(id, o);
-    if (c.hist && c.hist.u) h += spark(c.hist.u, AXES.u, 'USD', 'TCGplayer market, snapshot history');
-    h += hh(4, 'TCGplayer market, price store history') + '</details>';
+    // 4. Cardmarket price guide
+    var gb = o.guide ? '<p class="src">' + (c.lang === 'ja' ? 'Japanese-language copies only (separate Cardmarket products).' : 'All European languages pooled into one figure.') + (o.guide.thin ? ' Few recent sales: a rough guide.' : '') + ' ' + srcLine(o.guide.src, o.guide.at, 'api.tcgdex.net') + '</p>' +
+      ptable(['Variant', 'Trend', 'From', '1-day', '7-day', '30-day'], o.guide.rows.map(function (r) { return [esc(r[0]), money(r[1]), money(r[2]), money(r[3]), money(r[4]), money(r[5])]; }), 1)
+      : '<p class="nolang">No Cardmarket price guide entry for this card.</p>';
+    gb += guideEvidence(id, o) + (c.hist && c.hist.e ? spark(c.hist.e, AXES.e, 'EUR', 'Cardmarket trend, snapshot history') : '') + hh(2, 'Cardmarket trend, price store history');
+    h += sec('guide', 'Cardmarket price guide', o.guide && o.guide.trend != null ? 'trend ' + moneyText(o.guide.trend, 'EUR') : '—', P('guide'), gb);
+    // 5. Cardmarket listings
+    var lb = listingMatrix(o);
+    if (o.listings) lb += '<details class="sub" data-k="everyl"><summary>Every listing (' + fmt(o.listings.n) + ')</summary><div id="cmList">' + (o.listings.n ? '<p class="nolang">Loading…</p>' : '<p class="nolang">No listings on Cardmarket when checked ' + esc(whenText(o.listings.at)) + '.</p>') + '</div></details>';
+    if (o.listings && o.listings.lc != null && o.listings.lc < 1) lb += '<p class="src">' + Math.round(o.listings.lc * 100) + '% of the views loaded reached the last offer; the rest show each language and condition’s cheapest offers.</p>';
+    lb += ev([cmLink(id), o.listings && o.listings.n ? storeLink(storeRel('cardmarket', id), 'all listings as collected (store file)') : '']) + hh(3, 'Listing average (' + (PRICES.LANGS[o.lang] || '') + ', ' + settings.cond + ' or better), price store history');
+    h += sec('listings', 'Cardmarket listings', o.listings ? fmt(o.listings.n) + ' listed' : '—', P('listings'), lb);
+    // 6. TCGplayer
+    var tb = c.lang === 'ja' ? '<p class="nolang">TCGplayer only lists English prints.</p>' : o.tcg ? '<p class="src">US market, English copies, US dollar converted. ' + srcLine(o.tcg.src, o.tcg.at, 'api.pokemontcg.io') + '</p>' +
+      ptable(['Finish', 'Market', 'Low', 'Mid', 'High'], o.tcg.rows.map(function (r) { return [r[5] ? A('https://www.tcgplayer.com/product/' + r[5], r[0]) : esc(r[0]), money(r[1], 'USD'), money(r[2], 'USD'), money(r[3], 'USD'), money(r[4], 'USD')]; }), 1)
+      : '<p class="nolang">No TCGplayer price for this card.</p>';
+    if (c.lang !== 'ja') tb += tcgEvidence(id, o) + (c.hist && c.hist.u ? spark(c.hist.u, AXES.u, 'USD', 'TCGplayer market, snapshot history') : '') + hh(4, 'TCGplayer market, price store history');
+    h += sec('tcg', 'TCGplayer', o.tcg && o.tcg.market != null ? 'market ' + moneyText(o.tcg.market, 'USD') : '—', P('tcg'), tb);
+    // 7. eBay for sale, 8. sold (eBay and PriceCharting): filled by renderEbay when the store files are loaded
+    var en = o.ebay ? o.ebay.en : [0, 0];
+    h += sec('eba', 'eBay · for sale', o.ebay ? fmt(en[0]) + ' items' : '—', P('ebay'), '<div id="ebActive">' + (o.ebay ? '<p class="nolang">Loading…</p>' : notCollected('ebay')) + '</div><div id="ebEvA"></div>');
+    var nSold = en[1] + (o.graded && o.graded.n || 0);
+    h += sec('ebs', 'Sold', nSold ? fmt(nSold) + ' sales' : '—', P('sold'), '<div id="ebSold">' + (o.ebay || (o.graded && o.graded.n) ? '<p class="nolang">Loading…</p>' : '<p class="nolang">No sales collected yet (eBay sold, PriceCharting).</p>') + '</div><div id="ebEvS"></div>' + hh(5, 'Sold median (raw copies), price store history'));
+    // 9. graded prices
+    h += sec('graded', 'Graded prices', o.graded && o.graded.g && o.graded.g[5] != null ? 'PSA 10 ' + moneyText(o.graded.g[5], 'USD') : '—', P('graded'), gradedBody(id, o, c));
     return h + '</div>';
+  }
+  var G_LABELS = ['Ungraded', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 9.5', 'PSA 10'];
+  function gradedBody(id, o, c) {
+    var x = o.graded;
+    if (!x || !x.g || !x.g.some(function (v) { return v != null; })) return '<p class="nolang">No graded prices collected yet (PriceCharting).</p>' + (x && x.url ? ev([A(x.url, 'PriceCharting page')]) : '');
+    return '<p class="src">PriceCharting, US dollar converted' + (c.lang === 'ja' ? ', Japanese copies' : '') + '. Grades 7–9.5 combine PSA, CGC and BGS sales. ' +
+      (x.src === 'scraped' ? '<span class="lv">● Scraped</span> ' : x.src === 'api' ? 'Refreshed by the API ' : 'Snapshot ') + esc(whenText(x.at)) + '.</p>' +
+      '<div class="grades">' + G_LABELS.map(function (g, i) { return '<div><span>' + g + '</span><b>' + money(x.g[i], 'USD') + '</b></div>'; }).join('') + '</div>' +
+      ev([x.url ? A(x.url, 'PriceCharting page') : '', x.src === 'scraped' ? storeLink(storeRel('pricecharting', id), 'collected page (store file)') : '']);
   }
   // re-render the price sections of the open card, keeping which toggles are open and what was loaded
   var openHist = null;
@@ -1263,7 +1345,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     document.querySelectorAll('#pnow details[data-k]').forEach(function (d) { if (d.dataset.k in open) d.open = open[d.dataset.k]; });
     afterPrices();
   }
-  function afterPrices() { if (cmArticles && $('cmList')) $('cmList').innerHTML = articleList(); fillHist(); }
+  function afterPrices() { if (cmArticles && $('cmList')) $('cmList').innerHTML = articleList(); renderEbay(); fillHist(); }
   function fillHist() {
     document.querySelectorAll('#sheet .hh').forEach(function (el) {
       var col = +el.dataset.col, pts = (openHist || []).filter(function (p) { return p[col] != null; });
@@ -1317,7 +1399,7 @@ a.ext { color: var(--accent); font-weight: 700 }
 
   // ---- all languages of this card: every print, and Cardmarket listings per language across all of them ----
   function bundlePart(id) {
-    var ids = bundleIds(id); if (ids.length < 2) return '';
+    var ids = bundleIds(id);
     var merged = {};
     var rows = ids.map(function (i) {
       var t = cat.cards[i], s = cat.sets[cat.setIx[i]], o = priceOf(i);
@@ -1327,11 +1409,12 @@ a.ext { color: var(--accent); font-weight: 700 }
       }
       return '<tr' + (i === id ? ' class="here"' : '') + '><td><span class="lb">' + langOf(i) + '</span></td><td>' + (i === id ? '<b>' + esc(s.ne || s.n) + ' #' + esc(t[8]) + '</b>' : '<button type="button" class="link" data-open="' + i + '">' + esc(s.ne || s.n) + ' #' + esc(t[8]) + '</button>') +
         '<small>' + esc(t[1]) + (t[6] ? ' · ' + esc(t[6]) : '') + '</small></td><td class="hl">' + (o.head ? moneyText(o.head.eur, 'EUR') : '—') + '</td><td>' + (o.guide && o.guide.trend != null ? moneyText(o.guide.trend, 'EUR') : '—') +
-        '</td><td>' + (o.tcg && o.tcg.market != null ? moneyText(o.tcg.market, 'USD') : '—') + '</td><td>' + covHTML(o.cov) + '</td><td>' + cmLink(i, true) + '</td></tr>';
+        '</td><td>' + (o.tcg && o.tcg.market != null ? moneyText(o.tcg.market, 'USD') : '—') + '</td><td>' + scoreHTML(o.score) + '</td><td>' + cmLink(i, true) + '</td></tr>';
     });
     var langs = {}; Object.keys(merged).forEach(function (k) { langs[k.split('|')[0]] = 1; });
     var lt = Object.keys(langs).map(function (l) { var a = PRICES.listingAvg(merged, +l, settings.cond); return a ? [+l, a] : null; }).filter(Boolean).sort(function (a, b) { return b[1].n - a[1].n; });
-    var h = '<details class="sec" data-k="langs" open><summary><h4>All languages</h4><span>' + ids.length + ' prints</span></summary><p class="src">The same card in other languages and same-art reprints, matched by Cardmarket’s card id (metacard) and illustrator. Open any print for its own prices and evidence.</p>' +
+    var h = '<details class="sec" data-k="langs" open><summary><h4>All prints &amp; languages</h4><span class="fig">' + ids.length + (ids.length === 1 ? ' print' : ' prints') + '</span></summary><p class="src">' +
+      (ids.length > 1 ? 'The same card in other languages and same-art reprints, matched by Cardmarket’s card id (metacard) and illustrator. Open any print for its own prices and evidence.' : 'No other language or same-art reprint of this card is matched in the catalog.') + '</p>' +
       '<div class="ptable"><table class="bt"><thead><tr><th>Lang</th><th>Print</th><th>Price</th><th>CM trend</th><th>TCGplayer</th><th>Data</th><th>Cardmarket</th></tr></thead><tbody>' + rows.join('') + '</tbody></table></div>';
     if (lt.length) h += '<h5 class="subh">Cardmarket listings per language, all prints together, ' + settings.cond + ' or better</h5><div class="ptable"><table><thead><tr><th>Language</th><th>Copies</th><th>Average</th><th>From</th></tr></thead><tbody>' +
       lt.map(function (x) { return '<tr><td>' + esc(PRICES.LANGS[x[0]] || x[0]) + '</td><td>' + x[1].n + '</td><td class="hl">' + moneyText(x[1].avg, 'EUR') + '</td><td>' + moneyText(x[1].min, 'EUR') + '</td></tr>'; }).join('') + '</tbody></table></div>';
@@ -1411,13 +1494,6 @@ a.ext { color: var(--accent); font-weight: 700 }
   }
 
   // ---- lists: eBay for sale, sold (eBay + PriceCharting), each with its evidence and history ----
-  function listsPart(id, c) {
-    var o = priceOf(id), en = o.ebay ? o.ebay.en : [0, 0], pcSold = c.sales && c.sales.s ? c.sales.s.length : 0;
-    return '<div class="prices lists">' +
-      '<details class="sec" data-k="eba"><summary><h4>eBay · for sale</h4><span>' + (o.ebay ? fmt(en[0]) : '—') + '</span></summary><div id="ebActive">' + (o.ebay ? '<p class="nolang">Loading…</p>' : notCollected('ebay')) + '</div><div id="ebEvA"></div></details>' +
-      '<details class="sec" data-k="ebs"><summary><h4>Sold</h4><span>' + (o.ebay || pcSold ? fmt(en[1] + pcSold) : '—') + '</span></summary><div id="ebSold">' + (o.ebay || pcSold ? '<p class="nolang">Loading…</p>' : notCollected('ebay')) + '</div><div id="ebEvS"></div>' +
-      hh(5, 'Sold median (raw copies), price store history') + '</details></div>';
-  }
   var fileCache = new Map();
   function storeFile(rel) { if (!fileCache.has(rel)) fileCache.set(rel, storeGet(rel).catch(function (e) { fileCache.delete(rel); throw e; })); return fileCache.get(rel); }
   function safeName(s) { return String(s).replace(/[^A-Za-z0-9._-]/g, '_'); }
@@ -1442,8 +1518,10 @@ a.ext { color: var(--accent); font-weight: 700 }
     }).join('') + '</div>';
   }
   var ebayData = null;
+  var pcData = null;
   function renderEbay() {
-    if (!ebayData) return;
+    if (!ebayData) { if ($('ebSold') && /Loading/.test($('ebSold').textContent)) $('ebSold').innerHTML = '<p class="nolang">No sales collected yet (eBay sold, PriceCharting).</p>'; return; }
+    if ($('ebActive') && !ebayData.active) $('ebActive').innerHTML = notCollected('ebay');
     if ($('ebActive') && ebayData.active) $('ebActive').innerHTML = ebayData.active.length ? itemRows(ebayData.active, 'active') : '<p class="nolang">No matching listings for sale when checked ' + esc(whenText(ebayData.at)) + '.</p>';
     if ($('ebSold')) $('ebSold').innerHTML = ebayData.sold.length ? itemRows(ebayData.sold, 'sold') : '<p class="nolang">No sold items found.</p>';
     if ($('ebEvA') && ebayData.active) $('ebEvA').innerHTML = ebayEvidence(openId, false);
@@ -1451,9 +1529,9 @@ a.ext { color: var(--accent); font-weight: 700 }
   }
   // loads the open card's files from the price store: listings, eBay items, hourly history
   function loadDetail(id, c, set) {
-    var o = priceOf(id), t = cat.cards[id], pcSold = (c.sales && c.sales.s || []).map(function (r) {
+    var o = priceOf(id), t = cat.cards[id], pcRow = function (r) {
       return [null, r[2], r[3], 'USD', r[1], 'PriceCharting', r[0], '', r[4], 'SOLD', 1, '', /ungraded/i.test(r[1]) ? 0 : 1];
-    });
+    }, pcSold = (c.sales && c.sales.s || []).map(pcRow);
     cmArticles = null; ebayData = null;
     if (o.listings && o.listings.n) storeFile('listings/cardmarket/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(function (f) {
       if (openId !== id) return;
@@ -1465,11 +1543,18 @@ a.ext { color: var(--accent); font-weight: 700 }
     var ebDone = function (f) {
       if (openId !== id) return;
       ebayData = { at: f ? f.at : '', queries: f ? f.queries : null, active: f ? f.active : null, sold: (f ? f.sold : []).concat(pcSold) };
-      if (!f && $('ebActive')) $('ebActive').innerHTML = notCollected('ebay');
       renderEbay();
     };
-    if (o.ebay) storeFile('listings/ebay/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(ebDone, function () { ebDone(null); });
-    else if (pcSold.length) ebDone(null);
+    var ebLoad = function () {
+      if (o.ebay) storeFile('listings/ebay/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(ebDone, function () { ebDone(null); });
+      else if (pcSold.length) ebDone(null);
+      else renderEbay();
+    };
+    // PriceCharting sales the scraper collected replace the build's snapshot of them
+    if (o.graded && o.graded.src === 'scraped') storeFile('listings/pricecharting/' + safeName(set.id) + '/' + safeName(t[0]) + '.json').then(function (f) {
+      if (f && f.sold) pcSold = f.sold.map(pcRow); pcData = f; ebLoad();
+    }, ebLoad);
+    else ebLoad();
     if (HOURLY && HOURLY.cards[t[0]]) storeFile('history/' + safeName(set.id) + '.json.gz').then(function (hist) {
       if (openId !== id) return;
       openHist = (hist && hist[t[0]]) || null; fillHist();
@@ -1499,13 +1584,6 @@ a.ext { color: var(--accent); font-weight: 700 }
       '<circle cx="' + X(lp[0]).toFixed(1) + '" cy="' + Y(lp[1]).toFixed(1) + '" r="3.5" fill="' + col + '"/></svg>' +
       '<div class="lbl"><span>' + esc(fmtDate(axis[x0])) + '</span><span>' + esc(fmtDate(axis[x1])) + '</span></div>' +
       '<div class="lbl"><span>' + esc(label) + '</span><span>low ' + disp(rlo) + ' · high ' + disp(rhi) + '</span></div></div>';
-  }
-  function gradedBlock(c) {
-    var x = c.sales; if (!x || !x.g.some(function (v) { return v != null; })) return '';
-    var G = ['Ungraded', 'Grade 7', 'Grade 8', 'Grade 9', 'Grade 9.5', 'PSA 10'];
-    return '<div class="prices"><details class="sec" data-k="graded" open><summary><h4>Graded prices</h4><span>PSA 10 ' + moneyText(x.g[5], 'USD') + '</span></summary><p class="src">PriceCharting, US dollar converted' + (c.lang === 'ja' ? ', Japanese copies' : '') + '. Grades 7–9.5 combine PSA, CGC and BGS sales. ' + (x.at ? 'Refreshed ' + esc(whenText(x.at)) + '.' : 'Retrieved 22 Oct 2026.') + '</p>' +
-      '<div class="grades">' + G.map(function (g, i) { return '<div><span>' + g + '</span><b>' + money(x.g[i], 'USD') + '</b></div>'; }).join('') + '</div>' +
-      ev([x.pc ? A(x.pc, 'PriceCharting page') : '', x.at ? A('https://www.pricecharting.com/api-documentation', 'PriceCharting API') : '']) + '</details></div>';
   }
   function fmtDate(d) { if (!d) return ''; var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return +d.slice(8, 10) + ' ' + m[+d.slice(5, 7) - 1]; }
   function closeCard() { var d = $('dlg'); openId = -1; if (d.close) d.close(); else d.removeAttribute('open'); }
@@ -1604,6 +1682,140 @@ a.ext { color: var(--accent); font-weight: 700 }
   }
 
   // ---------- settings dialog ----------
+  // ---------- scraping dashboard: the scraper extension live (through its bridge.js) and its helper ----------
+  var ext = { on: false, version: '', job: null }, extWait = {}, extN = 0, feed = { since: 0, recent: [] };
+  var MSG_ORIGIN = location.origin === 'null' || location.protocol === 'file:' ? '*' : location.origin;
+  window.addEventListener('message', function (e) {
+    var m = e.data; if (e.source !== window || !m || m.ptcg !== 'ext') return;
+    if (m.kind === 'hello') { ext.on = true; ext.version = m.version; }
+    if (m.kind === 'job') { var was = ext.job; ext.job = m.job; if (m.job && was && m.job.saved !== was.saved) pollChanges(); }
+    if (m.kind === 'reply' && extWait[m.id]) { extWait[m.id](m.reply); delete extWait[m.id]; }
+    liveDot(); dashSoon();
+  });
+  function extSend(kind, extra) {
+    return new Promise(function (ok) {
+      var id = ++extN; extWait[id] = ok;
+      window.postMessage(Object.assign({ ptcg: 'page', kind: kind, id: id }, extra || {}), MSG_ORIGIN);
+      setTimeout(function () { if (extWait[id]) { delete extWait[id]; ok({ error: 'The extension did not answer.' }); } }, 8000);
+    });
+  }
+  function helperGet(path) { return fetch(settings.helper.replace(/\/$/, '') + path, { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }); }
+  function helperPost(path, body) { return fetch(settings.helper.replace(/\/$/, '') + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).then(function (r) { return r.json(); }); }
+  // the helper: every few seconds its status; the first time it answers, the store is re-read from it (newer than GitHub)
+  function pollHelper() {
+    if (!cat || !idIx) return Promise.resolve(); // after the catalog is loaded
+    return helperGet('/sites').then(function (d) {
+      var first = !helperState.on; helperState.on = true; helperState.sites = d; helperState.err = '';
+      if (first) { feed.since = Date.now(); watchSync(); loadHourly().then(function (ch) { if (ch) { applyAll(); recount(); refreshShown(); } status(); }); }
+    }, function (e) { helperState.on = false; helperState.err = e.message; }).then(function () { liveDot(); dashSoon(); });
+  }
+  // cards the scraper saved since the last look: merged into the price model, tiles and the open card update in place
+  var changesBusy = false;
+  function pollChanges() {
+    if (!helperState.on || changesBusy) return;
+    changesBusy = true;
+    helperGet('/changes?since=' + feed.since).then(function (d) {
+      feed.since = d.now; var n = 0;
+      if (!HOURLY) HOURLY = { v: 1, at: new Date().toISOString(), fx: d.fx || FX, fxDate: d.fxDate, sources: {}, cards: {} };
+      Object.keys(d.cards).forEach(function (cid) {
+        var i = idIx.get(cid); if (i == null || !d.cards[cid]) return;
+        HOURLY.cards[cid] = d.cards[cid]; n++;
+        Array.from(fileCache.keys()).forEach(function (k) { if (k.indexOf('/' + safeName(cid) + '.json') >= 0 || /^history\//.test(k)) fileCache.delete(k); });
+        applyValue(i); liveShow(i);
+        if (i === openId) loadDetail(i, PTCG.expand(cat.cards[i]), cat.sets[cat.setIx[i]]);
+      });
+      (d.recent || []).forEach(function (r) { feed.recent = feed.recent.filter(function (x) { return x[0] !== r[0]; }); feed.recent.push(r); });
+      feed.recent = feed.recent.slice(-40);
+      if (n) { recount(); if (state.watch) run(); }
+    }).catch(function () {}).then(function () { changesBusy = false; dashSoon(); });
+  }
+  setInterval(function () { pollHelper().then(pollChanges); }, 5000);
+  function liveDot() {
+    var j = ext.job, act = j && (j.status === 'running' || j.status === 'waiting');
+    $('ldot').className = 'ldot' + (act ? (j.status === 'waiting' ? ' wait' : ' run') : helperState.on || ext.on ? ' idle' : '');
+    $('dashBtn').title = act ? (j.status === 'waiting' ? 'Scraper waits for you' : 'Scraping now') : 'Scraping dashboard';
+  }
+  var dashT = 0;
+  function dashSoon() { if (!dashT && $('dash').open) dashT = setTimeout(function () { dashT = 0; renderDash(); }, 150); }
+  function openDash() { $('dash').showModal(); renderDash(); pollHelper().then(pollChanges); window.postMessage({ ptcg: 'page', kind: 'ping' }, MSG_ORIGIN); }
+  var SITE_NAMES = { cardmarket: 'Cardmarket', ebay: 'eBay', pricecharting: 'PriceCharting' };
+  function cardLink(cid, label) {
+    var i = idIx.get(cid); if (i == null) return esc(label || cid);
+    var t = cat.cards[i], s = cat.sets[cat.setIx[i]];
+    return '<button type="button" class="link" data-dopen="' + i + '">' + esc(label || t[1] + ' · ' + (s.ne || s.n) + ' ' + t[8]) + '</button>';
+  }
+  function renderDash() {
+    var j = ext.job, act = j && (j.status === 'running' || j.status === 'waiting'), hs = helperState.sites;
+    var keepOnly = $('dOnly') ? $('dOnly').value : '', keepDeep = $('dDeep') ? $('dDeep').checked : false, logTop = $('dLog') ? $('dLog').scrollTop : 0;
+    var h = '<header><h2>Scraping</h2><button type="button" class="dbtn" data-dact="close">Close</button></header><div class="dgrid">';
+    // connections
+    h += '<section class="dcard"><h3>Connections</h3><div class="conn">' +
+      '<span>Extension</span><span>' + (ext.on ? '<span class="ok">connected</span> <small>v' + esc(ext.version) + '</small>' : '<span class="no">not connected</span><br><small>Install <code>scraper-extension/</code> (chrome://extensions → Load unpacked) and reload this page.' + (location.protocol === 'file:' ? ' For a page opened from a file, also switch on “Allow access to file URLs” for the extension.' : '') + '</small>') + '</span>' +
+      '<span>Helper</span><span>' + (helperState.on ? '<span class="ok">connected</span> <small>' + esc(hs.store || '') + '</small>' : '<span class="no">not running</span><br><small>In the project folder: <code>npm run helper</code>' + (helperState.err ? ' (' + esc(helperState.err) + ')' : '') + '</small>') + '</span>' +
+      '<span>Price store</span><span>' + (HOURLY ? 'collector ' + esc(agoIso(HOURLY.at)) + (HOURLY.scrapedAt ? ' · scraper ' + esc(agoIso(HOURLY.scrapedAt)) : '') : 'not loaded' + (hourlyErr ? ' <small>(' + esc(hourlyErr) + ')</small>' : '')) + '<br><small>' + (helperState.on ? 'read from the helper, so new data shows straight away' : 'read from GitHub (' + esc(PRICES_URL) + ')') + '</small></span>' +
+      '<span>GitHub</span><span>' + (helperState.on ? (hs.pending ? '<b>' + fmt(hs.pending) + '</b> changes not pushed yet' : 'everything pushed') + (hs.lastPublish ? ' <small>· last push ' + esc(agoIso(hs.lastPublish.at)) + (hs.lastPublish.ok ? '' : ' failed: ' + esc(hs.lastPublish.error)) + '</small>' : '') +
+        ' <button type="button" class="dbtn" data-dact="push"' + (hs.publish && hs.pending ? '' : ' disabled') + '>Push now</button>' : '—') + '</span></div></section>';
+    // the run
+    var done = j ? j.saved + j.skipped + j.failed : 0, mins = j ? (Date.now() - Date.parse(j.startedAt)) / 60e3 : 0;
+    h += '<section class="dcard"><h3>Run <span>' + (j && j.startedAt ? 'started ' + esc(agoIso(j.startedAt)) : '') + '</span></h3>' +
+      '<div class="runmsg' + (j && j.status === 'waiting' ? ' wait' : '') + '">' + esc(!j ? 'Not started yet.' : j.message || (act ? (j.done && j.done.catalog ? 'To watch done · working through the catalog' : j.only ? 'Scraping ' + j.only : 'Updating To watch first') : j.status)) + '</div>' +
+      '<div class="dopts"><button type="button" class="dbtn ' + (act ? 'stop" data-dact="stop">Stop' : 'pr" data-dact="start"' + (ext.on && helperState.on ? '' : ' disabled') + '>Scrape all') + '</button>' +
+      (act ? '' : '<input type="text" id="dOnly" placeholder="only cards or sets (testing)" value="' + esc(keepOnly) + '"><label><input type="checkbox" id="dDeep"' + (keepDeep ? ' checked' : '') + '> every single Cardmarket offer (slow)</label>') + '</div>';
+    if (j) {
+      h += '<div class="cur3">' + Object.keys(SITE_NAMES).filter(function (k) { return !j.sites || j.sites.indexOf(k) >= 0; }).map(function (k) {
+        var cur = j.cur && j.cur[k], it = j.inFlight && j.inFlight[k];
+        return '<div><b>' + SITE_NAMES[k] + '</b><span>' + (cur ? (it ? cardLink(it.card, cur) : esc(cur)) + (j.steps && j.steps[k] ? '<br><small>' + esc(j.steps[k]) + '</small>' : '') : '<small>' + (act ? (j.ended && j.ended[k] ? 'done' : 'between cards') : '—') + '</small>') + '</span></div>';
+      }).join('') + '</div>';
+      h += '<div class="dstat"><span><b>' + fmt(done) + '</b> cards</span><span><b>' + fmt(j.saved) + '</b> saved</span><span><b>' + fmt(j.skipped) + '</b> not found</span><span><b>' + fmt(j.failed) + '</b> failed</span>' +
+        (j.done ? '<span>★ <b>' + fmt(j.done.watch || 0) + '</b> watched · <b>' + fmt(j.done.catalog || 0) + '</b> catalog</span>' : '') + (done && mins > 0.3 ? '<span><b>' + (done / mins).toFixed(1) + '</b> cards/min</span>' : '') + '</div>';
+      h += '<pre class="dlog" id="dLog">' + esc((j.log || []).join('\n')) + '</pre>';
+    }
+    h += '</section>';
+    // To watch
+    var wl = Array.from(watchSet);
+    h += '<section class="dcard"><h3>To watch <span>' + fmt(wl.length) + ' cards · scraped first</span></h3>' + (wl.length ? '<table class="dtable">' + wl.map(function (cid) {
+      var i = idIx.get(cid); if (i == null) return '<tr><td>' + esc(cid) + '</td><td class="r" colspan="3">no longer in the catalog</td></tr>';
+      var o = priceOf(i), last = o.score.parts.map(function (p) { return p.at; }).filter(Boolean).sort().pop();
+      return '<tr><td>★ ' + cardLink(cid) + '</td><td>' + scoreHTML(o.score) + '</td><td class="r">' + (o.head ? moneyText(o.head.eur, 'EUR') : '—') + '</td><td class="r">' + (last ? esc(agoIso(last)) : 'never') + '</td></tr>';
+    }).join('') + '</table>' : '<p class="nolang">Nothing yet: use ☆ Watch on a card.</p>') + '</section>';
+    // catalog coverage per site
+    h += '<section class="dcard"><h3>Catalog scraped <span>browser scraper</span></h3>' + (hs ? Object.keys(SITE_NAMES).map(function (k) {
+      var x = hs.sites[k], pct = x.eligible ? Math.round(1000 * x.fresh / x.eligible) / 10 : 0;
+      return '<div class="sitebar"><div class="row"><b>' + SITE_NAMES[k] + '</b><small>' + (x.watch.n ? '★ ' + x.watch.current + '/' + x.watch.n + ' up to date · ' : '') + 'last ' + (x.lastAt ? esc(agoIso(x.lastAt)) : 'never') + '</small></div>' +
+        '<div class="pbar"><i style="width:' + Math.max(pct, x.fresh ? 0.4 : 0) + '%"></i></div><small>' + fmt(x.fresh) + ' of ' + fmt(x.eligible) + ' cards scraped this week (' + pct + '%)</small></div>';
+    }).join('') : '<p class="nolang">Shown when the helper runs.</p>');
+    var src = (HOURLY && HOURLY.sources) || {};
+    h += '<h3 style="margin-top:6px">Hourly collector <span>' + (HOURLY ? esc(agoIso(HOURLY.at)) : '') + '</span></h3><ul class="srcs">' + [['fx', 'Exchange rates'], ['guide', 'Cardmarket price guide'], ['tcg', 'TCGplayer'], ['listings', 'Cardmarket API listings'], ['cardtrader', 'CardTrader'], ['ebay', 'eBay API']].map(function (k) {
+      var x = src[k[0]]; return '<li class="' + (x ? (x.ok ? 'y' : 'n') : '') + '"><b>' + k[1] + '</b> ' + (x ? esc((x.ok ? 'ok' : 'off') + (x.note ? ' · ' + x.note : '') + (x.count != null ? ' · ' + fmt(x.count) + ' cards' : '')) : '—') + '</li>';
+    }).join('') + '</ul></section>';
+    // data score across the catalog
+    var bins = new Array(10).fill(0), tot = 0, sum = 0, ge5 = 0, ge9 = 0;
+    for (var i = 0; i < cat.N; i++) { var b = cat.cov[i], v = b / 20; bins[Math.min(9, Math.floor(b / 2))]++; tot++; sum += v; if (b >= 10) ge5++; if (b >= 18) ge9++; }
+    var mx = Math.max.apply(null, bins) || 1;
+    h += '<section class="dcard"><h3>Data score, whole catalog <span>average ' + (tot ? (sum / tot).toFixed(2) : '—') + '</span></h3><div class="hist">' + bins.map(function (n, k) {
+      return '<div title="' + fmt(n) + ' cards with a score ' + (k / 10).toFixed(1) + '–' + ((k + 1) / 10).toFixed(1) + '"><span>' + (n ? fmt(n) : '') + '</span><i style="height:' + Math.round(100 * n / mx) + '%;background:' + scoreColor((k + 0.5) / 10) + '"></i>' + (k / 10).toFixed(1) + '</div>';
+    }).join('') + '</div><div class="dstat"><span><b>' + fmt(ge5) + '</b> cards ≥ 0.5</span><span><b>' + fmt(ge9) + '</b> cards ≥ 0.9</span><span><button type="button" class="link" data-dact="filter">show cards ≥ 0.5</button></span></div></section>';
+    // just saved
+    h += '<section class="dcard"><h3>Just saved <span>' + (helperState.on ? 'live' : '') + '</span></h3>' + (feed.recent.length ? '<table class="dtable">' + feed.recent.slice().reverse().slice(0, 25).map(function (r) {
+      return '<tr><td>' + cardLink(r[0]) + '<br><small class="nolang">' + esc(r[2] || '') + '</small></td><td class="r">' + esc(ago(r[1])) + '</td></tr>';
+    }).join('') + '</table>' : '<p class="nolang">Cards appear here the moment the scraper saves them.</p>') + '</section>';
+    $('dashBody').innerHTML = h + '</div>';
+    if ($('dLog')) $('dLog').scrollTop = logTop;
+  }
+  $('dashBtn').addEventListener('click', openDash);
+  $('dash').addEventListener('click', function (e) {
+    if (e.target === this) { this.close(); return; }
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.dopen) { this.close(); openCard(+b.dataset.dopen); return; }
+    var a = b.dataset.dact;
+    if (a === 'close') this.close();
+    else if (a === 'start') { b.disabled = true; extSend('start', { only: ($('dOnly') || {}).value || '', deep: !!($('dDeep') || {}).checked }).then(function (r) { if (r && r.error) alertDash(r.error); dashSoon(); }); }
+    else if (a === 'stop') { b.disabled = true; extSend('stop'); }
+    else if (a === 'push') { b.disabled = true; b.textContent = 'Pushing…'; helperPost('/publish').then(function (r) { if (r && r.ok === false) alertDash('Push failed: ' + (r.error || '')); pollHelper(); }); }
+    else if (a === 'filter') { this.close(); state.cov = '10'; document.querySelectorAll('#fCov [data-cov]').forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.cov === '10'); }); run(); }
+  });
+  function alertDash(t) { var m = document.querySelector('#dashBody .runmsg'); if (m) { m.textContent = t; m.className = 'runmsg wait'; } }
+
   function openSettings() {
     var s = settings, src = HOURLY && HOURLY.sources || {};
     $('setForm').innerHTML =

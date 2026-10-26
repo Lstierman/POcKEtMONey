@@ -5,7 +5,8 @@
 //   summary.json.gz                             one entry per card:
 //       g  Cardmarket guide per product [id, trend, low, avg1, avg7, avg30, reverse trend, reverse low, variant] EUR
 //       t  TCGplayer per product/finish [product id, finish, market, low, mid, high] USD
-//       l  Cardmarket listing stats { "<language id>|<condition>|<flags>": [n, min, median, avg, max] } EUR, lt time, ln count
+//       l  Cardmarket listing stats { "<language id>|<condition>|<flags>": [n, min, median, avg, max] } EUR, lt time, ln count,
+//          lc share of loaded views that were complete (scraper; missing = complete)
 //       c  CardTrader listing stats, same keys as l; ctt time, ctn count
 //       ea / es  eBay for sale / sold, raw copies only [n, min, median, avg, max] EUR; en [for sale, sold] counts; et time
 //       h / hs   headline EUR and its source (trend, listings, tcg, sold)
@@ -131,6 +132,7 @@ function summaryEntryError(e) {
   if (e.l) { for (const k in e.l) if (!/^\d+\|[A-Z]{2}\|[f1sa]*$/.test(k) || !isStats(e.l[k])) return 'l ' + k; if (!isIso(e.lt)) return 'lt'; }
   if (e.c) { for (const k in e.c) if (!/^\d+\|[A-Z?]{2}\|[f1sa]*$/.test(k) || !isStats(e.c[k])) return 'c ' + k; if (!isIso(e.ctt)) return 'ctt'; }
   for (const k of ['ea', 'es']) if (e[k] && !isStats(e[k])) return k;
+  if (e.lc != null && !(typeof e.lc === 'number' && e.lc >= 0 && e.lc <= 1)) return 'lc';
   if (e.b) { if (typeof e.b !== 'object') return 'b'; for (const k in e.b) if (!SEG_KEY.test(k) || !isStats(e.b[k])) return 'b ' + k; }
   if ((e.ea || e.es) && !isIso(e.et)) return 'et';
   if (!isNum(e.h === undefined ? null : e.h)) return 'h';

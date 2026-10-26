@@ -102,6 +102,8 @@ $('push').onclick = async () => {
 };
 $('addr').addEventListener('change', () => chrome.storage.local.set({ helper: $('addr').value.trim().replace(/\/$/, '') }, () => { refresh(); loadWatch(); }));
 
+// the site's scraping dashboard (where the bridge last saw it)
+chrome.storage.local.get('appUrl', s => { if (s.appUrl) { $('dash').hidden = false; $('dash').onclick = () => chrome.tabs.create({ url: s.appUrl + '#scraping' }); } });
 chrome.storage.onChanged.addListener(ch => { if (ch.job) { job = ch.job.newValue || null; renderJob(); } });
 chrome.storage.local.get(['job', 'helper', 'deep'], async s => {
   if (s.helper) $('addr').value = s.helper;

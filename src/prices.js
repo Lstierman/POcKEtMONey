@@ -204,6 +204,36 @@
     return m[1].replace(/^0+/, '').toLowerCase() === String(number || '').replace(/^0+/, '').toLowerCase();
   }
 
+  // ---- data score: how much of all the data there is to have for a card is collected, and how fresh it is ----
+  // Each part counts with its weight; full credit while younger than `fresh`, then linearly less until `stale`.
+  // "Checked, nothing listed" counts as collected. Parts that can't apply to the card (TCGplayer for Japanese prints)
+  // are left out and the rest re-weighted. part (0..1) scales a part that is only partly collected.
+  var SCORE_PARTS = [
+    ['listings', 'Cardmarket listings', 0.25, 1, 30],
+    ['sold', 'Sold (eBay, PriceCharting)', 0.20, 3, 60],
+    ['guide', 'Cardmarket price guide', 0.15, 2, 30],
+    ['ebay', 'eBay for sale', 0.15, 1, 30],
+    ['graded', 'Graded prices', 0.15, 7, 90],
+    ['tcg', 'TCGplayer', 0.10, 2, 30]
+  ];
+  // has: { <key>: { at: ISO date or null, part: 0..1 (default 1), na: true when it can't apply } }
+  function dataScore(has, now) {
+    now = now || Date.now();
+    var sum = 0, wsum = 0, parts = SCORE_PARTS.map(function (p) {
+      var h = has[p[0]] || {}, out = { key: p[0], label: p[1], weight: p[2], at: h.at || null, value: 0, state: 'missing', part: h.part == null ? 1 : h.part };
+      if (h.na) { out.state = 'n/a'; return out; }
+      wsum += p[2];
+      if (h.at) {
+        var days = (now - Date.parse(h.at)) / 864e5, f = isNaN(days) ? 0 : days <= p[3] ? 1 : days >= p[4] ? 0 : 1 - (days - p[3]) / (p[4] - p[3]);
+        out.value = r2(f * out.part); out.state = f >= 1 ? 'fresh' : f > 0 ? 'aging' : 'stale'; out.days = days;
+        sum += p[2] * f * out.part;
+      }
+      return out;
+    });
+    return { score: wsum ? Math.round(sum / wsum * 100) / 100 : 0, parts: parts };
+  }
+  function scoreBucket(score) { return Math.max(0, Math.min(20, Math.floor(score * 20 + 1e-9))); } // 0.05 steps, for the search engine
+
   // which methods a card has data for: 0..6 plus the flags
   function coverage(has) {
     var flags = METHODS.map(function (m) { return !!has[m[0]]; }), n = 0;
@@ -213,7 +243,7 @@
 
   var api = { LANGS: LANGS, CONDS: CONDS, COND_NAMES: COND_NAMES, METHODS: METHODS, TIERS: TIERS, ARTICLE: ARTICLE, stats: stats, aggregateArticles: aggregateArticles, listingAvg: listingAvg,
     toEur: toEur, fromEur: fromEur, isGraded: isGraded, sameCardNumber: sameCardNumber, coverage: coverage, r2: r2,
-    grade: grade, gradeOrder: gradeOrder, PC_TAB: PC_TAB, GRADERS: GRADERS, titleLang: titleLang, SEG_SOURCES: SEG_SOURCES, SEG_KEY: SEG_KEY, segKey: segKey, segments: segments,
+    grade: grade, gradeOrder: gradeOrder, PC_TAB: PC_TAB, SCORE_PARTS: SCORE_PARTS, dataScore: dataScore, scoreBucket: scoreBucket, GRADERS: GRADERS, titleLang: titleLang, SEG_SOURCES: SEG_SOURCES, SEG_KEY: SEG_KEY, segKey: segKey, segments: segments,
     obsArticles: obsArticles, obsEbay: obsEbay, obsPricecharting: obsPricecharting, setSegments: setSegments, mergeSegments: mergeSegments };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.PRICES = api;

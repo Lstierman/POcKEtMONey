@@ -12,6 +12,9 @@ function applyCardmarket(store, entry, card, products, at, source) {
   const l = P.aggregateArticles(all);
   if (Object.keys(l).length) entry.l = l; else delete entry.l;
   entry.lt = at; entry.ln = all.length;
+  // how complete the listings are: share of loaded views that reached the last offer (the API always does)
+  const views = products.flatMap(p => p.coverage || []);
+  if (views.length) entry.lc = Math.round(views.filter(v => v[3]).length / views.length * 100) / 100; else delete entry.lc;
   P.setSegments(entry, 'cm', P.obsArticles('cm', all));
 }
 

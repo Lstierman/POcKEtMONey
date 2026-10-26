@@ -194,6 +194,14 @@ test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip
   const journal = fs.readFileSync(path.join(dir, '..', path.basename(dir) + '-journal.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l));
   assert.ok(journal.some(j => j.watch && j.watch.add.includes('base1-15')) && journal.some(j => j.skip && j.skip.card === failing));
 
+  // the site's live view: cards saved since a moment, with their summary entries
+  const t0 = Date.now() - 1;
+  await post('/ingest', { site: 'pricecharting', url: pc.url, cardId: 'base1-2', data: pc, via: 'scraper' });
+  const ch = await get('/changes?since=' + t0);
+  assert.deepStrictEqual(Object.keys(ch.cards), ['base1-2']); assert.ok(ch.cards['base1-2'].pc && ch.now >= t0);
+  assert.strictEqual(ch.recent[ch.recent.length - 1][0], 'base1-2');
+  assert.deepStrictEqual(Object.keys((await get('/changes?since=' + ch.now)).cards), []);
+
   assert.strictEqual((await post('/publish', {})).status, 400, 'pushing needs npm run helper');
 });
 
@@ -381,4 +389,34 @@ test('scraper extension run: To watch before the catalog, until the queue is emp
   assert.strictEqual(B.job().status, 'stopped'); assert.match(B.job().message, /continue where it stopped/);
   assert.ok(B.order.length < q.length);
   assert.strictEqual(B.calls[B.calls.length - 1][0], '/publish');
+});
+
+test('data score: weights, freshness, partly collected, not applicable', () => {
+  const P = require('../src/prices.js'), at = d => new Date(now - d * 864e5).toISOString();
+  const all = { listings: { at: at(0.5) }, sold: { at: at(1) }, guide: { at: at(1) }, ebay: { at: at(0.2) }, graded: { at: at(3) }, tcg: { at: at(1) } };
+  assert.strictEqual(P.dataScore(all, now).score, 1);
+  assert.strictEqual(P.dataScore({}, now).score, 0);
+  // only listings and sold, fresh: 0.25 + 0.20 of 1.00
+  assert.strictEqual(P.dataScore({ listings: { at: at(0) }, sold: { at: at(0) } }, now).score, 0.45);
+  // eBay for sale 15.5 days old: halfway between 1 and 30 days -> half its 0.15
+  const half = P.dataScore({ ebay: { at: at(15.5) } }, now);
+  assert.strictEqual(half.score, 0.08); assert.strictEqual(half.parts.find(p => p.key === 'ebay').state, 'aging');
+  assert.strictEqual(P.dataScore({ ebay: { at: at(40) } }, now).parts.find(p => p.key === 'ebay').state, 'stale');
+  // listings where only the cheapest offers were loaded count partly
+  assert.strictEqual(P.dataScore({ listings: { at: at(0), part: 0.6 } }, now).score, 0.15);
+  // Japanese print: TCGplayer left out, the rest re-weighted
+  const ja = P.dataScore(Object.assign({}, all, { tcg: { na: true } }), now);
+  assert.strictEqual(ja.score, 1); assert.strictEqual(ja.parts.find(p => p.key === 'tcg').state, 'n/a');
+  assert.strictEqual(P.dataScore({ listings: { at: at(0) }, tcg: { na: true } }, now).score, Math.round(0.25 / 0.9 * 100) / 100);
+  assert.deepStrictEqual([0, 0.05, 0.5, 0.99, 1].map(P.scoreBucket), [0, 1, 10, 19, 20]);
+});
+
+test('Cardmarket listing completeness (lc) from the views the scraper loaded', () => {
+  const { Store } = require('../scripts/lib/store.js'), { applyCardmarket } = require('../scripts/lib/entries.js');
+  const store = new Store(fs.mkdtempSync(path.join(os.tmpdir(), 'ptcg-lc-'))), c = cards.get('base1-4');
+  const row = [1, 1, 'NM', 400, 1, 0, 0, 0, 0, 'DE', 's', '', 273699];
+  const e = {}; applyCardmarket(store, e, c, [{ cm: 273699, label: 'x', articles: [row], coverage: [[0, 0, 50, 0], [1, 0, 30, 1], [3, 0, 10, 1], [7, 0, 0, 1]] }], new Date().toISOString(), 'scraper');
+  assert.strictEqual(e.lc, 0.75);
+  applyCardmarket(store, e, c, [{ cm: 273699, label: 'x', articles: [row] }], new Date().toISOString(), 'api');
+  assert.strictEqual(e.lc, undefined, 'API listings are complete');
 });

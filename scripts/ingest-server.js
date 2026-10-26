@@ -14,6 +14,8 @@
 //   POST /ingest                 one page's prices          POST /skip   no match (or failed) for a card
 //   GET  /watch                  the To watch list          POST /watch  { add: [ids], remove: [ids] }
 //   GET  /cards?q=               card search                POST /publish   push now
+//   GET  /changes?since=<ms>     cards saved since then, for the site's live view
+//   GET  /store/<file>           the store's files, so the site sees new data before it is pushed
 //
 // Every change is also written to a journal (build/ingest-journal.jsonl). If the hourly collector pushed in between,
 // the store is reset to its version and the changes not pushed yet are replayed on top, so neither side loses data.
@@ -106,6 +108,9 @@ function load() {
   if (!watch) watch = { v: SCHEMA, at: new Date().toISOString(), cards: ((cfg.schedule && cfg.schedule.always) || []).map(id => [id, new Date().toISOString()]) };
 }
 let watch = null;
+// cards changed since the helper started, for the site's live view: id -> { t: ms, what }
+const changes = new Map();
+function changed(id, what) { changes.delete(id); changes.set(id, { t: Date.now(), what }); if (changes.size > 5000) changes.delete(changes.keys().next().value); }
 const watchIds = () => watch.cards.map(w => w[0]);
 function applyWatch(op, at) { // { add: [ids], remove: [ids] }; returns whether anything changed
   const have = new Set(watchIds()); let changed = false;
@@ -247,6 +252,11 @@ async function handle(req, res) {
   if (u.pathname === '/sites') return send(res, 200, {
     sites: PLAN.siteStatus(state || {}, cards, cfg, watchIds()), watch: watch.cards.length, publish: !!arg('publish'), pending, lastPublish,
     collectorAt: (meta && meta.at) || null, store: dir });
+  if (u.pathname === '/changes') { // GET /changes?since=<ms>: the summary entries of cards saved since then (newest last)
+    const since = +u.searchParams.get('since') || 0, out = {}, recent = [];
+    for (const [id, c] of changes) if (c.t > since) { out[id] = entries()[id] || null; recent.push([id, c.t, c.what]); }
+    return send(res, 200, { now: Date.now(), cards: out, recent: recent.slice(-50), fx, fxDate });
+  }
   if (u.pathname === '/watch' && req.method === 'GET') return send(res, 200, { at: watch.at, cards: watch.cards.map(([id, at]) => {
     const c = cards.get(id), e = entries()[id];
     return c ? { id, at, label: PLAN.label(c), name: c[2], lang: c[5], price: e && e.h != null ? e.h : null } : { id, at, label: id + ' (no longer in the catalog)' };
@@ -312,6 +322,7 @@ async function handle(req, res) {
       return send(res, 500, { error: 'not saved: ' + e.message });
     }
     store.written = [];
+    changed(id, report);
     journal(j);
     const e = entries()[id], cov = P.coverage({ guide: e.g, listings: e.ln || e.ctn, tcg: e.t, ebayActive: e.ea, ebaySold: e.es || (e.pc && e.pc.n), graded: e.pc && e.pc.g.some(x => x != null) });
     console.log(`${at.slice(11, 19)} ${id} ${report}`);
