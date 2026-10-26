@@ -46,7 +46,8 @@
     "top": 20,
     "staleHours": 12,
     "missRecheckHours": 168,
-    "secondsBetweenPages": 7,
+    "secondsBetweenRequests": 1.5,
+    "parallelRequests": 2,
     "ebayMarketplaces": [
       "EBAY_DE",
       "EBAY_US"

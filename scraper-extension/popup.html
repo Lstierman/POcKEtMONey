@@ -25,7 +25,8 @@
   .job.waiting { border-color: var(--warn); background: #fffbeb }
   .bar { height: 6px; border-radius: 3px; background: var(--soft); overflow: hidden } .bar i { display: block; height: 100%; background: var(--blue); width: 0 }
   .job .msg { font-weight: 700 } .job.waiting .msg { color: var(--warn) }
-  .job .cur, .job .counts { color: var(--mute); font-size: 12px }
+  .job .cur, .job .counts { color: var(--mute); font-size: 12px } .job .cur { white-space: pre-line }
+  .opt { margin-top: 8px; color: var(--mute); display: flex; gap: 6px; align-items: flex-start; font-size: 12px } .opt input { height: auto; margin-top: 2px }
   .log { max-height: 110px; overflow: auto; font: 11px/1.45 ui-monospace, Menlo, Consolas, monospace; color: var(--mute); white-space: pre-wrap }
   .push { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center }
   .push .note { color: var(--mute); font-size: 12px }
@@ -42,6 +43,7 @@
   <label>Cards per site <input type="number" id="n" min="1" max="500" value="20"></label>
   <input id="only" placeholder="Only: card ids or sets (optional)" spellcheck="false" title="e.g. base1-4, sv3pt5 or a set code. Empty: most valuable cards not scraped recently.">
 </div>
+<label class="opt"><input type="checkbox" id="deep"> <span>Every single Cardmarket offer (slow). Off: the cheapest offers of every language and condition, about a second per page.</span></label>
 <button class="pr all" id="all">Scrape all sites</button>
 
 <div class="job" id="job" hidden>
@@ -61,6 +63,6 @@
 <details>
   <summary>Settings</summary>
   <div class="row"><input id="addr" value="http://127.0.0.1:8787" spellcheck="false"><button id="saveaddr">Save</button></div>
-  <p>Pages open in a separate window. Leave it alone; if a site asks for a human check or a login, the window comes to the front and the run waits for you.</p>
+  <p>A separate window opens one tab per site; the other pages are read in the background. Leave it open. If a site asks for a human check or a login, the window comes to the front and the run waits for you.</p>
 </details>
 <script src="popup.js"></script>

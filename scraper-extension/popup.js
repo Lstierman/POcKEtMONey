@@ -55,9 +55,11 @@ function renderJob() {
   el.hidden = false;
   const active = job.status === 'running' || job.status === 'waiting', total = job.items.length;
   el.className = 'job' + (job.status === 'waiting' ? ' waiting' : '');
-  $('msg').textContent = job.message || (active ? 'Scraping ' + (job.i + 1) + ' of ' + total + '…' : job.status);
+  const mins = (Date.now() - Date.parse(job.startedAt || Date.now())) / 60e3, rate = job.i && mins > 0.2 ? ' · ' + (job.i / mins).toFixed(1) + ' cards/min' : '';
+  $('msg').textContent = job.message || (active ? job.i + ' of ' + total + ' done' + rate : job.status);
   $('bar').style.width = Math.round(100 * job.i / total) + '%';
-  $('cur').textContent = active ? job.current + (job.step ? ' — ' + job.step : '') : '';
+  const NAMES = { cardmarket: 'Cardmarket', ebay: 'eBay', pricecharting: 'PriceCharting' };
+  $('cur').textContent = active ? Object.keys(job.cur || {}).map(s => NAMES[s] + ': ' + job.cur[s] + (job.steps && job.steps[s] ? ' — ' + job.steps[s] : '')).join('\n') : '';
   $('counts').textContent = job.saved + ' saved · ' + job.skipped + ' not found · ' + job.failed + ' failed';
   $('log').textContent = job.log.join('\n');
   $('stop').hidden = !active;
@@ -70,8 +72,9 @@ async function refresh() { renderHelper(await send({ type: 'helper', path: '/sit
 
 async function start(sites) {
   const n = Math.max(1, Math.min(500, +$('n').value || 20)), only = $('only').value.trim();
-  chrome.storage.local.set({ n, only });
-  const r = await send({ type: 'start', sites, n, only });
+  const deep = $('deep').checked;
+  chrome.storage.local.set({ n, only, deep });
+  const r = await send({ type: 'start', sites, n, only, deep });
   if (r && r.error) { job = { items: [{}], i: 0, saved: 0, skipped: 0, failed: 0, log: [], status: 'error', message: r.error }; renderJob(); }
 }
 
@@ -88,7 +91,8 @@ $('push').onclick = async () => {
 $('saveaddr').onclick = () => chrome.storage.local.set({ helper: $('addr').value.trim().replace(/\/$/, '') }, refresh);
 
 chrome.storage.onChanged.addListener(ch => { if (ch.job) { job = ch.job.newValue || null; renderJob(); if (job && job.status !== 'running') refresh(); } });
-chrome.storage.local.get(['job', 'helper', 'n', 'only'], s => {
+chrome.storage.local.get(['job', 'helper', 'n', 'only', 'deep'], s => {
+  $('deep').checked = !!s.deep;
   if (s.helper) $('addr').value = s.helper;
   if (s.n) $('n').value = s.n;
   if (s.only) $('only').value = s.only;

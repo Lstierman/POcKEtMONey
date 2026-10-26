@@ -104,7 +104,7 @@ test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip
 
   let q = await get('/queue?site=ebay&n=3');
   assert.strictEqual(q.items.length, 3); assert.strictEqual(q.items[0].card, cfg.schedule.always[0]);
-  assert.ok(q.items[0].pages.length >= 2 && q.secondsBetweenPages > 0);
+  assert.ok(q.items[0].pages.length >= 2 && q.pace.gap > 0 && q.pace.conc >= 1);
   assert.strictEqual((await fetch(url + '/queue?site=nope')).status, 400);
 
   // a scraped eBay page: the item for another card number is dropped, the right one kept
@@ -177,63 +177,97 @@ test('classification: grading company and grade, language, raw copies that menti
   assert.deepStrictEqual(Object.keys(pc).sort(), ['pc|S|1|', 'pc|S|1|BGS 9', 'pc|S|1|Graded 9']);
 });
 
-test('scraper extension: Cardmarket offers per language and condition when a product has too many to load', async () => {
+// Runs the real scraper-extension/background.js in a VM with a simulated Chrome and a simulated Cardmarket product.
+function simulatedExtension(offers) {
   const vm = require('vm');
-  // a product with 1,400 offers: English (many, mostly cheap Poor/Played copies), German, Japanese
-  const conds = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'], offers = [];
-  let id = 1000000;
-  for (let i = 0; i < 900; i++) offers.push([id++, 1, conds[6 - (i % 3)], 5 + i * 0.1, 1, 0, 0, 0, 0, 'DE', 's', '', 5]); // Poor, Played, Light Played
-  for (let i = 0; i < 300; i++) offers.push([id++, 1, conds[i % 2], 200 + i, 1, 0, 0, 0, 0, 'DE', 's', '', 5]);         // Mint, Near Mint: pricier
-  for (let i = 0; i < 150; i++) offers.push([id++, 3, conds[1], 150 + i, 1, 0, 0, 0, 0, 'DE', 's', '', 5]);
-  for (let i = 0; i < 50; i++) offers.push([id++, 7, conds[1], 300 + i, 1, 0, 0, 0, 0, 'JP', 's', '', 5]);
-  const PER = 50, base = 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Base-Set/Charizard';
-  let url = '', clicks = 0, loads = 0, ingested = null;
-  function view() {
+  const conds = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'], PER = 50;
+  const sim = { requests: 0, navigations: 0, ingested: [], skipped: [] };
+  function view(url, shownPages) {
     const u = new URL(url), lang = +u.searchParams.get('language') || 0, cond = +u.searchParams.get('minCondition') || 7;
     const all = offers.filter(a => (!lang || a[1] === lang) && conds.indexOf(a[2]) + 1 <= cond).sort((a, b) => a[3] - b[3]);
-    const shown = all.slice(0, PER * (1 + clicks));
-    return { none: false, url: url.split('#')[0], more: shown.length < all.length, data: { site: 'cardmarket', idProduct: 5, title: 'Charizard', articles: shown, found: shown.length, rowsSeen: shown.length } };
+    const shown = all.slice(0, PER * shownPages);
+    return { site: 'cardmarket', idProduct: 5, title: 'Charizard', articles: shown, found: shown.length, rowsSeen: shown.length, cut: shown.length < all.length };
   }
+  let tabUrl = '', clicks = 0;
   const ctx = {
-    console, URL, URLSearchParams, Map, Set, JSON, Math, Date, Promise, Object, Array, String, Error,
-    setTimeout: fn => setImmediate(fn), setInterval: () => 0, clearInterval: () => {},
+    console, URL, URLSearchParams, Map, Set, JSON, Math, Date, Promise, Object, Array, String, Error, AbortController,
+    setTimeout: (fn) => setImmediate(fn), clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
     importScripts: () => { ctx.PTCG_MATCH = require('../scraper-extension/match.js'); },
-    fetch: async (u, o) => { if (/\/ingest$/.test(u)) { ingested = JSON.parse(o.body); return { status: 200, json: async () => ({ report: 'ok', card: { id: 'base1-4' } }) }; } return { status: 200, json: async () => ({}) }; },
+    fetch: async (u, o) => {
+      if (/\/ingest$/.test(u)) { const b = JSON.parse(o.body); sim.ingested.push(b); return { status: 200, json: async () => ({ report: b.data.found + ' listings', card: { id: 'base1-4' } }) }; }
+      if (/\/skip$/.test(u)) { sim.skipped.push(JSON.parse(o.body)); return { status: 200, json: async () => ({ ok: true }) }; }
+      return { status: 404, url: u, json: async () => ({}) };
+    },
     chrome: {
       storage: { local: { get: async () => ({}), set: async () => {}, remove: async () => {} } },
       action: { setBadgeText() {}, setBadgeBackgroundColor() {} }, runtime: { onMessage: { addListener() {} }, getPlatformInfo() {} },
-      notifications: { create() {}, clear() {} }, windows: { create: async () => ({ id: 1, tabs: [{ id: 2 }] }), update: async () => {}, remove: async () => {} },
-      tabs: { get: async () => ({ status: 'complete' }), update: async (t, o) => { url = o.url; clicks = 0; loads++; } },
+      notifications: { create() {}, clear() {} },
+      windows: { create: async () => ({ id: 1, tabs: [{ id: 2 }] }), get: async () => ({ id: 1 }), update: async () => {}, remove: async () => {} },
+      tabs: { get: async id => ({ id, status: 'complete' }), create: async () => ({ id: 3 }), update: async (t, o) => { if (o.url) { tabUrl = o.url.split('#')[0]; clicks = 0; sim.navigations++; } } },
       scripting: { executeScript: async ({ func, args }) => {
         if (!func) return [{}];
-        if (func.name === 'readPage') return [{ result: view() }];
-        if (func.name === 'loadAllOffers') { const max = args[0]; while (clicks < max && view().more) clicks++; return [{ result: clicks }]; }
+        if (func.name === 'fetchParse') return [{ result: args[0].map(url => { sim.requests++; const d = view(url, 1), cut = d.cut; delete d.cut; return { url, final: url, status: 200, data: d, more: cut }; }) }];
+        if (func.name === 'readPage') { const d = view(tabUrl, 1 + clicks), cut = d.cut; delete d.cut; return [{ result: { url: tabUrl, data: d, more: cut } }]; }
+        if (func.name === 'loadAllOffers') { let n = 0; while (n < args[0] && view(tabUrl, 1 + clicks).cut) { clicks++; n++; } return [{ result: n }]; }
         if (func.name === 'blockCheck') return [{ result: '' }];
-        return [{ result: null }];
+        return [{ result: 0 }];
       } }
     }
   };
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(path.join(root, 'scraper-extension/background.js'), 'utf8'), ctx);
-  await new Promise(r => setImmediate(r));
-  vm.runInContext('job = { items: [], i: 0, saved: 0, skipped: 0, failed: 0, gap: 0, log: [], status: "running" }; pause = async () => {};', ctx);
-  const item = { site: 'cardmarket', card: 'base1-4', label: 'Charizard', products: [{ cm: 5, url: base }], filters: { maxLoadMore: 5, languages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], conditions: true }, match: {} };
-  const n = await vm.runInContext('scrapeCardmarket', ctx)(item);
-  assert.strictEqual(n, 1);
-  const got = ingested.data.articles, byLC = {};
-  for (const a of got) byLC[a[1] + a[2]] = (byLC[a[1] + a[2]] || 0) + 1;
-  assert.strictEqual(new Set(got.map(a => a[0])).size, got.length, 'each offer once');
-  assert.ok(got.length > 300, 'more than the 300 a single cut-off view shows: ' + got.length);
-  assert.strictEqual(byLC['1MT'], 150, 'every English Mint offer'); assert.strictEqual(byLC['1NM'], 150, 'every English Near Mint offer');
-  assert.strictEqual(byLC['3NM'], 150, 'every German offer'); assert.strictEqual(byLC['7NM'], 50, 'Japanese offers, too expensive to show in the first view');
-  const cov = ingested.data.coverage;
-  assert.deepStrictEqual(cov[0].slice(0, 2).concat(cov[0][3]), [0, 0, 0], 'all languages: cut off');
-  assert.ok(cov.some(c => c[0] === 1 && c[1] && c[3]), 'English complete at some condition threshold');
-  assert.ok(cov.some(c => c[0] === 3 && c[1] === 0 && c[3]), 'German complete without a condition filter');
-  assert.deepStrictEqual(cov.find(c => c[0] === 2), [2, 0, 0, 1], 'French: checked, no offers');
-  // Cardmarket's condition filter is "this or better", so the worst conditions can't be isolated: beyond the load
-  // limit their most expensive offers stay out (the coverage says which views were cut off); the cheapest are all in
-  const ids = new Set(got.map(a => a[0])), cheapEn = offers.filter(a => a[1] === 1).sort((x, y) => x[3] - y[3]).slice(0, 300);
-  assert.ok(cheapEn.every(a => ids.has(a[0])), 'the cheapest English offers of any condition');
-  assert.ok(offers.filter(a => ['MT', 'NM', 'EX', 'GD'].includes(a[2]) || a[1] !== 1).every(a => ids.has(a[0])), 'every offer in Good or better, and in every other language');
+  sim.run = async (item, deep) => {
+    await new Promise(r => setImmediate(r));
+    vm.runInContext(`job = { items: [], st: [], i: 0, saved: 0, skipped: 0, failed: 0, pace: { gap: 0, conc: 2, pageSize: 50 }, deep: ${!!deep}, log: [], status: 'running', cur: {}, steps: {}, tabs: {}, ready: {}, waiting: 0 };`, ctx);
+    const w = vm.runInContext('worker("cardmarket")', ctx);
+    return vm.runInContext('scrapeCardmarket', ctx)(w, item);
+  };
+  sim.log = () => vm.runInContext('job.log', ctx);
+  return sim;
+}
+function crowdedProduct() {
+  // 1,400 offers: English (many cheap Poor/Played copies, pricier Mint/Near Mint), German, Japanese
+  const conds = ['MT', 'NM', 'EX', 'GD', 'LP', 'PL', 'PO'], offers = []; let id = 1000000;
+  for (let i = 0; i < 900; i++) offers.push([id++, 1, conds[6 - (i % 3)], 5 + i * 0.1, 1, 0, 0, 0, 0, 'DE', 's', '', 5]);
+  for (let i = 0; i < 300; i++) offers.push([id++, 1, conds[i % 2], 200 + i, 1, 0, 0, 0, 0, 'DE', 's', '', 5]);
+  for (let i = 0; i < 150; i++) offers.push([id++, 3, conds[1], 150 + i, 1, 0, 0, 0, 0, 'DE', 's', '', 5]);
+  for (let i = 0; i < 50; i++) offers.push([id++, 7, conds[1], 300 + i, 1, 0, 0, 0, 0, 'JP', 's', '', 5]);
+  return offers;
+}
+const ITEM = { site: 'cardmarket', card: 'base1-4', label: 'Charizard', products: [{ cm: 5, url: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Base-Set/Charizard' }],
+  filters: { maxLoadMore: 40, languages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], conditions: true }, match: {} };
+
+test('scraper extension, fast: the cheapest offers of every language × condition in a few dozen requests', async () => {
+  const offers = crowdedProduct(), sim = simulatedExtension(offers);
+  assert.strictEqual(await sim.run(ITEM, false), 1);
+  const got = sim.ingested[0].data.articles, ids = new Set(got.map(a => a[0]));
+  assert.strictEqual(ids.size, got.length, 'each offer once');
+  // fetches: the first page + 13 languages + (English, German cut off) × 6 conditions; plus one normal load of the tab
+  assert.strictEqual(sim.requests, 1 + 13 + 12, 'requests: ' + sim.requests);
+  assert.strictEqual(sim.navigations, 1, 'only the first page is loaded in the tab');
+  const cheapest = (lang, okConds, n = 50) => offers.filter(a => a[1] === lang && okConds.includes(a[2])).sort((x, y) => x[3] - y[3]).slice(0, n);
+  for (const [lang, set] of [[1, ['MT']], [1, ['MT', 'NM']], [1, ['MT', 'NM', 'EX', 'GD', 'LP']], [3, ['MT', 'NM']], [7, ['NM']]])
+    assert.ok(cheapest(lang, set).every(a => ids.has(a[0])), 'cheapest of language ' + lang + ' in ' + set.join('/'));
+  const cov = sim.ingested[0].data.coverage;
+  assert.deepStrictEqual(cov.find(c => c[0] === 7), [7, 0, 50, 1], 'Japanese: complete');
+  assert.deepStrictEqual(cov.find(c => c[0] === 2), [2, 0, 0, 1], 'French: checked, none');
+  assert.ok(cov.filter(c => c[0] === 1 && c[1]).length === 6, 'English per condition');
+  assert.ok(sim.log().some(l => /267 offers from 26 views \(14 views show the cheapest only/.test(l)), sim.log().join('\n'));
+});
+
+test('scraper extension, deep: every offer in Good or better and every other language', async () => {
+  const offers = crowdedProduct(), sim = simulatedExtension(offers);
+  assert.strictEqual(await sim.run(ITEM, true), 1);
+  const got = sim.ingested[0].data.articles, ids = new Set(got.map(a => a[0]));
+  assert.strictEqual(ids.size, got.length);
+  assert.ok(offers.filter(a => a[1] !== 1).every(a => ids.has(a[0])), 'every German and Japanese offer');
+  assert.ok(offers.filter(a => a[1] === 1).every(a => ids.has(a[0])), 'every English offer (40 loads of 50 cover 1,200)');
+  assert.ok(sim.navigations <= 3, 'deep mode opens only the cut-off languages in the tab: ' + sim.navigations);
+});
+
+test('scraper extension: a normal card is one request', async () => {
+  const offers = crowdedProduct().filter(a => a[1] === 7), sim = simulatedExtension(offers);
+  assert.strictEqual(await sim.run(ITEM, false), 1);
+  assert.strictEqual(sim.requests, 1); assert.strictEqual(sim.navigations, 1); // the tab's first load, then one fetch
+  assert.strictEqual(sim.ingested[0].data.articles.length, 50);
 });

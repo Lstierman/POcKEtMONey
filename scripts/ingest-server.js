@@ -187,7 +187,8 @@ async function handle(req, res) {
     if (!PLAN.SITES.includes(site)) return send(res, 400, { error: 'site must be one of ' + PLAN.SITES.join(', ') });
     const n = Math.max(1, Math.min(500, +u.searchParams.get('n') || 20)), only = u.searchParams.get('only') || '';
     const list = PLAN.pickCards(site, { cards, entries: entries(), state, cfg, n, only });
-    return send(res, 200, { site, items: list.map(c => PLAN.plan(site, c, { cfg, urls: state.urls })), secondsBetweenPages: (cfg.scrape && cfg.scrape.secondsBetweenPages) || 7 });
+    const sc = cfg.scrape || {}, pace = { gap: sc.secondsBetweenRequests || 1.5, conc: sc.parallelRequests || 2, pageSize: (sc.cardmarket && sc.cardmarket.pageSize) || 50 };
+    return send(res, 200, { site, items: list.map(c => PLAN.plan(site, c, { cfg, urls: state.urls })), pace });
   }
   if (u.pathname === '/skip' && req.method === 'POST') { // the scraper found nothing for this card: don't queue it again for staleHours
     const m = await body(req);
