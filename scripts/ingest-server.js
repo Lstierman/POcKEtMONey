@@ -223,11 +223,19 @@ async function handle(req, res) {
     const id = resolve(m); if (!id) return send(res, 409, { error: 'which card is this?', need: 'card', suggestions: search(m.data.title || m.data.query || '', 8) });
     if (!fx) { const r = await src.fx(); fx = r.fx; fxDate = r.date; }
     const at = new Date().toISOString(), j = { at, card: id, m: Object.assign({}, m, { at, html: undefined }) };
-    const report = apply(j.m, cards.get(id));
-    (state.capture[m.site] = state.capture[m.site] || {})[id] = at;
-    saveAll([id]);
-    const bad = store.verify(); store.written = [];
-    if (bad.length) return send(res, 500, { error: 'store validation failed: ' + bad.join('; ') });
+    let report;
+    try {
+      report = apply(j.m, cards.get(id));
+      (state.capture[m.site] = state.capture[m.site] || {})[id] = at;
+      saveAll([id]);
+      const bad = store.verify(); if (bad.length) throw new Error('store validation failed: ' + bad.join('; '));
+    } catch (e) {
+      // a refused write must not leave the half-applied capture in memory, or every later capture fails too
+      store.written = []; load();
+      console.error(`${at.slice(11, 19)} ${id} ${m.site}: not saved: ${e.message}`);
+      return send(res, 500, { error: 'not saved: ' + e.message });
+    }
+    store.written = [];
     fs.mkdirSync(path.dirname(journalF), { recursive: true }); fs.appendFileSync(journalF, JSON.stringify(j) + '\n');
     pending++;
     const e = entries()[id], cov = P.coverage({ guide: e.g, listings: e.ln || e.ctn, tcg: e.t, ebayActive: e.ea, ebaySold: e.es || (e.pc && e.pc.n), graded: e.pc && e.pc.g.some(x => x != null) });

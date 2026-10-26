@@ -283,7 +283,7 @@ async function cmProduct(w, first, item) { // first: the product page as fetched
 }
 
 async function scrapeCardmarket(w, item) {
-  const want = new Set(item.products.map(p => p.cm)), got = new Set(), tried = new Set();
+  const want = new Set(item.products.map(p => p.cm)), got = new Set(), tried = new Set(), errors = [];
   async function product(page) {
     if (!page || !page.data || page.data.site !== 'cardmarket') return;
     const key = page.final.split('?')[0]; if (tried.has(key)) return; tried.add(key);
@@ -295,8 +295,11 @@ async function scrapeCardmarket(w, item) {
       return;
     }
     const data = await cmProduct(w, page, item);
-    const res = await ingest('cardmarket', { final: page.final, data }, item.card, { empty: data.found === 0 }).catch(e => { log('Cardmarket ' + id + ': ' + e.message); return null; });
+    const odd = data.articles.filter(a => a[2] === '??').length;
+    if (odd) log('Cardmarket ' + id + ': ' + odd + ' of ' + data.articles.length + ' offers without a readable condition (kept, left out of the condition prices)');
+    const res = await ingest('cardmarket', { final: page.final, data }, item.card, { empty: data.found === 0 }).catch(e => { errors.push(e.message); log('✗ Cardmarket ' + id + ': ' + e.message); return null; });
     if (res) { log('Cardmarket: ' + res.report); got.add(id); }
+    else { want.delete(id); tried.add('failed:' + id); } // found but not saved: don't look for it elsewhere
   }
   w.step('Cardmarket: finding the product');
   const known = item.products.filter(p => p.url).map(p => p.url);
@@ -312,6 +315,7 @@ async function scrapeCardmarket(w, item) {
     if (s && s.data) await product(s); // a single hit opens the product directly
     else if (s && s.picked) for (const u of s.picked.slice(0, want.size - got.size + 2)) { if (got.size === want.size) break; if (!tried.has(u.split('?')[0])) await product(await getPage(w, u)); }
   }
+  if (!got.size && errors.length) throw new Error('found, but the helper could not save it: ' + errors[0]); // not a "not found": retried next run
   if (!got.size) { await helper('/skip', { site: 'cardmarket', card: item.card, reason: 'no matching product found' }); log('Cardmarket: nothing found for ' + item.label); }
   return got.size;
 }

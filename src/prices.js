@@ -41,6 +41,7 @@
     var groups = {}, out = {};
     articles.forEach(function (a) {
       if (grade(a[11])) return; // a graded copy (the comment names its grade): only in the breakdown, never in raw stats
+      if (CONDS.indexOf(a[2]) < 0) return; // condition not readable: kept in the listing file and the breakdown, not here
       var k = articleKey(a), g = groups[k] || (groups[k] = []);
       for (var c = 0; c < Math.min(4, Math.max(1, a[4] || 1)); c++) g.push(a[3]);
     });

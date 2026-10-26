@@ -139,6 +139,19 @@ test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip
   assert.strictEqual(r.status, 200, JSON.stringify(r.data));
   assert.strictEqual((await get('/queue?site=pricecharting&only=base1-2')).items[0].url, pc.url);
 
+  // Cardmarket offers whose condition could not be read: saved, kept out of the condition prices; and a refused
+  // capture must not break the next ones
+  const cmRow = (id, lang, cond, price) => [id, lang, cond, price, 1, 0, 0, 0, 0, 'NL', 's', '', 0];
+  const cmData = { site: 'cardmarket', idProduct: 273699, title: 'Charizard', articles: [cmRow(1, 1, 'NM', 400), cmRow(2, 12, '??', 380)], found: 2 };
+  r = await post('/ingest', { site: 'cardmarket', url: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Base-Set/Charizard', cardId: 'base1-4', data: cmData, via: 'scraper' });
+  assert.strictEqual(r.status, 200, JSON.stringify(r.data));
+  let sum = JSON.parse(require('zlib').gunzipSync(fs.readFileSync(path.join(dir, 'summary.json.gz'))));
+  assert.deepStrictEqual(Object.keys(sum.cards['base1-4'].l), ['1|NM|']); assert.ok(sum.cards['base1-4'].b['cm|L|12|']);
+  r = await post('/ingest', { site: 'cardmarket', url: 'x', cardId: 'base1-4', data: Object.assign({}, cmData, { articles: [cmRow(3, 1, 'NM', -5)] }), via: 'scraper' });
+  assert.strictEqual(r.status, 500, 'invalid price refused');
+  r = await post('/ingest', { site: 'pricecharting', url: pc.url, cardId: 'base1-2', data: pc, via: 'scraper' });
+  assert.strictEqual(r.status, 200, 'the next capture still works: ' + JSON.stringify(r.data));
+
   assert.strictEqual((await post('/publish', {})).status, 400, 'pushing needs npm run helper');
 });
 

@@ -77,6 +77,9 @@
         var c = /(item location|artikelstandort|localisation)\s*:\s*(.+)/i.exec(t); if (c) country = c[2].trim();
       });
       var condEl = row.querySelector('.article-condition, .badge'), cond = (txt(condEl).match(/\b(MT|NM|EX|GD|LP|PL|PO)\b/) || [])[1] || '';
+      if (!cond) { var cc = row.querySelector('[class*="condition-"]'), cm = cc && /condition-(mt|nm|ex|gd|lp|pl|po)\b/i.exec(cc.className); if (cm) cond = cm[1].toUpperCase(); }
+      if (!cond) { var ct = (tip(condEl) + ' ' + Array.prototype.map.call(row.querySelectorAll('[title], [data-bs-original-title], [data-original-title], [aria-label]'), tip).join(' ')).toLowerCase(), names = { 'near mint': 'NM', 'mint': 'MT', 'excellent': 'EX', 'good': 'GD', 'light played': 'LP', 'played': 'PL', 'poor': 'PO' };
+        for (var nk in names) if (ct.indexOf(nk) >= 0) { cond = names[nk]; break; } }
       if (!cond) { var mm = /\b(MT|NM|EX|GD|LP|PL|PO)\b/.exec(txt(row)); cond = mm ? mm[1] : '??'; }
       var priceEl = row.querySelector('.price-container .color-primary, .price-container span, .col-offer .price-container, [class*="price"]');
       var price = parsePrice(txt(priceEl), 'EUR');
