@@ -7,6 +7,7 @@ const M = require('../scraper-extension/match.js');
 
 const root = path.join(__dirname, '..');
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'config/prices.config.json'), 'utf8'));
+cfg.scrape.watchStaleHours = 1; // the planning tests below assume watched cards are due again after an hour
 const map = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, 'data/card-map.json.gz'))));
 const cards = new Map(map.cards.map(c => [c[0], c]));
 const H = 3600e3, now = Date.parse('2026-10-23T12:00:00Z'), ago = h => new Date(now - h * H).toISOString();
@@ -108,7 +109,7 @@ test('match: picks the right search result', () => {
 
 test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip', async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ptcg-helper-')), port = 18700 + Math.floor(Math.random() * 200);
-  const proc = cp.spawn(process.execPath, ['--require', path.join(__dirname, 'mock-fetch.js'), path.join(root, 'scripts/ingest-server.js'), '--store=' + dir, '--port=' + port, '--journal=' + path.join(dir, '..', path.basename(dir) + '-journal.jsonl')],
+  const proc = cp.spawn(process.execPath, ['--require', path.join(__dirname, 'mock-fetch.js'), path.join(root, 'scripts/ingest-server.js'), '--store=' + dir, '--port=' + port, '--watchlist=none', '--journal=' + path.join(dir, '..', path.basename(dir) + '-journal.jsonl')],
     { env: Object.assign({}, process.env, { MOCK_LOG: path.join(dir, '..', path.basename(dir) + '-req.json') }), stdio: ['ignore', 'pipe', 'pipe'] });
   t.after(() => proc.kill());
   await new Promise((ok, no) => { proc.stdout.on('data', d => /open the site at/.test(d) && ok()); proc.on('exit', c => no(new Error('helper exited ' + c))); setTimeout(() => no(new Error('helper did not start')), 15000); });
@@ -261,7 +262,7 @@ function simulatedExtension(offers) {
   const ctx = {
     console, URL, URLSearchParams, Map, Set, JSON, Math, Date, Promise, Object, Array, String, Error, AbortController,
     setTimeout: (fn) => setImmediate(fn), clearTimeout: () => {}, setInterval: () => 0, clearInterval: () => {},
-    importScripts: () => { ctx.PTCG_MATCH = require('../scraper-extension/match.js'); },
+    importScripts: () => { ctx.PTCG_MATCH = require('../scraper-extension/match.js'); ctx.PTCG_GOVERNOR = require('../scraper-extension/governor.js'); },
     fetch: async (u, o) => {
       if (/\/ingest$/.test(u)) { const b = JSON.parse(o.body); sim.ingested.push(b); return { status: 200, json: async () => ({ report: b.data.found + ' listings', card: { id: 'base1-4' } }) }; }
       if (/\/skip$/.test(u)) { sim.skipped.push(JSON.parse(o.body)); return { status: 200, json: async () => ({ ok: true }) }; }
@@ -348,7 +349,7 @@ test('scraper extension run: To watch before the catalog, until the queue is emp
     const ctx = {
       console, URL, URLSearchParams, Map, Set, JSON, Math, Date, Promise, Object, Array, String, Error, AbortController,
       setTimeout: (fn, ms) => setTimeout(fn, Math.min(ms || 0, 5)), clearTimeout, setInterval: () => 0, clearInterval: () => {},
-      importScripts: () => { ctx.PTCG_MATCH = require('../scraper-extension/match.js'); },
+      importScripts: () => { ctx.PTCG_MATCH = require('../scraper-extension/match.js'); ctx.PTCG_GOVERNOR = require('../scraper-extension/governor.js'); },
       fetch: async (u, o) => {
         const url = new URL(u), b = o && o.body ? JSON.parse(o.body) : null; calls.push([url.pathname, b]);
         const json = d => ({ status: 200, json: async () => d });

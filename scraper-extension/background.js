@@ -9,8 +9,13 @@
 //  - Cardmarket: filtered views (?language=, ?minCondition=) fetched directly instead of pressing "load more" dozens
 //    of times; the slow click-through of every single offer is an option ("deep")
 // If a site answers with a check or a block, its tab loads that page normally, comes to the front, and the run waits.
+//
+// How it stays light: every page waits for a permit from a CPU budget (governor.js), so all scraping together stays
+// under scrape.cpuLimitPercent (20 %) of the machine.
+// How it starts by itself: while the helper runs with scrape.autoStart on, a run starts within a minute (and after
+// Chrome starts); pressing Stop keeps it stopped until the helper is restarted.
 'use strict';
-importScripts('match.js');
+importScripts('match.js', 'governor.js');
 const DEFAULT_HELPER = 'http://127.0.0.1:8787';
 const MARK = '#pocketmoney-scrape';           // tells the capture extension's panel to stay out of the way
 const LOAD_TIMEOUT = 45e3, CHECK_TIMEOUT = 10 * 60e3;
@@ -27,6 +32,21 @@ async function helper(path, body) {
     return { status: r.status, data: await r.json().catch(() => ({})) };
   } catch (e) { return { status: 0, data: { error: 'Helper not running. Start it in the project folder: npm run helper' } }; }
 }
+
+// ---------- CPU budget (governor.js) ----------
+let gov = null;
+function newGovernor(pace) {
+  gov = typeof PTCG_GOVERNOR === 'undefined' ? null : PTCG_GOVERNOR.createGovernor({ limitPercent: pace.cpuLimit,
+    headroom: pace.cpuHeadroom, cores: (typeof navigator !== 'undefined' && navigator.hardwareConcurrency) || 4 });
+}
+// charges `spentMs` of CPU time and waits until the budget allows the next unit of work
+async function cpuPermit(spentMs) {
+  if (!gov) return;
+  gov.spend(spentMs);
+  for (let ms = gov.debtMs(); ms > 0 && !stopped(); ms = gov.debtMs()) { const s = Math.min(ms, 1000); gov.waited(s); await sleep(s); }
+  if (job) { job.cpu = gov.report(); saveSoon(); }
+}
+const pageLoadMs = () => (job && job.pace && job.pace.cpuPageLoadMs) || 1500;
 
 // ---------- job state (chrome.storage, so the popup can show it and a restarted worker can resume) ----------
 let job = null, running = false, saveTimer = null;
@@ -81,6 +101,7 @@ function blockCheck() {
 async function visit(w, url) {
   const origin = new URL(url).origin, tabId = await originTab(origin);
   w.step('opening ' + new URL(url).host.replace('www.', ''));
+  await cpuPermit(0);
   await chrome.tabs.update(tabId, { url: url.split('#')[0] + MARK });
   await sleep(800);
   for (const end = Date.now() + LOAD_TIMEOUT; ;) {
@@ -91,6 +112,7 @@ async function visit(w, url) {
     await sleep(300);
   }
   await sleep(700);
+  if (gov) gov.spend(pageLoadMs()); // a rendered page load: charged a fixed cost (Chrome's rendering can't be timed from here)
   let block = await run(tabId, blockCheck).catch(() => '');
   if (block === 'slow down') { log(SITE_NAME[w.site] + ' asks to slow down: waiting 2 minutes'); w.gap *= 2; await wait(w, 120e3); return visit(w, url); }
   if (block) {
@@ -135,14 +157,21 @@ async function fetchParse(urls, opts) {
     });
     return btn || p.rowsSeen >= (opts.pageSize || 50);
   }
+  // CPU budget: before each page, the time spent reading the previous one is reported and the scraper waits for a
+  // permit from the background (governor.js)
+  const permit = (ms, noWait) => new Promise(ok => {
+    try { chrome.runtime.sendMessage({ type: 'cpu', ms, noWait }, () => { void chrome.runtime.lastError; ok(); }); } catch (e) { ok(); }
+  });
   let next = 0;
   async function lane(k) {
     if (k) await sleep(k * 400);
+    let spent = 0;
     while (next < urls.length && !halted()) {
       const i = next++, url = urls[i];
+      if (opts.cpu) { await permit(spent); spent = 0; if (halted()) break; }
       try {
         const r = await fetch(url, { credentials: 'include', signal: ctl.signal, headers: { Accept: 'text/html,application/xhtml+xml' } });
-        const html = await r.text();
+        const html = await r.text(), t0 = performance.now();
         if (r.status === 429) out[i] = { url, slow: true, status: 429 };
         else if ((r.status === 403 || r.status === 503 || BLOCKED.test(html.slice(0, 30000))) && !/data-listingid|articleRow|completed-auctions/.test(html)) out[i] = { url, blocked: true, status: r.status };
         else {
@@ -157,9 +186,11 @@ async function fetchParse(urls, opts) {
           }
           out[i] = res;
         }
+        spent = (performance.now() - t0) * (opts.cpu ? opts.cpu.overhead || 1.5 : 1);
       } catch (e) { out[i] = halted() ? null : { url, error: e.message }; }
       if (next < urls.length) await sleep((opts.gap || 1.5) * 1000 * (0.7 + Math.random() * 0.6));
     }
+    if (opts.cpu && spent) await permit(spent, true);
   }
   await Promise.all(Array.from({ length: Math.max(1, Math.min(opts.conc || 1, urls.length)) }, (_, k) => lane(k)));
   window.__ptcgCtl.delete(ctl);
@@ -182,7 +213,8 @@ async function getPages(w, urls, pick) {
       const todo = idx.filter(i => !out[i] || out[i].blocked || out[i].slow);
       if (!todo.length) break;
       const tabId = await originTab(origin);
-      const res = await run(tabId, fetchParse, [todo.map(i => urls[i]), { conc: w.conc, gap: w.gap, pageSize: job.pace.pageSize, pick }], ['parsers.js', 'match.js']);
+      const res = await run(tabId, fetchParse, [todo.map(i => urls[i]), { conc: w.conc, gap: w.gap, pageSize: job.pace.pageSize, pick,
+        cpu: gov ? { overhead: job.pace.cpuOverhead || 1.5 } : null }], ['parsers.js', 'match.js']);
       todo.forEach((i, k) => { out[i] = res[k]; });
       if (stopped()) return;
       const slow = res.filter(r => r.slow), blocked = res.filter(r => r.blocked);
@@ -250,7 +282,8 @@ async function deepView(w, url, max, what) {
   let page = await run(tabId, readPage);
   for (let done = 0; page.more && done < max; ) {
     w.step(what + ': loading every offer… ' + page.data.found);
-    const n = Math.min(5, max - done); await run(tabId, loadAllOffers, [n]); done += n;
+    const n = Math.min(5, max - done); await cpuPermit(0); await run(tabId, loadAllOffers, [n]); done += n;
+    if (gov) gov.spend(n * pageLoadMs() / 3); // each "load more" re-renders part of the page
     if (stopped()) throw new Stop();
     page = await run(tabId, readPage);
   }
@@ -369,7 +402,7 @@ async function nextItem(site) {
     const r = await helper('/queue?' + new URLSearchParams({ site, n: BATCH, only: job.only || '' }));
     if (r.status === 0) throw new Stop(r.data.error);
     if (r.status !== 200) throw new Error(r.data.error || 'helper said ' + r.status);
-    if (r.data.pace) job.pace = Object.assign({}, job.pace, r.data.pace);
+    if (r.data.pace) { job.pace = Object.assign({}, job.pace, r.data.pace); if (gov && r.data.pace.cpuLimit) gov.setLimit(r.data.pace.cpuLimit); }
     // with "only", each card once; otherwise ask again until the catalog is done
     const items = job.only ? r.data.items.filter(it => !(job.seen[site] || []).includes(it.card)) : r.data.items;
     if (job.only) job.seen[site] = (job.seen[site] || []).concat(items.map(it => it.card));
@@ -420,7 +453,7 @@ async function loop() {
     }
     log(job.message);
   } finally {
-    clearInterval(keepAlive); running = false; job.cur = {}; job.steps = {}; job.inFlight = {};
+    clearInterval(keepAlive); running = false; job.cur = {}; job.steps = {}; job.inFlight = {}; job.endedAt = new Date().toISOString();
     await save(); await closeWindow(); await save();
     const p = await helper('/publish', {}); // push what this run collected
     if (p.status === 200 && p.data.ok && !p.data.nothing) log('pushed to GitHub');
@@ -432,7 +465,7 @@ async function loop() {
 // cards are done again next run), the state is saved, and the window closes. Never more than a few seconds.
 async function stop() {
   if (!job) return { ok: true };
-  job.stop = true;
+  job.stop = true; job.stoppedSession = job.session || null; // no automatic restart until the helper is restarted
   if (!running) { job.status = 'stopped'; await save(); return { ok: true }; }
   job.status = 'stopping'; job.message = 'Stopping: saving what was read…'; await save();
   for (const tabId of Object.values(job.tabs || {})) run(tabId, haltPage).catch(() => {});
@@ -446,9 +479,13 @@ async function start(opts = {}) {
   const r = await helper('/sites');
   if (r.status !== 200) return { error: r.data.error || 'Helper not running. Start it in the project folder: npm run helper' };
   const sites = (opts.sites && opts.sites.length ? opts.sites : ['cardmarket', 'ebay', 'pricecharting']).filter(s => SCRAPE[s]);
+  const cpu = r.data.cpu || {};
   job = { sites, only: (opts.only || '').trim(), deep: !!opts.deep, buf: {}, seen: {}, ended: {}, done: {}, inFlight: {}, saved: 0, skipped: 0, failed: 0,
-    pace: { gap: 1.5, conc: 2, pageSize: 50 }, log: [], status: 'running', startedAt: new Date().toISOString(), cur: {}, steps: {}, message: '', tabs: {}, ready: {} };
-  log(job.only ? 'started: only ' + job.only : 'started: To watch first (' + r.data.watch + ' cards), then the whole catalog' + (job.deep ? '; every single Cardmarket offer' : ''));
+    pace: { gap: 1.5, conc: 2, pageSize: 50, cpuLimit: cpu.limitPercent || 20, cpuHeadroom: cpu.headroom, cpuOverhead: cpu.overhead, cpuPageLoadMs: cpu.pageLoadMs },
+    log: [], status: 'running', startedAt: new Date().toISOString(), cur: {}, steps: {}, message: '', tabs: {}, ready: {},
+    auto: !!opts.auto, session: (r.data.auto && r.data.auto.session) || null };
+  newGovernor(job.pace); job.cpu = gov ? gov.report() : null;
+  log((job.auto ? 'started by itself (the helper is running). ' : '') + (job.only ? 'started: only ' + job.only : 'started: To watch first (' + r.data.watch + ' cards), then the whole catalog' + (job.deep ? '; every single Cardmarket offer' : '')));
   await save();
   loop();
   return { ok: true };
@@ -459,6 +496,7 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
     if (msg.type === 'start') return start(msg);
     if (msg.type === 'stop') return stop();
     if (msg.type === 'helper') return helper(msg.path, msg.body);
+    if (msg.type === 'cpu') { if (msg.noWait) { if (gov) gov.spend(msg.ms); return { ok: true }; } await cpuPermit(msg.ms); return { ok: true }; }
     return { error: 'unknown request' };
   })().then(reply);
   return true;
@@ -476,6 +514,28 @@ function badge() {
   if (job && !job.buf) job = null; // a run from an older version of the extension
   if (job && (job.status === 'running' || job.status === 'waiting') && !job.stop) {
     for (const [site, item] of Object.entries(job.inFlight || {})) (job.buf[site] = job.buf[site] || []).unshift(item);
+    if (job.pace) newGovernor(job.pace);
     loop();
   } else badge();
 })();
+
+// ---------- starting by itself ----------
+// Every minute (and when Chrome starts) the extension asks the helper whether it should be scraping. It starts a run
+// when the helper is up with scrape.autoStart on, nothing is running, and you didn't press Stop since this helper
+// started. After a run that finished the whole catalog it looks again after 30 minutes, after an error after 5.
+async function autoStart() {
+  if (running) return;
+  const r = await helper('/sites');
+  if (r.status !== 200 || !r.data.auto || !r.data.auto.on) return;
+  const session = r.data.auto.session, since = job && job.endedAt ? Date.now() - Date.parse(job.endedAt) : Infinity;
+  if (job && job.stop && job.stoppedSession === session) return;
+  if (job && job.status === 'done' && since < 30 * 60e3) return;
+  if (job && job.status === 'error' && since < 5 * 60e3) return;
+  await start({ auto: true });
+}
+if (chrome.alarms) {
+  chrome.alarms.create('autostart', { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener(a => { if (a.name === 'autostart') autoStart(); });
+}
+if (chrome.runtime.onStartup) chrome.runtime.onStartup.addListener(autoStart);
+if (chrome.runtime.onInstalled) chrome.runtime.onInstalled.addListener(autoStart);

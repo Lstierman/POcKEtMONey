@@ -15,7 +15,12 @@
     "dailyDays": 180
   },
   "scrape": {
-    "watchStaleHours": 1,
+    "autoStart": true,
+    "cpuLimitPercent": 20,
+    "cpuHeadroom": 0.1,
+    "cpuOverhead": 1.5,
+    "cpuPageLoadMs": 1500,
+    "watchStaleHours": 24,
     "staleHours": 168,
     "missRecheckHours": 168,
     "secondsBetweenRequests": 1.5,

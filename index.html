@@ -2734,7 +2734,8 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
         return '<div><b>' + SITE_NAMES[k] + '</b><span>' + (cur ? (it ? cardLink(it.card, cur) : esc(cur)) + (j.steps && j.steps[k] ? '<br><small>' + esc(j.steps[k]) + '</small>' : '') : '<small>' + (act ? (j.ended && j.ended[k] ? 'done' : 'between cards') : '—') + '</small>') + '</span></div>';
       }).join('') + '</div>';
       h += '<div class="dstat"><span><b>' + fmt(done) + '</b> cards</span><span><b>' + fmt(j.saved) + '</b> saved</span><span><b>' + fmt(j.skipped) + '</b> not found</span><span><b>' + fmt(j.failed) + '</b> failed</span>' +
-        (j.done ? '<span>★ <b>' + fmt(j.done.watch || 0) + '</b> watched · <b>' + fmt(j.done.catalog || 0) + '</b> catalog</span>' : '') + (done && mins > 0.3 ? '<span><b>' + (done / mins).toFixed(1) + '</b> cards/min</span>' : '') + '</div>';
+        (j.done ? '<span>★ <b>' + fmt(j.done.watch || 0) + '</b> watched · <b>' + fmt(j.done.catalog || 0) + '</b> catalog</span>' : '') + (done && mins > 0.3 ? '<span><b>' + (done / mins).toFixed(1) + '</b> cards/min</span>' : '') +
+        (j.cpu ? '<span>CPU <b>' + j.cpu.usage + '%</b> <small>(limit ' + j.cpu.limit + '%)</small></span>' : '') + '</div>';
       h += '<pre class="dlog" id="dLog">' + esc((j.log || []).join('\n')) + '</pre>';
     }
     h += '</section>';

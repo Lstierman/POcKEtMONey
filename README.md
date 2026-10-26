@@ -11,7 +11,17 @@ Every English and Japanese Pokémon TCG card in one page that works offline, sea
 - **Scraping dashboard** on the site: the browser scraper live, the To watch list, how much of the catalog is scraped, the score across the catalog.
 - **Search**: names in English, Japanese, German, French, Spanish, Italian and Portuguese (`glurak` finds Charizard), typo-tolerant (`charzard`), plus field queries.
 
-Open `index.html` in a browser, or run `npm run helper` and open http://127.0.0.1:8787/ (the newest page, with live data). Served from GitHub Pages, card images load as well.
+Open `index.html` in a browser, or run `npm start` and open http://127.0.0.1:8787/ (the newest page, with live data). Served from GitHub Pages, card images load as well.
+
+## Quick start
+
+```
+git clone https://github.com/Lstierman/POcKEtMONey.git
+cd POcKEtMONey
+npm start
+```
+
+Once: Chrome → `chrome://extensions` → *Developer mode* → *Load unpacked* → pick the `scraper-extension/` folder. After that, every time `npm start` runs, the extension starts scraping by itself within a minute (your To watch list first), using at most 20 % of the CPU. Open http://127.0.0.1:8787/ and *Scraping* in the header to watch it work. Node 22 and Google Chrome are all it needs; there is nothing to `npm install`.
 
 ## Search syntax
 
@@ -53,7 +63,7 @@ Cardmarket listings are grouped per **language × condition × extras**, with co
 
 ### Interval
 
-- `intervalMinutes` in `prices.config.json` (default 60), or the repository variable `PRICE_INTERVAL_MINUTES`. The workflow starts hourly and skips a run when the last one is younger than the interval. For intervals under an hour, also change the `cron` line in `.github/workflows/collect.yml`.
+- `intervalMinutes` in `config/prices.config.json` (default 60), or the repository variable `PRICE_INTERVAL_MINUTES`. The workflow starts hourly and skips a run when the last one is younger than the interval. For intervals under an hour, also change the `cron` line in `.github/workflows/collect.yml`.
 - In the page, ⚙ Settings sets how often this browser re-reads the store and re-checks cards on screen (default: the config value).
 
 ### Storage
@@ -106,12 +116,16 @@ Three things are stored so a model can learn from them later:
 
 For the data the APIs don't give (every Cardmarket listing, eBay for sale and sold, PriceCharting graded prices), the **scraper extension** (`scraper-extension/`) collects them in your own Chrome, where the "are you a robot" checks see a normal browser.
 
-**Setup, once:** in the project folder run `npm run helper` (leave it running), then Chrome → `chrome://extensions` → *Developer mode* → *Load unpacked* → pick `scraper-extension/`.
+**Setup, once:** load the extension: Chrome → `chrome://extensions` → *Developer mode* → *Load unpacked* → pick `scraper-extension/`. Then run `npm start` (the same as `npm run helper`) in the project folder and leave it running.
 
-**To watch:** the cards you care about most. Add them with **☆ Watch** on a card on the site, or by searching in the extension's popup; remove them the same way. The site's filter bar has *★ To watch*. The list is kept in the price store (`watchlist.json`), so it is pushed with the prices and shows on every device. Changes made on the site while the helper isn't running wait in that browser and are sent the next time it is.
+**Starts by itself:** while the helper runs, the extension starts a run within a minute (and again after Chrome restarts), without pressing anything (`scrape.autoStart`, on by default). *Stop* in the popup or on the dashboard keeps it stopped until you restart the helper. After a run that finished the whole catalog it looks again every 30 minutes.
+
+**At most 20 % CPU:** all scraping together stays under `scrape.cpuLimitPercent` (20) of the whole machine, all cores counted. Every page waits for a permit from a CPU budget (`scraper-extension/governor.js`): reading a fetched page is timed in the page itself (times `scrape.cpuOverhead`, 1.5, for downloading and decompressing it); a page Chrome renders in a tab (the first page per site, a human check, "load more") is charged `scrape.cpuPageLoadMs` (1500 ms). While the budget is used up, the next page waits; time spent idle is not saved up for a burst. The popup and the dashboard show the scraper's share of the CPU and how long it waited to stay under.
+
+**To watch:** the cards you care about most. Add them with **☆ Watch** on a card on the site, or by searching in the extension's popup; remove them the same way. The site's filter bar has *★ To watch*. The list is kept in the price store (`watchlist.json`), so it is pushed with the prices and shows on every device. Changes made on the site while the helper isn't running wait in that browser and are sent the next time it is. Cards listed in `config/watchlist.json` are added to it when the helper starts, each one once, so a card you remove stays removed; that file now holds 2,147 cards (Southern Islands, every Black Star promo set, and the full lists of the most popular Pokémon).
 
 **Scrape all:** one button. Each site works through:
-1. the To watch list: every watched card not scraped on that site in the last hour (`scrape.watchStaleHours`);
+1. the To watch list: every watched card not scraped on that site in the last 24 hours (`scrape.watchStaleHours`);
 2. then the whole catalog: cards that have never been scraped there first, most valuable first; after that the oldest, once older than a week (`scrape.staleHours`).
 
 It keeps going until the catalog is done or you press *Stop*. Every card is saved the moment it is finished, and the helper pushes to the `prices` branch every 15 minutes, when a run ends, and when you stop it with Ctrl+C. A stop, a crash or a closed browser loses at most the card in progress; the next *Scrape all* continues where it stopped. Cards a site has no match for are tried again after a week (watched cards after a day), cards that failed after 12 hours. The popup shows, per site, how much of the catalog has prices and how many watched cards are up to date. *Advanced* has a field to scrape only some cards or sets (for testing) and the slow every-single-Cardmarket-offer mode.
@@ -141,7 +155,7 @@ Each section also holds its own history graphs: the snapshot history of that sou
 
 The same card printed in different languages is bundled: one tile per card (badge `EN · JP`), with an **All languages** table in the details. The table lists every print with its price, data score and Cardmarket link, plus Cardmarket listings per language across all prints together. Prints are matched at build time when they share Cardmarket's *metacard* (its id for one card's text across all products, from Cardmarket's public product catalog) and the illustrator. For Pokémon without a Cardmarket id, the match uses Pokédex numbers, name suffix (ex, V, GX…), HP, types and illustrator. Groups with two prints in one language are split by rarity class, so a regular card and its full art stay apart. Same-art reprints are included.
 
-5,753 bundles cover 12,580 prints. Cardmarket ids for about 5,800 English cards come from TCGdex (`scripts/fetch-tcgdex-products.js`, cached in `data/tcgdex-products.json`, so only new cards are looked up). The checkbox under *Language* switches bundling off.
+5,753 bundles cover 12,580 prints. Cardmarket ids for about 5,800 English cards come from TCGdex (`scripts/build/fetch-tcgdex-products.js`, cached in `data/tcgdex-products.json`, so only new cards are looked up). The checkbox under *Language* switches bundling off.
 
 ### Data score
 
@@ -164,7 +178,7 @@ Every card has the same layout, so nothing appears or disappears from one card t
 
 ### Scraping dashboard
 
-*Scraping* in the header (or `#scraping` in the address) opens the dashboard. `npm run helper` also serves the site itself at **http://127.0.0.1:8787/**, built on the fly from `src/page.html` with the catalog embedded in `index.html`, so page changes show without a full rebuild (`npm run page` writes that build to `index.html`). With the scraper extension installed and `npm run helper` running, the site talks to both directly: the extension through a small bridge script (`scraper-extension/bridge.js`, active only on pages marked `<meta name="pocketmoney" content="app">`), the helper on `http://127.0.0.1:8787` (Settings → *Scraper helper*). It shows:
+*Scraping* in the header (or `#scraping` in the address) opens the dashboard. `npm start` (the helper) also serves the site itself at **http://127.0.0.1:8787/**, built on the fly from `src/page.html` with the catalog embedded in `index.html`, so page changes show without a full rebuild (`npm run page` writes that build to `index.html`). With the scraper extension installed and `npm start` running, the site talks to both directly: the extension through a small bridge script (`scraper-extension/bridge.js`, active only on pages marked `<meta name="pocketmoney" content="app">`), the helper on `http://127.0.0.1:8787` (Settings → *Scraper helper*). It shows:
 
 - connections (extension, helper, where the price store is read from, changes not pushed yet, *Push now*)
 - the run: *Scrape all* / *Stop*, what each site is working on (click to open the card), counts, cards per minute, the log
@@ -189,30 +203,28 @@ The € / $ switch in the header (also in ⚙ Settings) shows **every** price in
 ## Project layout
 
 ```
-index.html                     the built app (open this)
-src/core.js                    storage format, index and search engine
-src/page.html                  UI template (core + data are inlined at build time)
-scripts/fetch-sources.sh       shallow-clones the open data sources
-scripts/fetch-tcgdex-sets.js   TCGdex set and card numbers, for mapping cards to the live API
-scripts/fetch-tcgdex-products.js Cardmarket ids TCGdex knows for English cards (cached, incremental)
-scripts/fetch-pricecharting.js refreshes graded prices from the PriceCharting API (optional token)
-scripts/collect.js             hourly price collector (writes the price store)
-scripts/ingest-server.js       the scraper's local helper (npm run helper): To watch list, what to scrape next, stores and pushes
-scripts/lib/scrape-plan.js     which cards and URLs the scraper visits next (To watch first, then the catalog)
-scraper-extension/             scraper extension: collects prices in your own Chrome; bridge.js links it to the site's dashboard
-scripts/lib/                   store (schemas, atomic writes, history), public sources, Cardmarket and eBay clients
-src/prices.js                  listing statistics, currency conversion, data-coverage label (page + collector)
-prices.config.json             interval, budgets, marketplaces, schedule
-data/card-map.json.gz          card -> Cardmarket / TCGplayer product ids and names (built daily, read by the collector)
-data/tcgdex-products.json      cache of TCGdex card -> Cardmarket / TCGplayer ids
-test/                          collector and scraper-helper tests with mocked APIs (npm test)
-.github/workflows/collect.yml  runs the collector every hour and publishes the prices branch
-scripts/build-catalog.js       builds the compact catalog with prices and history
-scripts/merge-pricecharting.js normalises the PriceCharting sales files
-scripts/assemble.js            inlines everything into index.html
-data/pricecharting/            graded prices and sold listings, one card per line
-data/pricecharting-live.json   graded prices refreshed by the API fetcher (written by the workflow)
-.github/workflows/refresh.yml  rebuilds index.html every day
+index.html                       the built app (open this; GitHub Pages serves it)
+src/                             the app: page.html (UI template), core.js (storage format, index, search), prices.js (price maths, shared with the scripts)
+config/
+  prices.config.json             interval, scraper pace, CPU limit, auto-start, marketplaces
+  watchlist.json                 cards added to the To watch list when the helper starts
+scraper-extension/               the scraper: collects prices in your own Chrome
+  background.js                  the run: one worker per site, starts by itself, saves every card
+  governor.js                    the CPU budget (20 %)
+  parsers.js, match.js           reading Cardmarket / eBay / PriceCharting pages, picking the right search result
+  bridge.js, popup.*             links to the site's dashboard; the extension's popup
+scripts/
+  ingest-server.js               the helper (npm start): To watch list, what to scrape next, stores and pushes
+  collect.js                     hourly price collector (writes the price store)
+  dataset.js                     exports the stored data for a price model (npm run dataset)
+  lib/                           store (schemas, atomic writes, history), scrape plan, entries, page builder, eBay queries, sources
+  build/                         the daily build: fetch sources, build the catalog, merge PriceCharting, assemble index.html
+data/
+  card-map.json.gz               card -> Cardmarket / TCGplayer product ids and names (built daily)
+  tcgdex-products.json           cache of TCGdex card -> Cardmarket / TCGplayer ids
+  pricecharting/                 graded prices and sold listings, one card per line
+test/                            collector, helper, extension and CPU-budget tests with mocked APIs (npm test)
+.github/workflows/               collect.yml (hourly prices), refresh.yml (daily rebuild), test.yml (tests on every push)
 ```
 
 ## Build
@@ -222,6 +234,7 @@ Requires Node 22 and git.
 ```
 npm run refresh   # fetch sources + graded prices + build index.html
 npm run build     # rebuild from already-fetched sources
+npm run page      # re-render index.html after editing src/ (reuses the catalog already in it)
 ```
 
 The **Refresh catalog and prices** workflow runs the same thing daily and commits the new `index.html`. To refresh graded prices too, add a PriceCharting API token as the repository secret `PRICECHARTING_TOKEN`. Turn on GitHub Pages (Settings → Pages → Deploy from branch → `main`, `/ (root)`) to get a public link.

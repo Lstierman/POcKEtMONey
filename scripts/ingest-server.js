@@ -2,12 +2,16 @@
 //
 //   npm run helper    works on a copy of the "prices" branch in store/, pushes new data every 15 minutes, when you
 //                     click "Push to GitHub" in the extension, when a run stops, and when you stop it with Ctrl+C
-//   node scripts/ingest-server.js [--store=store] [--port=8787] [--publish] [--publish-minutes=15]
+//   node scripts/ingest-server.js [--store=store] [--port=8787] [--publish] [--publish-minutes=15] [--watchlist=config/watchlist.json|none]
 //                     without --publish: a local store only, nothing is pushed
 //
 // It decides what to scrape (scripts/lib/scrape-plan.js), stores what the extension read in the same files and
 // format as the hourly collector (listings/<site>/<set>/<card>.json, summary.json.gz, history/, validated on write),
-// and keeps the To watch list (watchlist.json in the store, so it is pushed and the site can show it).
+// and keeps the To watch list (watchlist.json in the store, so it is pushed and the site can show it). Cards listed in
+// config/watchlist.json are added to the To watch list once (removing one on the site keeps it removed).
+//
+// With scrape.autoStart on (default), the scraper extension starts scraping by itself within a minute of the helper
+// starting, and keeps its work under scrape.cpuLimitPercent (default 20 %) of the CPU.
 //
 //   GET  /sites                  per site: last scrape, cards with prices, watched cards up to date
 //   GET  /queue?site=&n=&only=   the next cards to scrape: To watch first, then the catalog
@@ -32,7 +36,8 @@ const arg = (n, d) => { const a = process.argv.find(x => x === '--' + n || x.sta
 const dir = path.resolve(root, String(arg('store', 'store'))), port = +arg('port', 8787);
 const journalF = path.resolve(root, String(arg('journal', 'build/ingest-journal.jsonl'))), debugDir = path.join(root, 'build/ingest-debug');
 const cfg = JSON.parse(fs.readFileSync(path.join(root, 'config/prices.config.json'), 'utf8'));
-const every = +arg('publish-minutes', 15); // with --publish: push every N minutes; 0 = only when asked (POST /publish) and on exit
+const every = +arg('publish-minutes', 15);
+const SESSION = new Date().toISOString(); // the extension starts by itself once per helper session (see /sites) // with --publish: push every N minutes; 0 = only when asked (POST /publish) and on exit
 
 // ---------- card lookup ----------
 // The card map changes with the daily build (cards added or removed): it is re-read whenever the file changes, so a
@@ -117,8 +122,24 @@ function applyWatch(op, at) { // { add: [ids], remove: [ids] }; returns whether 
   const have = new Set(watchIds()); let changed = false;
   for (const id of op.remove || []) if (have.has(id)) { watch.cards = watch.cards.filter(w => w[0] !== id); have.delete(id); changed = true; }
   for (const id of op.add || []) if (cards.has(id) && !have.has(id)) { watch.cards.push([id, at]); have.add(id); changed = true; }
+  if (op.seed) { const s = new Set(watch.seeded || []); for (const id of op.add || []) if (!s.has(id)) { s.add(id); changed = true; } watch.seeded = [...s]; }
   if (changed) { watch.at = at; store.write('watchlist.json', watch, 'watchlist'); store.written = []; }
   return changed;
+}
+// config/watchlist.json: cards to put on the To watch list. Each is added once (remembered in watch.seeded), so a card
+// you remove on the site stays removed.
+function seedWatch() {
+  const w = String(arg('watchlist', 'config/watchlist.json')); if (w === 'none') return 0;
+  const f = path.resolve(root, w); if (!fs.existsSync(f)) return 0;
+  let list = [];
+  try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); list = (Array.isArray(j) ? j : j.cards || []).map(x => typeof x === 'string' ? x : x && x.id).filter(Boolean); }
+  catch (e) { console.warn('config/watchlist.json unreadable: ' + e.message); return 0; }
+  const seeded = new Set(watch.seeded || []), add = list.filter(id => !seeded.has(id) && cards.has(id));
+  if (!add.length) return 0;
+  const at = new Date().toISOString(), op = { add, seed: true };
+  if (applyWatch(op, at)) journal({ at, watch: op });
+  console.log('To watch: ' + add.length + ' cards from config/watchlist.json added');
+  return add.length;
 }
 function applySkip(k, at) { // { site, card, kind: 'miss' | 'fail' }
   const key = k.kind === 'fail' ? 'fails' : 'misses';
@@ -234,6 +255,13 @@ async function publish() {
   return lastPublish;
 }
 
+// the scraper's CPU budget (scraper-extension/governor.js)
+function cpuCfg() {
+  const sc = cfg.scrape || {};
+  return { limitPercent: sc.cpuLimitPercent == null ? 20 : sc.cpuLimitPercent, headroom: sc.cpuHeadroom == null ? 0.1 : sc.cpuHeadroom,
+    overhead: sc.cpuOverhead || 1.5, pageLoadMs: sc.cpuPageLoadMs || 1500 };
+}
+
 // ---------- http ----------
 function send(res, code, body, type) {
   res.writeHead(code, { 'Content-Type': type || 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type',
@@ -253,6 +281,7 @@ async function handle(req, res) {
   if (u.pathname === '/sites' || u.pathname === '/queue') refreshCards();
   if (u.pathname === '/sites') return send(res, 200, {
     sites: PLAN.siteStatus(state || {}, cards, cfg, watchIds()), watch: watch.cards.length, publish: !!arg('publish'), pending, lastPublish,
+    auto: { on: (cfg.scrape || {}).autoStart !== false, session: SESSION }, cpu: cpuCfg(),
     collectorAt: (meta && meta.at) || null, store: dir });
   if (u.pathname === '/changes') { // GET /changes?since=<ms>: the summary entries of cards saved since then (newest last)
     const since = +u.searchParams.get('since') || 0, out = {}, recent = [];
@@ -274,7 +303,8 @@ async function handle(req, res) {
     if (!PLAN.SITES.includes(site)) return send(res, 400, { error: 'site must be one of ' + PLAN.SITES.join(', ') });
     const n = Math.max(1, Math.min(500, +u.searchParams.get('n') || 20)), only = u.searchParams.get('only') || '';
     const list = PLAN.pickCards(site, { cards, entries: entries(), state, cfg, n, only, watch: watchIds() });
-    const sc = cfg.scrape || {}, pace = { gap: sc.secondsBetweenRequests || 1.5, conc: sc.parallelRequests || 2, pageSize: (sc.cardmarket && sc.cardmarket.pageSize) || 50 };
+    const sc = cfg.scrape || {}, c = cpuCfg(), pace = { gap: sc.secondsBetweenRequests || 1.5, conc: sc.parallelRequests || 2, pageSize: (sc.cardmarket && sc.cardmarket.pageSize) || 50,
+      cpuLimit: c.limitPercent, cpuHeadroom: c.headroom, cpuOverhead: c.overhead, cpuPageLoadMs: c.pageLoadMs };
     const info = site === 'cardmarket' ? await cmCatalog() : null;
     return send(res, 200, { site, items: list.map(([c, phase]) => Object.assign(PLAN.plan(site, c, { cfg, urls: state.urls, cmInfo: info }), { phase })), pace });
   }
@@ -340,8 +370,10 @@ async function handle(req, res) {
     pending = replay(); if (pending) console.log(pending + ' captures from earlier runs are waiting to be pushed');
     if (every > 0) setInterval(publish, every * 60e3);
   } else load();
+  seedWatch();
   if (!fx) try { const r = await src.fx(); fx = r.fx; fxDate = r.date; } catch (e) { console.warn('no exchange rates yet: ' + e.message); }
   http.createServer((q, s) => handle(q, s).catch(e => send(s, 500, { error: e.message }))).listen(port, '127.0.0.1', () =>
-    console.log(`POcKEtMONey helper: open the site at http://127.0.0.1:${port}/  store: ${dir}${arg('publish') ? (every > 0 ? '  (pushing every ' + every + ' min)' : '  (pushes when you click Push to GitHub, and on exit)') : ''}`));
+    console.log(`POcKEtMONey helper: open the site at http://127.0.0.1:${port}/  store: ${dir}${arg('publish') ? (every > 0 ? '  (pushing every ' + every + ' min)' : '  (pushes when you click Push to GitHub, and on exit)') : ''}` +
+      ((cfg.scrape || {}).autoStart !== false ? `\nThe scraper extension starts scraping by itself within a minute (To watch: ${watch.cards.length} cards), using at most ${cpuCfg().limitPercent}% CPU.` : '')));
   process.on('SIGINT', async () => { if (arg('publish')) { console.log('publishing before exit…'); await publish(); } process.exit(0); });
 })();

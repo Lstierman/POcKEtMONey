@@ -85,7 +85,8 @@ function renderJob() {
   const done = job.saved + job.skipped + job.failed, mins = (Date.now() - Date.parse(job.startedAt)) / 60e3;
   $('msg').textContent = job.message || (active() ? (job.done && job.done.catalog ? 'To watch done · working through the catalog' : job.only ? 'Scraping ' + job.only : 'Updating To watch first') : job.status);
   $('cur').textContent = active() ? Object.keys(job.cur || {}).map(s => (SITES.find(x => x[0] === s) || [s, s])[1] + ': ' + job.cur[s] + (job.steps && job.steps[s] ? ' — ' + job.steps[s] : '')).join('\n') : '';
-  $('counts').textContent = done + ' cards · ' + job.saved + ' saved · ' + job.skipped + ' not found · ' + job.failed + ' failed' + (done && mins > 0.3 ? ' · ' + (done / mins).toFixed(1) + '/min' : '');
+  $('counts').textContent = done + ' cards · ' + job.saved + ' saved · ' + job.skipped + ' not found · ' + job.failed + ' failed' + (done && mins > 0.3 ? ' · ' + (done / mins).toFixed(1) + '/min' : '') +
+    (job.cpu && active() ? '\nCPU ' + job.cpu.usage + '% of the machine (limit ' + job.cpu.limit + '%)' + (job.cpu.waitedS ? ', waited ' + job.cpu.waitedS + ' s to stay under' : '') : '');
   $('log').textContent = job.log.join('\n');
 }
 $('go').onclick = async () => {
