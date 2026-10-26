@@ -53,7 +53,15 @@ function pickCards(site, { cards, entries, state, cfg, n = 20, only, now = Date.
 }
 
 // one queue item: everything the extension needs to scrape this card on this site
-function plan(site, c, { cfg, urls = {} }) {
+// Cardmarket search limited to the product's expansion (from Cardmarket's product catalog): a handful of results
+// instead of every "Charizard" in every set
+const CM_SEARCH = 'https://www.cardmarket.com/en/Pokemon/Products/Search';
+function cmSearchUrl(name, idExpansion) {
+  const q = new URLSearchParams({ searchString: name }); if (idExpansion) q.set('idExpansion', idExpansion); q.set('perSite', '50');
+  return CM_SEARCH + '?' + q;
+}
+
+function plan(site, c, { cfg, urls = {}, cmInfo = null }) {
   const base = { site, card: c[0], label: label(c), match: { name: slug(enName(c)), num: cardNo(c), set: slug(c[11]), ja: isJa(c) } };
   if (site === 'ebay') {
     const sc = cfg.scrape || {}, pages = [];
@@ -66,7 +74,10 @@ function plan(site, c, { cfg, urls = {} }) {
   }
   if (site === 'cardmarket') {
     const max = (cfg.cardmarket && cfg.cardmarket.maxProductsPerCard) || 3, known = urls.cardmarket || {};
-    const products = c[6].slice(0, max).map(([cm, variant]) => ({ cm, variant, url: known[cm] || null }));
+    const products = c[6].slice(0, max).map(([cm, variant]) => {
+      const info = cmInfo && cmInfo.get(cm);
+      return { cm, variant, url: known[cm] || null, search: info ? cmSearchUrl(info.name, info.idExpansion) : null };
+    });
     // every listing per language and condition: Cardmarket shows the cheapest offers first and loads more on request;
     // when a product has more offers than `maxLoadMore` clicks reveal, it is reloaded per language (?language=) and,
     // within a language, per condition threshold (?minCondition=1 Mint … 7 Poor, "this or better")
@@ -77,7 +88,7 @@ function plan(site, c, { cfg, urls = {} }) {
       products, filters,
       // English prints: pokemontcg.io redirects to the card's Cardmarket product page
       redirect: isJa(c) ? null : 'https://prices.pokemontcg.io/cardmarket/' + encodeURIComponent(c[0]),
-      search: 'https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=' + encodeURIComponent(enName(c))
+      search: cmSearchUrl(enName(c))
     });
   }
   if (site === 'pricecharting') {
@@ -88,4 +99,4 @@ function plan(site, c, { cfg, urls = {} }) {
   throw new Error('unknown site ' + site);
 }
 
-module.exports = { SITES, siteStatus, pickCards, plan, expandOnly, slug };
+module.exports = { SITES, siteStatus, pickCards, plan, expandOnly, slug, cmSearchUrl };

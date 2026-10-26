@@ -308,7 +308,16 @@ async function scrapeCardmarket(w, item) {
     try {
       const ctl = new AbortController(), r = await fetch(item.redirect, { signal: ctl.signal }); ctl.abort();
       if (/cardmarket\.com\/.+\/Products\/Singles\//.test(r.url)) await product(await getPage(w, r.url.split('?')[0]));
-    } catch (e) {}
+      else log('Cardmarket: pokemontcg.io sent ' + item.card + ' to ' + (r.url || 'nowhere') + ' (HTTP ' + r.status + ')');
+    } catch (e) { if (e instanceof Stop) throw e; log('Cardmarket: pokemontcg.io redirect failed: ' + e.message); }
+  }
+  // each product still missing: search its exact name within its expansion (from Cardmarket's catalog)
+  for (const p of item.products) {
+    if (got.has(p.cm) || !want.has(p.cm) || !p.search) continue;
+    w.step('Cardmarket: searching ' + (p.variant || 'product ' + p.cm));
+    const s = await getPage(w, p.search, { kind: 'cm', match: item.match });
+    if (s && s.data) await product(s); // a single hit opens the product directly
+    else if (s && s.picked) for (const u of s.picked) { if (got.has(p.cm)) break; if (!tried.has(u.split('?')[0])) await product(await getPage(w, u)); }
   }
   if (got.size < want.size) {
     const s = await getPage(w, item.search, { kind: 'cm', match: item.match });

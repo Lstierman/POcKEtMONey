@@ -69,6 +69,25 @@ function resolve(m) {
   return null;
 }
 
+// ---------- Cardmarket's product catalog: exact product name and expansion, for a precise search ----------
+// build/sources/cm-products.json from the build if present, else downloaded once a week to build/cm-products.json
+const CM_CATALOG = 'https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_6.json';
+let cmInfo = null, cmInfoAt = 0;
+async function cmCatalog() {
+  if (cmInfo && Date.now() - cmInfoAt < 7 * 86400e3) return cmInfo;
+  const built = path.join(root, 'build/sources/cm-products.json'), cached = path.join(root, 'build/cm-products.json');
+  const fresh = f => fs.existsSync(f) && Date.now() - fs.statSync(f).mtimeMs < 7 * 86400e3;
+  let f = fresh(built) ? built : fresh(cached) ? cached : null;
+  if (!f) try {
+    const r = await fetch(CM_CATALOG); if (!r.ok) throw new Error('HTTP ' + r.status);
+    fs.mkdirSync(path.dirname(cached), { recursive: true }); fs.writeFileSync(cached, Buffer.from(await r.arrayBuffer())); f = cached;
+  } catch (e) { console.warn('Cardmarket product catalog not available (' + e.message + '): searching by name only'); f = fs.existsSync(built) ? built : fs.existsSync(cached) ? cached : null; }
+  if (!f) { cmInfoAt = Date.now() - 6.9 * 86400e3; return null; } // try again in a few minutes
+  const m = new Map(); for (const p of JSON.parse(fs.readFileSync(f, 'utf8')).products || []) m.set(p.idProduct, { name: p.name, idExpansion: p.idExpansion });
+  cmInfo = m; cmInfoAt = Date.now(); console.log('Cardmarket product catalog: ' + m.size + ' products');
+  return cmInfo;
+}
+
 // ---------- store ----------
 let store, fx, fxDate, sum, meta, state;
 function load() {
@@ -188,7 +207,8 @@ async function handle(req, res) {
     const n = Math.max(1, Math.min(500, +u.searchParams.get('n') || 20)), only = u.searchParams.get('only') || '';
     const list = PLAN.pickCards(site, { cards, entries: entries(), state, cfg, n, only });
     const sc = cfg.scrape || {}, pace = { gap: sc.secondsBetweenRequests || 1.5, conc: sc.parallelRequests || 2, pageSize: (sc.cardmarket && sc.cardmarket.pageSize) || 50 };
-    return send(res, 200, { site, items: list.map(c => PLAN.plan(site, c, { cfg, urls: state.urls })), pace });
+    const info = site === 'cardmarket' ? await cmCatalog() : null;
+    return send(res, 200, { site, items: list.map(c => PLAN.plan(site, c, { cfg, urls: state.urls, cmInfo: info })), pace });
   }
   if (u.pathname === '/skip' && req.method === 'POST') { // the scraper found nothing for this card: don't queue it again for staleHours
     const m = await body(req);

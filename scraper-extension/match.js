@@ -22,10 +22,11 @@
       var hay = cardSeg + ' ' + l.text, s = 0;
       if (overlap(match.name, hay) < Math.min(1, words(match.name).length)) return null; // must name the card
       s += 3 * overlap(match.name, hay) + setScore(match.set, expSeg);
-      if (hasNum(cardSeg, match.num) || hasNum(l.text, match.num)) s += 2;
       if (match.ja !== /japan/i.test(expSeg + ' ' + l.text)) s -= 1;
-      return { href: l.href, score: s };
-    }).filter(Boolean).sort(function (a, b) { return b.score - a.score; }).slice(0, 4).map(function (x) { return x.href; });
+      return { href: l.href, score: s, num: hasNum(cardSeg, match.num) || hasNum(l.text, match.num) };
+    }).filter(Boolean).filter(function (x, i, all) { // results naming the card's number, when there are any
+      return x.num || !all.some(function (y) { return y.num; });
+    }).sort(function (a, b) { return b.score - a.score; }).slice(0, 4).map(function (x) { return x.href; });
   }
 
   // PriceCharting: /game/pokemon-<set>/<name>-<number>; Japanese sets are pokemon-japanese-<set>

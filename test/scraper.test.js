@@ -22,7 +22,10 @@ test('plan: URLs per site', () => {
   assert.deepStrictEqual(cm.products.map(p => p.cm), c[6].map(x => x[0]));
   assert.ok(cm.products[0].url && !cm.products[1].url, 'learned URL used for the product it belongs to');
   assert.strictEqual(cm.redirect, 'https://prices.pokemontcg.io/cardmarket/base1-4');
-  assert.match(cm.search, /searchString=Charizard$/);
+  assert.match(cm.search, /searchString=Charizard&perSite=50$/);
+  const withCat = PLAN.plan('cardmarket', c, { cfg, cmInfo: new Map([[c[6][1][0], { name: 'Charizard', idExpansion: 1525 }]]) });
+  assert.strictEqual(withCat.products[1].search, 'https://www.cardmarket.com/en/Pokemon/Products/Search?searchString=Charizard&idExpansion=1525&perSite=50');
+  assert.strictEqual(withCat.products[0].search, null, 'not in the catalog: no expansion search');
   assert.deepStrictEqual(cm.match, { name: 'charizard', num: '4', set: 'base', ja: false });
 
   const eb = PLAN.plan('ebay', c, { cfg });
@@ -74,6 +77,14 @@ test('match: picks the right search result', () => {
     { href: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Base-Set/Blastoise-V1-BS2', text: 'Blastoise' },
     { href: 'https://www.cardmarket.com/en/Pokemon/Users/someone', text: 'Charizard fan' }
   ];
+  // a search showing other sets' Charizards first: only results with the card's number are kept
+  const ex = { name: 'charizard-ex', num: '199', set: '151', ja: false };
+  const exLinks = [
+    { href: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Pokemon-GO/Charizard-V1-PGO10', text: 'Charizard (PGO 10) Pokémon GO' },
+    { href: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/Evolutions/Charizard-EX-V1-EVO12', text: 'Charizard EX (EVO 12) Evolutions' },
+    { href: 'https://www.cardmarket.com/en/Pokemon/Products/Singles/151/Charizard-ex-V2-MEW199', text: 'Charizard ex (MEW 199) 151' }
+  ];
+  assert.deepStrictEqual(M.cardmarket(exLinks, ex), [exLinks[2].href]);
   const got = M.cardmarket(cmLinks, m);
   assert.strictEqual(got[0], cmLinks[1].href); assert.ok(!got.some(h => /Blastoise|Users/.test(h)));
 
