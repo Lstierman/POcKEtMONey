@@ -157,7 +157,7 @@ Every card shows the same sections in the same order, each with a status pill (*
 
 ### Scraping dashboard
 
-*Scraping* in the header (or `#scraping` in the address) opens the dashboard. With the scraper extension installed and `npm run helper` running, the site talks to both directly: the extension through a small bridge script (`scraper-extension/bridge.js`, active only on pages marked `<meta name="pocketmoney" content="app">`), the helper on `http://127.0.0.1:8787` (Settings → *Scraper helper*). It shows:
+*Scraping* in the header (or `#scraping` in the address) opens the dashboard. `npm run helper` also serves the site itself at **http://127.0.0.1:8787/**, built on the fly from `src/page.html` with the catalog embedded in `index.html`, so page changes show without a full rebuild (`npm run page` writes that build to `index.html`). With the scraper extension installed and `npm run helper` running, the site talks to both directly: the extension through a small bridge script (`scraper-extension/bridge.js`, active only on pages marked `<meta name="pocketmoney" content="app">`), the helper on `http://127.0.0.1:8787` (Settings → *Scraper helper*). It shows:
 
 - connections (extension, helper, where the price store is read from, changes not pushed yet, *Push now*)
 - the run: *Scrape all* / *Stop*, what each site is working on (click to open the card), counts, cards per minute, the log

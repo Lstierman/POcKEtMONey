@@ -14,6 +14,7 @@
 //   POST /ingest                 one page's prices          POST /skip   no match (or failed) for a card
 //   GET  /watch                  the To watch list          POST /watch  { add: [ids], remove: [ids] }
 //   GET  /cards?q=               card search                POST /publish   push now
+//   GET  /                       the site itself, built from src/page.html: open http://127.0.0.1:8787/
 //   GET  /changes?since=<ms>     cards saved since then, for the site's live view
 //   GET  /store/<file>           the store's files, so the site sees new data before it is pushed
 //
@@ -247,6 +248,10 @@ function body(req) { return new Promise((ok, no) => { let b = ''; req.on('data',
 async function handle(req, res) {
   const u = new URL(req.url, 'http://x');
   if (req.method === 'OPTIONS') return send(res, 204, '', 'text/plain');
+  if ((u.pathname === '/' || u.pathname === '/index.html') && req.method === 'GET') { // the site, built from src/page.html
+    try { return send(res, 200, require('./lib/page.js').servePage(root), 'text/html; charset=utf-8'); }
+    catch (e) { return send(res, 500, { error: e.message }); }
+  }
   if (u.pathname === '/status') return send(res, 200, { ok: true, store: dir, publish: !!arg('publish'), pending, cards: Object.keys(entries()).length, fx: fx && fx.USD, scrapedAt: meta && meta.scrapedAt });
   if (u.pathname === '/sites' || u.pathname === '/queue') refreshCards();
   if (u.pathname === '/sites') return send(res, 200, {
@@ -340,6 +345,6 @@ async function handle(req, res) {
   } else load();
   if (!fx) try { const r = await src.fx(); fx = r.fx; fxDate = r.date; } catch (e) { console.warn('no exchange rates yet: ' + e.message); }
   http.createServer((q, s) => handle(q, s).catch(e => send(s, 500, { error: e.message }))).listen(port, '127.0.0.1', () =>
-    console.log(`POcKEtMONey capture helper on http://127.0.0.1:${port}  store: ${dir}${arg('publish') ? (every > 0 ? '  (pushing every ' + every + ' min)' : '  (pushes when you click Push to GitHub, and on exit)') : ''}`));
+    console.log(`POcKEtMONey helper: open the site at http://127.0.0.1:${port}/  store: ${dir}${arg('publish') ? (every > 0 ? '  (pushing every ' + every + ' min)' : '  (pushes when you click Push to GitHub, and on exit)') : ''}`));
   process.on('SIGINT', async () => { if (arg('publish')) { console.log('publishing before exit…'); await publish(); } process.exit(0); });
 })();

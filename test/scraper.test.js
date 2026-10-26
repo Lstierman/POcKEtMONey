@@ -111,9 +111,14 @@ test('helper: /sites, /queue, scraper captures with eBay relevance filter, /skip
   const proc = cp.spawn(process.execPath, ['--require', path.join(__dirname, 'mock-fetch.js'), path.join(root, 'scripts/ingest-server.js'), '--store=' + dir, '--port=' + port, '--journal=' + path.join(dir, '..', path.basename(dir) + '-journal.jsonl')],
     { env: Object.assign({}, process.env, { MOCK_LOG: path.join(dir, '..', path.basename(dir) + '-req.json') }), stdio: ['ignore', 'pipe', 'pipe'] });
   t.after(() => proc.kill());
-  await new Promise((ok, no) => { proc.stdout.on('data', d => /capture helper on/.test(d) && ok()); proc.on('exit', c => no(new Error('helper exited ' + c))); setTimeout(() => no(new Error('helper did not start')), 15000); });
+  await new Promise((ok, no) => { proc.stdout.on('data', d => /open the site at/.test(d) && ok()); proc.on('exit', c => no(new Error('helper exited ' + c))); setTimeout(() => no(new Error('helper did not start')), 15000); });
   const url = 'http://127.0.0.1:' + port, get = p => fetch(url + p).then(r => r.json());
   const post = (p, b) => fetch(url + p, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then(async r => ({ status: r.status, data: await r.json() }));
+
+  // the site itself, built from src/page.html with the catalog of index.html
+  const site = await fetch(url + '/');
+  assert.strictEqual(site.status, 200); const html = await site.text();
+  assert.ok(html.includes('<meta name="pocketmoney" content="app">') && html.includes('id="dashBtn"') && !html.includes('__GZ__'));
 
   let sites = await get('/sites');
   assert.strictEqual(sites.sites.ebay.lastAt, null); assert.strictEqual(sites.publish, false);

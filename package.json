@@ -9,6 +9,7 @@
     "refresh": "npm run sources && npm run graded && npm run build",
     "collect": "node scripts/collect.js store",
     "test": "node --test test/collect.test.js test/scraper.test.js",
-    "helper": "node scripts/ingest-server.js --publish --publish-minutes=15"
+    "helper": "node scripts/ingest-server.js --publish --publish-minutes=15",
+    "page": "node scripts/lib/page.js"
   }
 }
