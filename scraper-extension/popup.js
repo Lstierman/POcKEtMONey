@@ -57,7 +57,7 @@ function renderJob() {
   el.className = 'job' + (job.status === 'waiting' ? ' waiting' : '');
   $('msg').textContent = job.message || (active ? 'Scraping ' + (job.i + 1) + ' of ' + total + '…' : job.status);
   $('bar').style.width = Math.round(100 * job.i / total) + '%';
-  $('cur').textContent = active ? job.current : '';
+  $('cur').textContent = active ? job.current + (job.step ? ' — ' + job.step : '') : '';
   $('counts').textContent = job.saved + ' saved · ' + job.skipped + ' not found · ' + job.failed + ' failed';
   $('log').textContent = job.log.join('\n');
   $('stop').hidden = !active;

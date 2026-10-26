@@ -23,7 +23,8 @@ async function helper(path, body) {
 // ---------- job state (chrome.storage, so the popup can show it and a restarted worker can resume) ----------
 let job = null, running = false;
 async function save() { await chrome.storage.local.set({ job }); badge(); }
-function log(t) { job.log.unshift(new Date().toLocaleTimeString().slice(0, 5) + ' ' + t); job.log.length = Math.min(job.log.length, 40); }
+function log(t) { job.log.unshift(new Date().toLocaleTimeString().slice(0, 5) + ' ' + t); job.log.length = Math.min(job.log.length, 40); save(); } // shown in the popup right away
+function step(t) { job.step = t; save(); } // what the run is doing right now, shown under the current card
 function badge() {
   const t = !job || ['done', 'stopped', 'error'].includes(job.status) ? '' : job.status === 'waiting' ? '!' : String(job.items.length - job.i);
   chrome.action.setBadgeText({ text: t });
@@ -59,6 +60,7 @@ function blockCheck() {
 
 async function visit(url) {
   const tabId = await tab();
+  if (!/cardmarket/.test(url) || !job.step || /pause/.test(job.step)) step('opening ' + new URL(url).host.replace('www.', '') + new URL(url).pathname.slice(0, 40));
   await chrome.tabs.update(tabId, { url: url.split('#')[0] + MARK });
   await sleep(800);
   for (const end = Date.now() + LOAD_TIMEOUT; ;) {
@@ -147,13 +149,27 @@ async function scrapeEbay(item) {
 const COND_NAMES = ['', 'Mint', 'Near Mint', 'Excellent', 'Good', 'Light Played', 'Played', 'Poor'];
 function offerKey(a) { return a[0] > 99999 ? 'id' + a[0] : JSON.stringify(a.slice(1, 12)); } // real article ids, else the row's content
 
+// presses "load more" up to max times, in rounds of 5 so the popup can show how many offers are loaded
+async function expand(tabId, max, what) {
+  let page = await run(tabId, readPage);
+  for (let done = 0; page.more && done < max; ) {
+    step(what + ': loading more offers… ' + page.data.found + ' so far');
+    const n = Math.min(5, max - done); await run(tabId, loadAllOffers, [n]); done += n;
+    if (stopped()) throw new Stop();
+    page = await run(tabId, readPage);
+  }
+  return page;
+}
+const viewName = (lang, cond) => (lang ? LANG_NAME[lang] || 'language ' + lang : 'all languages') + (cond ? ', ' + COND_NAMES[cond] + ' or better' : '');
+
 async function cmView(base, lang, cond, max) { // one filtered view, loaded to the end (or max clicks)
   const q = new URLSearchParams(); if (lang) q.set('language', lang); if (cond) q.set('minCondition', cond);
+  step('Cardmarket ' + viewName(lang, cond) + ': opening');
   const tabId = await visit(base + (q.toString() ? '?' + q : ''));
   let page = await run(tabId, readPage, [], ['parsers.js']);
   if (page.none || page.data.site !== 'cardmarket') return null;
-  if (page.more) { await run(tabId, loadAllOffers, [max]); page = await run(tabId, readPage); }
-  await pause();
+  if (page.more) page = await expand(tabId, max, 'Cardmarket ' + viewName(lang, cond));
+  step('pause between pages'); await pause();
   return page;
 }
 
@@ -162,13 +178,13 @@ async function cmProduct(tabId, page, item, max) { // page: the product page as 
   const add = (p, lang, cond) => {
     p.data.articles.forEach(a => offers.set(offerKey(a), a));
     coverage.push([lang, cond, p.data.found, p.more ? 0 : 1]);
-    log('Cardmarket ' + (lang ? (LANG_NAME[lang] || 'lang ' + lang) : 'all languages') + (cond ? ', ' + COND_NAMES[cond] + ' or better' : '') + ': ' + p.data.found + (p.more ? ' (cut off)' : ''));
+    log('Cardmarket ' + viewName(lang, cond) + ': ' + p.data.found + ' offers' + (p.more ? ' (cut off, narrowing down)' : ''));
     return !p.more;
   };
   let all;
   if (!/\?/.test(page.url)) { // already the unfiltered view: expand it where it is
-    all = page.more ? (await run(tabId, loadAllOffers, [max]), await run(tabId, readPage)) : page;
-    await pause();
+    all = page.more ? await expand(tabId, max, 'Cardmarket all languages') : page;
+    step('pause between pages'); await pause();
   } else all = await cmView(base, 0, 0, max);
   if (!all) return null;
   if (!add(all, 0, 0)) {
@@ -247,7 +263,7 @@ async function loop() {
     while (job.i < job.items.length) {
       if (stopped()) throw new Stop();
       const item = job.items[job.i];
-      job.current = item.site + ' · ' + item.label; job.message = ''; await save();
+      job.current = item.site + ' · ' + item.label; job.message = ''; job.step = ''; await save();
       try {
         const n = item.site === 'ebay' ? await scrapeEbay(item) : item.site === 'cardmarket' ? await scrapeCardmarket(item) : await scrapePricecharting(item);
         if (n) job.saved++; else job.skipped++;
