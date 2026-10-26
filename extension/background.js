@@ -1,4 +1,4 @@
-// Relays the content script's requests to the local helper (scripts/ingest-server.js). Content scripts can't call
+// Relays the content script's requests to the local platform (platform/, npm start). Content scripts can't call
 // http://127.0.0.1 from an https page themselves; the service worker can, through host_permissions.
 const DEFAULT_HELPER = 'http://127.0.0.1:8787';
 async function helper() { return (await chrome.storage.local.get('helper')).helper || DEFAULT_HELPER; }
@@ -10,7 +10,7 @@ async function call(path, body) {
     const data = await r.json().catch(() => ({}));
     return { status: r.status, data };
   } catch (e) {
-    return { status: 0, data: { error: 'The capture helper is not running. Start it with: npm run ingest' } };
+    return { status: 0, data: { error: 'The POcKEtMONey platform is not running. Start it with: npm start' } };
   }
 }
 

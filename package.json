@@ -1,17 +1,23 @@
 {
-  "name": "pokemon-card-index",
+  "name": "pocketmoney",
   "private": true,
-  "description": "Every English and Japanese Pokémon TCG card in one offline, instantly searchable page, with prices.",
+  "description": "Every English and Japanese Pokémon TCG card in one offline, instantly searchable page, with prices, plus a local platform that keeps the prices of the cards you care about fresh.",
   "scripts": {
-    "sources": "bash scripts/fetch-sources.sh build/sources",
-    "graded": "node scripts/fetch-pricecharting.js",
-    "build": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && node scripts/build-catalog.js build/sources build/catalog.json && node scripts/fetch-tcgdex-products.js build/sources && node scripts/merge-pricecharting.js data/pricecharting build/pc_data.json && node scripts/assemble.js",
-    "refresh": "npm run sources && npm run graded && npm run build",
+    "start": "node platform/index.js",
+    "ingest": "node platform/index.js --no-scrape",
+    "scrape": "node scripts/scrape.js",
     "collect": "node scripts/collect.js store",
-    "test": "node --test test/collect.test.js",
-    "scrape": "node scripts/scrape.js"
+    "test": "node --test \"test/**/*.test.js\"",
+    "sources": "bash scripts/build/fetch-sources.sh build/sources",
+    "graded": "node scripts/build/fetch-pricecharting.js",
+    "build": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && node scripts/build/build-catalog.js build/sources build/catalog.json && node scripts/build/fetch-tcgdex-products.js build/sources && node scripts/build/merge-pricecharting.js data/pricecharting build/pc_data.json && node scripts/build/assemble.js",
+    "assemble": "node scripts/build/assemble.js",
+    "refresh": "npm run sources && npm run graded && npm run build"
   },
-  "devDependencies": {
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
     "puppeteer-core": "23.11.1"
   }
 }

@@ -28,12 +28,7 @@
     "hotEur": 50,
     "warmEur": 5,
     "warmEveryHours": 24,
-    "coldEveryHours": 168,
-    "always": [
-      "base1-4",
-      "sv3pt5-199",
-      "sv8pt5-161"
-    ]
+    "coldEveryHours": 168
   },
   "history": {
     "hourlyPoints": 72,
@@ -43,9 +38,30 @@
     "sites": [
       "ebay"
     ],
-    "top": 20,
-    "staleHours": 12,
+    "autoStart": true,
+    "cpuLimitPercent": 20,
+    "cpuWindowSeconds": 30,
+    "headless": false,
+    "rendererCpuThrottle": 2,
+    "blockResources": [
+      "image",
+      "media",
+      "font"
+    ],
     "secondsBetweenPages": 7,
+    "replanMinutes": 15,
+    "saveEverySeconds": 60,
+    "idleCloseMinutes": 5,
+    "humanCheckBackoffMinutes": 30,
+    "maxAttempts": 3,
+    "staleHours": {
+      "watchlist": 6,
+      "hot": 12,
+      "warm": 72,
+      "cold": 336
+    },
+    "missingPerPlan": 20,
+    "outdatedPerPlan": 40,
     "ebayMarketplaces": [
       "EBAY_DE",
       "EBAY_US"

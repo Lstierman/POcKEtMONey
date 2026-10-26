@@ -1,4 +1,4 @@
-/* Page parsers for the POcKEtMONey capture extension (also used by scripts/scrape/ebay.js and the tests).
+/* Page parsers for the POcKEtMONey capture extension (also used by platform/scraper/sites/ebay.js and the tests).
    Each reads the page the user is looking at and returns plain data; nothing here fetches or clicks. */
 (function (root) {
   'use strict';

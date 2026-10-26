@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POcKEtMONey scraper</title>
+<style>
+:root { --bg: #f6f5f1; --raised: #fff; --ink: #1d1c1a; --muted: #6d6a63; --line: #e2dfd6; --accent: #c2410c; --ok: #15803d; --bad: #b91c1c; --f-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace }
+@media (prefers-color-scheme: dark) { :root { --bg: #161513; --raised: #201f1c; --ink: #ece9e2; --muted: #9b978d; --line: #34322d; --accent: #fb923c; --ok: #4ade80; --bad: #f87171 } }
+* { box-sizing: border-box }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, Segoe UI, sans-serif }
+main { max-width: 1040px; margin: 0 auto; padding: 20px 16px 60px }
+h1 { font-size: 20px; margin: 0 0 4px } h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 28px 0 8px }
+a { color: var(--accent) }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 16px }
+.tile { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px }
+.tile b { display: block; font-size: 22px; font-variant-numeric: tabular-nums } .tile span { color: var(--muted); font-size: 12px }
+.meter { height: 8px; background: var(--line); border-radius: 99px; margin-top: 8px; position: relative; overflow: hidden }
+.meter i { position: absolute; inset: 0 auto 0 0; background: var(--ok); border-radius: 99px } .meter.hot i { background: var(--bad) }
+.note { background: var(--raised); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 14px; margin-top: 14px }
+table { width: 100%; border-collapse: collapse; background: var(--raised); border: 1px solid var(--line); border-radius: 12px; overflow: hidden }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top } th { font-size: 12px; color: var(--muted); font-weight: 600 }
+tr:last-child td { border-bottom: 0 }
+.mono { font-family: var(--f-mono); font-size: 12px } .muted { color: var(--muted) }
+.tag { display: inline-block; font-size: 11px; border: 1px solid var(--line); border-radius: 99px; padding: 0 7px; margin: 1px 2px 1px 0 }
+.tag.watchlist, .tag.manual { border-color: var(--accent); color: var(--accent) }
+.ok { color: var(--ok) } .bad { color: var(--bad) }
+button { font: inherit; border: 1px solid var(--line); background: var(--raised); color: var(--ink); border-radius: 8px; padding: 6px 12px; cursor: pointer }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff }
+form { display: flex; gap: 6px; flex-wrap: wrap } input { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--raised); color: var(--ink); min-width: 0; flex: 1 }
+.scroll { overflow-x: auto }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div><h1>Scraper</h1><div class="muted" id="sub">connecting…</div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="toggle">Pause</button><button id="replan">Plan again</button><a href="/" style="align-self:center">Card index ↗</a></div>
+  </div>
+  <div id="note"></div>
+  <div class="tiles">
+    <div class="tile"><span>CPU used by scraping</span><b id="cpu">–</b><div class="meter" id="meter"><i></i></div><span id="cpuNote"></span></div>
+    <div class="tile"><span>Now</span><b id="now" style="font-size:15px">–</b><span id="nowWhy"></span></div>
+    <div class="tile"><span>Queued</span><b id="queued">–</b><span id="planned"></span></div>
+    <div class="tile"><span>This session</span><b id="done">–</b><span id="doneNote"></span></div>
+  </div>
+
+  <h2>Watchlist</h2>
+  <form id="addForm"><input id="addId" placeholder="Card id, e.g. base1-4, or a name to search" autocomplete="off"><button class="primary">Watch</button></form>
+  <div id="sugg" class="muted" style="margin:6px 0"></div>
+  <div class="scroll"><table><thead><tr><th>Card</th><th>Price</th><th>Last scraped</th><th></th></tr></thead><tbody id="watch"></tbody></table></div>
+
+  <h2>Queue (next 50)</h2>
+  <div class="scroll"><table><thead><tr><th>Card</th><th>Site</th><th>Why</th><th>Last data</th></tr></thead><tbody id="queue"></tbody></table></div>
+
+  <h2>Recent</h2>
+  <div class="scroll"><table><thead><tr><th>Time</th><th>Card</th><th>Result</th></tr></thead><tbody id="recent"></tbody></table></div>
+</main>
+<script>
+var $ = function (id) { return document.getElementById(id); };
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function ago(t) { if (!t) return 'never'; var s = (Date.now() - Date.parse(t)) / 1000; return s < 90 ? Math.round(s) + ' s ago' : s < 5400 ? Math.round(s / 60) + ' min ago' : s < 172800 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' days ago'; }
+function tags(r) { return r.map(function (x) { return '<span class="tag ' + x + '">' + x + '</span>'; }).join(''); }
+function api(p, b) { return fetch(p, b ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) } : {}).then(function (r) { return r.json(); }); }
+var paused = false;
+function render(s) {
+  paused = s.paused; $('toggle').textContent = paused ? 'Resume' : 'Pause';
+  $('sub').textContent = 'Sites: ' + s.sites.join(', ') + ' · limit ' + s.cpu.limitPercent + '% of ' + s.cpu.cores + ' cores';
+  $('note').innerHTML = s.pauseReason ? '<div class="note">' + esc(s.pauseReason) + (s.resumesAt ? ' (until ' + new Date(s.resumesAt).toLocaleTimeString() + ')' : '') + '</div>' : '';
+  var pct = s.cpu.usagePercent, lim = s.cpu.limitPercent;
+  $('cpu').textContent = pct.toFixed(1) + ' %'; $('meter').className = 'meter' + (pct > lim ? ' hot' : '');
+  $('meter').firstChild.style.width = Math.min(100, pct / Math.max(lim, 1) * 100) + '%';
+  $('cpuNote').textContent = 'last ' + s.cpu.windowSeconds + ' s · waited ' + s.cpu.throttledSeconds + ' s to stay under';
+  $('now').textContent = s.current ? s.current.id : (s.paused ? 'paused' : 'idle');
+  $('nowWhy').innerHTML = s.current ? esc(s.current.site) + ' ' + tags(s.current.reasons) : '';
+  $('queued').textContent = s.queued; $('planned').textContent = s.plannedAt ? 'planned ' + ago(s.plannedAt) : '';
+  $('done').textContent = s.counts.done; $('doneNote').textContent = s.counts.captures + ' pages stored, ' + s.counts.failed + ' failed' + (s.unsaved ? ', ' + s.unsaved + ' unsaved' : '');
+  $('queue').innerHTML = s.queue.map(function (j) { return '<tr><td class="mono">' + esc(j.id) + '</td><td>' + esc(j.site) + '</td><td>' + tags(j.reasons) + (j.attempts ? ' <span class="bad">retry ' + j.attempts + '</span>' : '') + '</td><td class="muted">' + ago(j.lastAt) + '</td></tr>'; }).join('') || '<tr><td colspan="4" class="muted">Nothing due. Everything is fresh.</td></tr>';
+  $('recent').innerHTML = s.recent.map(function (r) { return '<tr><td class="muted">' + new Date(r.at).toLocaleTimeString() + '</td><td><span class="mono">' + esc(r.id) + '</span> ' + esc(r.name) + ' ' + tags(r.reasons) + '</td><td class="' + (r.ok ? 'ok' : 'bad') + '">' + (r.ok ? r.captures + ' pages' : esc(r.error)) + '</td></tr>'; }).join('') || '<tr><td colspan="3" class="muted">No jobs yet.</td></tr>';
+}
+function renderWatch(w) {
+  $('watch').innerHTML = w.cards.map(function (c) {
+    var seen = Object.keys(c.lastSeen).map(function (k) { return k + ': ' + ago(c.lastSeen[k]); }).join(' · ');
+    return '<tr><td><span class="mono">' + esc(c.id) + '</span> ' + esc(c.name || '(unknown card)') + ' <span class="muted">' + esc(c.set || '') + ' ' + esc(c.number || '') + '</span></td><td>' + (c.headline != null ? '€' + c.headline.toFixed(2) : '–') + '</td><td class="muted">' + seen + (c.queued ? ' <span class="tag watchlist">queued</span>' : '') + '</td><td><button data-rm="' + esc(c.id) + '">Remove</button></td></tr>';
+  }).join('') || '<tr><td colspan="4" class="muted">No cards watched yet. Add one above, or use ☆ Watch in a card\'s details.</td></tr>';
+}
+function tick() {
+  api('/scraper').then(render).catch(function () { $('sub').textContent = 'scraper unavailable'; });
+  api('/watchlist').then(renderWatch).catch(function () {});
+}
+$('toggle').onclick = function () { api(paused ? '/scraper/resume' : '/scraper/pause', {}).then(render); };
+$('replan').onclick = function () { api('/scraper/plan', {}).then(render); };
+$('watch').onclick = function (e) { var b = e.target.closest('[data-rm]'); if (b) api('/watchlist', { id: b.dataset.rm, remove: true }).then(tick); };
+$('sugg').onclick = function (e) { var b = e.target.closest('[data-add]'); if (b) { $('addId').value = b.dataset.add; $('addForm').requestSubmit(); } };
+$('addForm').onsubmit = function (e) {
+  e.preventDefault(); var v = $('addId').value.trim(); if (!v) return;
+  api('/watchlist', { id: v }).then(function (r) {
+    if (r.ok) { $('addId').value = ''; $('sugg').textContent = ''; tick(); return; }
+    return api('/cards?q=' + encodeURIComponent(v)).then(function (list) {
+      $('sugg').innerHTML = list.length ? 'Did you mean: ' + list.slice(0, 8).map(function (c) { return '<button type="button" data-add="' + esc(c.id) + '">' + esc(c.name) + ' · ' + esc(c.set) + ' ' + esc(c.number) + (c.lang === 'ja' ? ' (JP)' : '') + '</button>'; }).join(' ') : 'No card found.';
+    });
+  });
+};
+tick(); setInterval(tick, 3000);
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 // Writes data/pricecharting-live.json: { "<card id>": { pcid, at, prices: { ungraded, grade7, grade8, grade9, grade9_5, psa10 } } }.
 // merge-pricecharting.js lays these over the collected files; the sold listings stay as collected (the API has none).
 const fs = require('fs'), path = require('path');
-const root = path.join(__dirname, '..'), dir = path.join(root, 'data/pricecharting'), out = path.join(root, 'data/pricecharting-live.json');
+const root = path.join(__dirname, '../..'), dir = path.join(root, 'data/pricecharting'), out = path.join(root, 'data/pricecharting-live.json');
 const token = process.env.PRICECHARTING_TOKEN;
 if (!token) { console.log('PRICECHARTING_TOKEN not set: graded prices stay as collected'); process.exit(0); }
 

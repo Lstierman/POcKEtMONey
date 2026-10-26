@@ -146,6 +146,7 @@
     this.usd = new Float32Array(N).fill(NaN);
     this.chg = { eur: new Float32Array(N).fill(NaN), usd: new Float32Array(N).fill(NaN), any: new Float32Array(N).fill(NaN) };
     this.priced = new Uint32Array(W); // one bit per card with any price data (coverage >= 1)
+    this.watched = new Uint32Array(W); // one bit per card on the watchlist (set by the page; query is:watched)
     this.cov = new Uint8Array(N); // price-data coverage 0..6 (see src/prices.js METHODS), set by the page
     this.covBits = []; for (var cb = 0; cb <= 6; cb++) this.covBits.push(new Uint32Array(W));
     function med(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[b.length >> 1] : NaN; }
@@ -228,6 +229,7 @@
     if (old !== cov) { this.covBits[old][w] &= ~bit; this.covBits[cov][w] |= bit; this.cov[id] = cov; }
     if (cov > 0) this.priced[w] |= bit; else this.priced[w] &= ~bit;
   };
+  Catalog.prototype.setWatched = function (ids) { this.watched.fill(0); for (var i = 0; i < ids.length; i++) this.watched[ids[i] >>> 5] |= (1 << (ids[i] & 31)) >>> 0; };
   Catalog.prototype.isPriced = function (id) { return ((this.priced[id >>> 5] >>> (id & 31)) & 1) === 1; };
 
   // union of postings for every term starting with `prefix`
@@ -292,6 +294,7 @@
       if (field && (field === 'price' || field === 'eur' || field === 'usd') && op && /^\d+(\.\d+)?$/.test(p.value)) {
         numeric.push({ k: field === 'price' ? (f && f.currency) || 'eur' : field, op: op === ':' ? '>=' : op, v: +p.value, neg: p.neg }); return;
       }
+      if ((field === 'is' || field === 'has') && /^watch/i.test(p.value)) { (p.neg ? andNotInto : andInto)(bits, self.watched); return; }
       if (field === 'has' && /^pric/i.test(p.value)) { (p.neg ? andNotInto : andInto)(bits, self.priced); return; }
       if (field === 'has' && /^(sales|sold|graded|psa)/i.test(p.value)) {
         var sb = self.facets.legal.get('sales') || new Uint32Array(W); (p.neg ? andNotInto : andInto)(bits, sb); return;

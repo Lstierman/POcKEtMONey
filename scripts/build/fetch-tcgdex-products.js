@@ -4,7 +4,7 @@
 // Cached in data/tcgdex-products.json, so only cards never looked up (or empty for 30+ days) are requested.
 // Run after build-catalog; if anything new was found it rebuilds the catalog so the ids are used.
 const fs = require('fs'), path = require('path'), zlib = require('zlib'), cp = require('child_process');
-const root = path.join(__dirname, '..'), cacheF = path.join(root, 'data/tcgdex-products.json');
+const root = path.join(__dirname, '../..'), cacheF = path.join(root, 'data/tcgdex-products.json');
 const S = process.argv[2] || 'build/sources';
 const map = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, 'data/card-map.json.gz')))).cards;
 const sets = new Map(JSON.parse(fs.readFileSync(path.join(root, 'build/catalog.json'))).setList.map(s => [s.id, s]));

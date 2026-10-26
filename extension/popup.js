@@ -5,7 +5,7 @@ function check() {
       const d = r.data;
       $('st').innerHTML = '<span class="ok">Helper running</span><br>' + d.cards.toLocaleString() + ' cards in the store' +
         (d.scrapedAt ? '<br>last capture ' + new Date(d.scrapedAt).toLocaleString() : '') + (d.publish ? '<br>publishing: ' + d.pending + ' waiting' : '<br>not publishing (local store only)');
-    } else $('st').innerHTML = '<span class="err">Helper not running.</span><br>Start it in the project folder: <code>npm run ingest</code>';
+    } else $('st').innerHTML = '<span class="err">Helper not running.</span><br>Start the platform in the project folder: <code>npm start</code>';
   });
 }
 chrome.storage.local.get('helper', s => { if (s.helper) $('helper').value = s.helper; check(); });

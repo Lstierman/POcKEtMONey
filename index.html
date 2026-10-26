@@ -260,6 +260,10 @@ dialog::backdrop { background: rgba(10,14,20,.55) }
 .info { display: grid; gap: 14px; min-width: 0; align-content: start }
 .info .kicker { font: 700 12px/1 var(--f-display); letter-spacing: .09em; text-transform: uppercase; color: var(--muted) }
 .info h2 { margin: 2px 0 0; font-family: var(--f-display); font-weight: 800; font-stretch: 78%; font-size: 34px; line-height: 1; text-wrap: balance; padding-right: 40px }
+.watchrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.watchrow .btn { height: 34px; padding: 0 14px }
+.watchrow .btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft) }
+.watchrow .note { color: var(--muted); font-size: 12px }
 .info .hpline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-weight: 700 }
 .move { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 4px }
 .move .row { display: flex; gap: 8px; align-items: center }
@@ -322,7 +326,7 @@ a.ext { color: var(--accent); font-weight: 700 }
       <button type="button" class="gear" id="setBtn" title="Settings" aria-label="Settings">⚙</button>
     </div>
     <div class="hint" id="hints" aria-label="Example searches">
-      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">-has:price</button><button type="button">data&gt;=4</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
+      <button type="button">charizard</button><button type="button">artist:"mitsuhiro arita"</button><button type="button">hp&gt;=300</button><button type="button">set:base1</button><button type="button">dex:25</button><button type="button">attack:"fire spin"</button><button type="button">draw cards -supporter</button><button type="button">charzard</button><button type="button">has:sales</button><button type="button">-has:price</button><button type="button">is:watched</button><button type="button">data&gt;=4</button><button type="button">price&gt;500</button><button type="button">glurak</button><button type="button">lang:ja pikachu</button><button type="button">リザードン</button>
     </div>
   </div>
 </header>
@@ -356,7 +360,7 @@ a.ext { color: var(--accent); font-weight: 700 }
       <p><b>Evidence:</b> every price section in a card's details ends with links to its sources: the Cardmarket and TCGplayer product pages, the API response or data file each figure was read from, the exact eBay searches, and each listing's own page. Its history graphs sit in the same section.</p>
       <p><b>Languages:</b> prints of the same card in different languages (and same-art reprints) share one tile (badge <code>EN · JP</code>). Its details compare every print, matched by Cardmarket's card id and illustrator. Switch it off under Language.</p>
       <p><b>Price data label:</b> the chip on each card counts which of six methods have data: Cardmarket price guide, Cardmarket listings by language and condition, TCGplayer, eBay for sale, sold listings, graded prices. From <i>No data</i> (greyed-out card) to <i>Complete</i>. Filter with the chips or <code>data&gt;=3</code>.</p>
-      <p><b>Query syntax:</b> <code>has:price</code> <code>data&gt;=3</code> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
+      <p><b>Query syntax:</b> <code>has:price</code> <code>is:watched</code> <code>data&gt;=3</code> <code>price&gt;50</code> <code>eur&lt;5</code> <code>usd&gt;=100</code> <code>lang:ja</code> <code>name:</code> <code>artist:</code> <code>set:</code> <code>attack:</code> <code>rarity:</code> <code>type:</code> <code>reg:</code> <code>hp&gt;=120</code> <code>dex:25</code> <code>no:4</code>, quotes for multi-word values, <code>-word</code> to exclude.</p>
     </details>
   </aside>
   <section id="results" aria-live="polite" style="min-width:0">
@@ -524,6 +528,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     this.usd = new Float32Array(N).fill(NaN);
     this.chg = { eur: new Float32Array(N).fill(NaN), usd: new Float32Array(N).fill(NaN), any: new Float32Array(N).fill(NaN) };
     this.priced = new Uint32Array(W); // one bit per card with any price data (coverage >= 1)
+    this.watched = new Uint32Array(W); // one bit per card on the watchlist (set by the page; query is:watched)
     this.cov = new Uint8Array(N); // price-data coverage 0..6 (see src/prices.js METHODS), set by the page
     this.covBits = []; for (var cb = 0; cb <= 6; cb++) this.covBits.push(new Uint32Array(W));
     function med(a) { var b = a.slice().sort(function (x, y) { return x - y; }); return b.length ? b[b.length >> 1] : NaN; }
@@ -606,6 +611,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     if (old !== cov) { this.covBits[old][w] &= ~bit; this.covBits[cov][w] |= bit; this.cov[id] = cov; }
     if (cov > 0) this.priced[w] |= bit; else this.priced[w] &= ~bit;
   };
+  Catalog.prototype.setWatched = function (ids) { this.watched.fill(0); for (var i = 0; i < ids.length; i++) this.watched[ids[i] >>> 5] |= (1 << (ids[i] & 31)) >>> 0; };
   Catalog.prototype.isPriced = function (id) { return ((this.priced[id >>> 5] >>> (id & 31)) & 1) === 1; };
 
   // union of postings for every term starting with `prefix`
@@ -670,6 +676,7 @@ a.ext { color: var(--accent); font-weight: 700 }
       if (field && (field === 'price' || field === 'eur' || field === 'usd') && op && /^\d+(\.\d+)?$/.test(p.value)) {
         numeric.push({ k: field === 'price' ? (f && f.currency) || 'eur' : field, op: op === ':' ? '>=' : op, v: +p.value, neg: p.neg }); return;
       }
+      if ((field === 'is' || field === 'has') && /^watch/i.test(p.value)) { (p.neg ? andNotInto : andInto)(bits, self.watched); return; }
       if (field === 'has' && /^pric/i.test(p.value)) { (p.neg ? andNotInto : andInto)(bits, self.priced); return; }
       if (field === 'has' && /^(sales|sold|graded|psa)/i.test(p.value)) {
         var sb = self.facets.legal.get('sales') || new Uint32Array(W); (p.neg ? andNotInto : andInto)(bits, sb); return;
@@ -1010,6 +1017,50 @@ a.ext { color: var(--accent); font-weight: 700 }
   function liveTtl() { return settings.interval * 60e3; } // re-check a card once per refresh interval
   var live = { on: settings.live, rec: new Map(), busy: new Set(), eurQ: [], usdQ: [], eurRun: 0, usdRun: 0, ok: 0, failed: 0, dirty: new Map(), saveT: 0, statT: 0, cntT: 0 };
   var openId = -1, idIx = null;
+
+  // ---------- watchlist: ☆ Watch in a card's details, the is:watched query ----------
+  // Kept in this browser, and in the local platform's config/watchlist.json when it is running (npm start), so its
+  // background scraper keeps those cards fresh. Served by the platform itself, the page connects right away; opened
+  // from anywhere else it only tries http://127.0.0.1:8787 after you press Watch (then remembers that it worked).
+  var PLATFORM = /^(127\.0\.0\.1|localhost)$/.test(location.hostname) && location.port ? '' : 'http://127.0.0.1:8787';
+  var watch = { ids: new Set(), platform: false, remembered: false };
+  try { JSON.parse(localStorage.getItem('ptcg-watch') || '[]').forEach(function (id) { watch.ids.add(id); }); watch.remembered = localStorage.getItem('ptcg-platform') === '1'; } catch (e) {}
+  function saveWatch() { try { localStorage.setItem('ptcg-watch', JSON.stringify(Array.from(watch.ids))); } catch (e) {} }
+  function applyWatch() {
+    if (!cat || !idIx) return; var ix = [];
+    watch.ids.forEach(function (id) { var i = idIx.get(id); if (i != null) ix.push(i); });
+    cat.setWatched(ix);
+  }
+  function platformCall(method, path, body) {
+    var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null; if (ctl) setTimeout(function () { ctl.abort(); }, 3000);
+    return fetch(PLATFORM + path, { method: method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, signal: ctl && ctl.signal })
+      .then(function (r) { return r.json(); });
+  }
+  function connectPlatform() {
+    return platformCall('GET', '/status').then(function (s) {
+      if (!s || !s.platform) throw new Error('not the platform');
+      watch.platform = true; try { localStorage.setItem('ptcg-platform', '1'); } catch (e) {}
+      var theirs = new Set(s.watchlist || []), mine = Array.from(watch.ids).filter(function (id) { return !theirs.has(id); });
+      theirs.forEach(function (id) { watch.ids.add(id); });
+      saveWatch(); applyWatch(); if (/watch/i.test(state.q)) run();
+      if (openId >= 0 && $('watchrow')) $('watchrow').innerHTML = watchRow(cat.cards[openId][0]);
+      return Promise.all(mine.map(function (id) { return platformCall('POST', '/watchlist', { id: id }).catch(function () {}); }));
+    }).catch(function () { watch.platform = false; });
+  }
+  function watchRow(id) {
+    var on = watch.ids.has(id);
+    return '<button type="button" class="btn ghost" data-watch="' + esc(id) + '" aria-pressed="' + on + '">' + (on ? '★ Watching' : '☆ Watch') + '</button><span class="note">' +
+      (watch.platform ? (on ? 'On the scraper\'s watchlist: refreshed every few hours' : 'Watched cards are scraped first and kept fresh')
+        : on ? 'Saved in this browser. Run the platform (npm start) to scrape it.' : 'Find watched cards with is:watched') + '</span>';
+  }
+  function toggleWatch(id) {
+    var on = !watch.ids.has(id);
+    if (on) watch.ids.add(id); else watch.ids.delete(id);
+    saveWatch(); applyWatch(); if (/watch/i.test(state.q)) run();
+    var sync = watch.platform ? platformCall('POST', '/watchlist', { id: id, remove: !on }).catch(function () { watch.platform = false; }) : connectPlatform();
+    if ($('watchrow')) $('watchrow').innerHTML = watchRow(id);
+    sync.then(function () { if ($('watchrow') && openId >= 0 && cat.cards[openId][0] === id) $('watchrow').innerHTML = watchRow(id); });
+  }
 
   function getJSON(url, tries, wait) {
     wait = wait || 600;
@@ -1374,6 +1425,7 @@ a.ext { color: var(--accent); font-weight: 700 }
         meta.loadMs = performance.now() - t0;
         progress(1, 'Ready');
         idIx = new Map(cat.cards.map(function (t, i) { return [t[0], i]; }));
+        applyWatch(); if (PLATFORM === '' || watch.remembered) connectPlatform();
         buildBundles(data.bundles); $('fBundle').checked = settings.bundle;
         applyAll(); buildFilters(); syncCurrencyButtons(); run(); status(); probeImages();
         // newer data in steps: saved live checks and the saved price store, then the network store and a live exchange rate
@@ -1621,6 +1673,7 @@ a.ext { color: var(--accent); font-weight: 700 }
     var h = '<button class="close" type="button" id="dclose" aria-label="Close">×</button>';
     h += '<div><div class="face">' + dataFace(t, true) + (img ? '<img alt="' + esc(c.name) + '" src="' + esc(img.large) + '" style="background:url(' + esc(img.small) + ') center/cover">' : '') + '</div></div>';
     h += '<div class="info"><div><div class="kicker">' + (c.lang === 'ja' ? 'Japanese print · ' : 'English print · ') + esc(c.supertype) + (c.subtypes.length ? ' · ' + esc(c.subtypes.join(' · ')) : '') + '</div><h2>' + esc(c.name) + '</h2></div>';
+    h += '<div class="watchrow" id="watchrow">' + watchRow(c.id) + '</div>';
     if (c.hp || c.types.length) h += '<div class="hpline">' + (c.hp ? 'HP ' + c.hp : '') + ' ' + pips(c.types) + (c.evolvesFrom ? ' <span style="font-weight:400;color:var(--muted)">Evolves from <button class="link" data-q="name:&quot;' + esc(c.evolvesFrom) + '&quot;">' + esc(c.evolvesFrom) + '</button></span>' : '') + '</div>';
     c.abilities.forEach(function (a) { h += '<div class="move"><div class="row"><span class="tag">' + esc(a[0]) + '</span><span class="nm">' + esc(a[1]) + '</span></div><p>' + esc(a[2]) + '</p></div>'; });
     c.attacks.forEach(function (a) { h += '<div class="move"><div class="row">' + pips(a[1]) + '<span class="nm">' + esc(a[0]) + '</span><span class="dmg">' + esc(a[2]) + '</span></div>' + (a[3] ? '<p>' + esc(a[3]) + '</p>' : '') + '</div>'; });
@@ -2030,6 +2083,7 @@ a.ext { color: var(--accent); font-weight: 700 }
   $('dlg').addEventListener('click', function (e) {
     if (e.target === this || e.target.id === 'dclose') { closeCard(); return; }
     var b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.watch) { toggleWatch(b.dataset.watch); return; }
     if (b.dataset.q) { closeCard(); setQuery(b.dataset.q); }
     else if (b.dataset.set) { closeCard(); resetFilters(); state.set = b.dataset.set; $('fSet').value = b.dataset.set; state.sort = 'oldest'; $('sort').value = 'oldest'; setQuery(''); }
     else if (b.classList.contains('lc')) { sel = { lang: +b.dataset.lang, cond: b.dataset.cond, flags: b.dataset.flags, better: false }; syncCalc(); refreshCalc(); }

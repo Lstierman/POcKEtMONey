@@ -2,13 +2,15 @@
 //   always:            exchange rates, Cardmarket price guide, TCGplayer (tcgcsv)
 //   with credentials:  Cardmarket listings (CARDMARKET_*), CardTrader listings (CARDTRADER_TOKEN), eBay for sale / sold (EBAY_CLIENT_ID / EBAY_CLIENT_SECRET)
 // Usage: node scripts/collect.js <store dir> [--force] [--only=fx,guide,tcg,cardmarket,cardtrader,ebay] [--cards=id,id]
-// The run is skipped when the last one is younger than intervalMinutes (prices.config.json, or PRICE_INTERVAL_MINUTES).
+// The run is skipped when the last one is younger than intervalMinutes (config/prices.config.json, or PRICE_INTERVAL_MINUTES).
+// Cards on the watchlist (config/watchlist.json) are refreshed every run, like the most valuable cards.
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const P = require('../src/prices.js');
 const { Store, SCHEMA } = require('./lib/store.js');
 const { applyCardmarket, applyCardTrader, applyEbay, finalize } = require('./lib/entries.js');
 const CT = require('./lib/cardtrader.js');
 const src = require('./lib/sources.js');
+const { loadConfig, alwaysIds } = require('./lib/config.js');
 const CM = require('./lib/cardmarket.js'), EB = require('./lib/ebay.js');
 
 const root = path.join(__dirname, '..');
@@ -16,8 +18,8 @@ const args = process.argv.slice(2), flag = n => args.find(a => a === '--' + n ||
 const dir = args.find(a => !a.startsWith('--')) || path.join(root, 'store');
 const only = flag('only') ? flag('only').split('=')[1].split(',') : null, want = s => !only || only.includes(s);
 const forced = flag('cards') ? flag('cards').split('=')[1].split(',') : [];
-const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
-if (process.env.PRICE_INTERVAL_MINUTES) cfg.intervalMinutes = +process.env.PRICE_INTERVAL_MINUTES;
+const cfg = loadConfig();
+const ALWAYS = new Set(alwaysIds(cfg));
 
 (async () => {
   const now = Date.now(), at = new Date(now).toISOString(), hour = at.slice(0, 13);
@@ -78,7 +80,7 @@ if (process.env.PRICE_INTERVAL_MINUTES) cfg.intervalMinutes = +process.env.PRICE
     const list = [];
     for (const c of eligible) {
       const v = (entries[c[0]] && entries[c[0]].h) || 0, last = stamps[c[0]] ? Date.parse(stamps[c[0]]) : 0;
-      const hot = S.always.includes(c[0]) || v >= S.hotEur;
+      const hot = ALWAYS.has(c[0]) || v >= S.hotEur;
       const period = (hot ? cfg.intervalMinutes / 60 : v >= S.warmEur ? S.warmEveryHours : S.coldEveryHours) * 3600e3;
       const overdue = (now - last) / period;
       if (forced.includes(c[0])) list.push([c, Infinity]);
