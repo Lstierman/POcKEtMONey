@@ -6,7 +6,7 @@ const PLAN = require('../scripts/lib/scrape-plan.js');
 const M = require('../scraper-extension/match.js');
 
 const root = path.join(__dirname, '..');
-const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
+const cfg = JSON.parse(fs.readFileSync(path.join(root, 'config/prices.config.json'), 'utf8'));
 const map = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(root, 'data/card-map.json.gz'))));
 const cards = new Map(map.cards.map(c => [c[0], c]));
 const H = 3600e3, now = Date.parse('2026-10-23T12:00:00Z'), ago = h => new Date(now - h * H).toISOString();

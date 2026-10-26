@@ -1,7 +1,7 @@
 name: Collect prices
 on:
   schedule:
-    - cron: "11 * * * *"   # every hour; the collector skips a run younger than intervalMinutes (prices.config.json or the PRICE_INTERVAL_MINUTES variable)
+    - cron: "11 * * * *"   # every hour; the collector skips a run younger than intervalMinutes (config/prices.config.json or the PRICE_INTERVAL_MINUTES variable)
   workflow_dispatch:
     inputs:
       force:

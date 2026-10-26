@@ -436,7 +436,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
   var cat = null, imagesOK = false, mode = 'bundle', results = null, shown = 0, meta = {};
   var state = { q: '', sort: 'relevance', currency: 'eur', lang: '', type: new Set(), supertype: '', set: '', series: '', rarity: '', reg: new Set(), legal: new Set(), priced: '', cov: '', watch: false, min: null, max: null };
 
-  // ---------- settings (defaults from prices.config.json, kept per browser) ----------
+  // ---------- settings (defaults from config/prices.config.json, kept per browser) ----------
   var CONFIG = "__CONFIG__", PRICES_URL = "__PRICES_URL__";
   if (typeof CONFIG === 'string') CONFIG = {};
   var settings = { currency: CONFIG.displayCurrency || 'EUR', interval: CONFIG.intervalMinutes || 60, headline: CONFIG.headline || 'trend', cond: CONFIG.listingCondition || 'NM', live: true, bundle: true, helper: 'http://127.0.0.1:8787' };
@@ -781,7 +781,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
       FX = { EUR: 1, USD: 1 / d.rates.USD, GBP: 1 / d.rates.GBP }; FX_SRC = 'ECB ' + d.date + ' (live)'; return true;
     }).catch(function () { return false; });
   }
-  // once per refresh interval (settings, default from prices.config.json): re-read the price store, re-check the cards on screen
+  // once per refresh interval (settings, default from config/prices.config.json): re-read the price store, re-check the cards on screen
   var refreshT = 0, lastRefresh = Date.now();
   function scheduleRefresh() { clearInterval(refreshT); refreshT = setInterval(refreshCycle, settings.interval * 60e3); }
   function refreshCycle() {
@@ -1154,7 +1154,7 @@ details.how p { margin: 8px 0 0; line-height: 1.9 }
 
   // ---------- detail ----------
   function pips(list) { return (list || []).map(function (c) { return '<span class="pip sm t-' + esc(c) + '" title="' + esc(c) + '">' + (LETTER[c] || '') + '</span>'; }).join(''); }
-  // ---------- language bundles (built by scripts/build-catalog.js: Cardmarket metacard or Pokémon + HP + illustrator) ----------
+  // ---------- language bundles (built by scripts/build/build-catalog.js: Cardmarket metacard or Pokémon + HP + illustrator) ----------
   var bundleOf = null, BUNDLES = [];
   function buildBundles(list) {
     bundleOf = new Int32Array(cat.N).fill(-1); BUNDLES = [];

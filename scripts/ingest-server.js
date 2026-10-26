@@ -31,7 +31,7 @@ const root = path.join(__dirname, '..');
 const arg = (n, d) => { const a = process.argv.find(x => x === '--' + n || x.startsWith('--' + n + '=')); return a ? (a.includes('=') ? a.split('=').slice(1).join('=') : true) : d; };
 const dir = path.resolve(root, String(arg('store', 'store'))), port = +arg('port', 8787);
 const journalF = path.resolve(root, String(arg('journal', 'build/ingest-journal.jsonl'))), debugDir = path.join(root, 'build/ingest-debug');
-const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
+const cfg = JSON.parse(fs.readFileSync(path.join(root, 'config/prices.config.json'), 'utf8'));
 const every = +arg('publish-minutes', 15); // with --publish: push every N minutes; 0 = only when asked (POST /publish) and on exit
 
 // ---------- card lookup ----------

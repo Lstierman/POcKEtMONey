@@ -17,7 +17,7 @@ function buildPage(root) {
   const gz = /<script type="application\/octet-stream" id="catalog-gz">([^<]*)<\/script>/.exec(built);
   if (!gz) throw new Error('index.html has no embedded catalog; run npm run refresh once');
   const commit = (/var BUNDLE_COMMIT = '([^']*)'/.exec(built) || [])[1] || '';
-  const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
+  const cfg = JSON.parse(fs.readFileSync(path.join(root, 'config/prices.config.json'), 'utf8'));
   return fs.readFileSync(path.join(root, 'src/page.html'), 'utf8')
     .replace('/*__CORE__*/', () => fs.readFileSync(path.join(root, 'src/core.js'), 'utf8') + '\n' + fs.readFileSync(path.join(root, 'src/prices.js'), 'utf8'))
     .replace('__COMMIT__', commit).replace('__GZ__', () => gz[1])
@@ -28,7 +28,7 @@ function buildPage(root) {
 // cached until one of the source files changes
 let cache = null, key = '';
 function servePage(root) {
-  const k = ['index.html', 'src/page.html', 'src/core.js', 'src/prices.js', 'prices.config.json'].map(f => fs.statSync(path.join(root, f)).mtimeMs).join('|');
+  const k = ['index.html', 'src/page.html', 'src/core.js', 'src/prices.js', 'config/prices.config.json'].map(f => fs.statSync(path.join(root, f)).mtimeMs).join('|');
   if (k !== key) { cache = buildPage(root); key = k; }
   return cache;
 }

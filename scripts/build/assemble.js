@@ -1,7 +1,7 @@
 // Attaches PriceCharting sales to the catalog and inlines everything into index.html.
 // PRICES_URL (env) points the page at the hourly price store; by default the "prices" branch of this repo's origin.
 const fs = require('fs'), zlib = require('zlib'), path = require('path'), cp = require('child_process');
-const root = path.join(__dirname, '..');
+const root = path.join(__dirname, '../..');
 
 function pricesUrl() {
   if (process.env.PRICES_URL) return process.env.PRICES_URL;
@@ -26,7 +26,7 @@ function pricesUrl() {
     const d = await (await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD,GBP')).json();
     cat.meta.fx = { EUR: 1, USD: Math.round(1 / d.rates.USD * 1e6) / 1e6, GBP: Math.round(1 / d.rates.GBP * 1e6) / 1e6 }; cat.meta.fxDate = d.date;
   } catch (e) { console.warn('no build-time exchange rate:', e.message); }
-  const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
+  const cfg = JSON.parse(fs.readFileSync(path.join(root, 'config/prices.config.json'), 'utf8'));
   const raw = Buffer.from(JSON.stringify(cat));
   const gz = zlib.gzipSync(raw, { level: 9 }).toString('base64');
   const page = fs.readFileSync(path.join(root, 'src/page.html'), 'utf8')

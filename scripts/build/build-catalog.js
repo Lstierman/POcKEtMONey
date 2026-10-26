@@ -1,5 +1,5 @@
 const fs=require('fs'),path=require('path'),zlib=require('zlib'),cp=require('child_process');
-require(require('path').join(__dirname,'../src/core.js'));
+require(require('path').join(__dirname,'../../src/core.js'));
 const S=process.argv[2], out=process.argv[3];
 const repo=S+'/repo', psv=S+'/psv/public/data', zy=S+'/probe/ZyzyThePizi_pokemon-price-data', kz=S+'/probe/kazant_pokedex-scanner-data/latest';
 const J=f=>JSON.parse(fs.readFileSync(f)), JG=f=>JSON.parse(zlib.gunzipSync(fs.readFileSync(f)));
@@ -117,8 +117,8 @@ for(const r of records) for(const t of r.c){ const h={}; const em=eurSer.get(t);
 console.log('history cards',nH,'eurAxis',eurAxis.length,eurAxis[0],eurAxis[eurAxis.length-1],'usdAxis',usdAxis.length);
 const meta={eurAxis,usdAxis,built:new Date().toISOString(), usdDate:J(psv+'/stats.json').pricesUpdated, eurDate:guideDate, jaEurDate:lat.sourceCreatedAt,
   sources:{cards:'PokemonTCG/pokemon-tcg-data',usd:'TCGplayer via tcgcsv.com (psvanzyl/pokemon-tcg)',eur:'Cardmarket price guide (kazant/pokedex-scanner-data)',ja:'TCGdex + Cardmarket (ZyzyThePizi/pokemon-price-data)',names:'TCGdex'}};
-// Cardmarket/TCGplayer ids TCGdex knows for English cards the open sources don't map (scripts/fetch-tcgdex-products.js)
-const tdxF=path.join(__dirname,'../data/tcgdex-products.json');
+// Cardmarket/TCGplayer ids TCGdex knows for English cards the open sources don't map (scripts/build/fetch-tcgdex-products.js)
+const tdxF=path.join(__dirname,'../../data/tcgdex-products.json');
 if(fs.existsSync(tdxF)){ let n=0; for(const [id,x] of Object.entries(J(tdxF))) if(x.cm.length&&!(cmIds.get(id)||[]).length){ x.cm.forEach(v=>addTo(cmIds,id,v)); n++; } console.log('tcgdex product ids added for',n,'cards'); }
 
 // ---- language bundles: the same card printed in several languages (and its same-art reprints) ----
@@ -175,7 +175,7 @@ fs.writeFileSync(out,data);
 const mapRows=[]; const setOf=new Map(setList.map(s=>[s.id,s]));
 for(const r of records){ const st=setOf.get(r.id); if(!st) continue;
   for(const t of r.c) mapRows.push([t[0],r.id,t[1],String(t[8]||''),st.pt||0,t[22]||'en',cmIds.get(t[0])||[],tcgIds.get(t[0])||[],t[23]||null,t[24]||null,st.c||'',st.ne||st.n]); }
-fs.writeFileSync(path.join(__dirname,'../data/card-map.json.gz'),zlib.gzipSync(JSON.stringify({v:1,built:meta.built,cards:mapRows}),{level:9}));
+fs.writeFileSync(path.join(__dirname,'../../data/card-map.json.gz'),zlib.gzipSync(JSON.stringify({v:1,built:meta.built,cards:mapRows}),{level:9}));
 console.log('card map:',mapRows.length,'cards,',mapRows.filter(x=>x[6].length).length,'with Cardmarket ids,',mapRows.filter(x=>x[7].length).length,'with TCGplayer ids');
 console.log({en:records.reduce((a,r)=>a+(r.id.startsWith('ja-')?0:r.c.length),0),nUsd,nEur,nLoc,nJa,nJaP,bytes:data.length,gz:zlib.gzipSync(data,{level:9}).length});
 const cat=new PTCG.Catalog(setList,records);console.log(cat.stats);

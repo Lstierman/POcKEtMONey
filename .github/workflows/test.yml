@@ -1,0 +1,16 @@
+name: Tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      # collector (mocked APIs) and platform (planner, queue, CPU governor, scheduler with a fake site, server)
+      - run: npm test

@@ -3,7 +3,7 @@
 // Cardmarket listing, eBay for sale and sold, PriceCharting) comes from the scraper extension through the helper; the
 // collector keeps it and recomputes headlines and history.
 // Usage: node scripts/collect.js <store dir> [--force] [--only=fx,guide,tcg]
-// The run is skipped when the last one is younger than intervalMinutes (prices.config.json, or PRICE_INTERVAL_MINUTES).
+// The run is skipped when the last one is younger than intervalMinutes (config/prices.config.json, or PRICE_INTERVAL_MINUTES).
 const fs = require('fs'), path = require('path'), zlib = require('zlib');
 const P = require('../src/prices.js');
 const { Store, SCHEMA } = require('./lib/store.js');
@@ -14,7 +14,7 @@ const root = path.join(__dirname, '..');
 const args = process.argv.slice(2), flag = n => args.find(a => a === '--' + n || a.startsWith('--' + n + '='));
 const dir = args.find(a => !a.startsWith('--')) || path.join(root, 'store');
 const only = flag('only') ? flag('only').split('=')[1].split(',') : null, want = s => !only || only.includes(s);
-const cfg = JSON.parse(fs.readFileSync(path.join(root, 'prices.config.json'), 'utf8'));
+const cfg = JSON.parse(fs.readFileSync(path.join(root, 'config/prices.config.json'), 'utf8'));
 if (process.env.PRICE_INTERVAL_MINUTES) cfg.intervalMinutes = +process.env.PRICE_INTERVAL_MINUTES;
 
 (async () => {

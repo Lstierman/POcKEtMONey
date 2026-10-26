@@ -1,16 +1,20 @@
 {
-  "name": "pokemon-card-index",
+  "name": "pocketmoney",
   "private": true,
-  "description": "Every English and Japanese Pok\u00e9mon TCG card in one offline, instantly searchable page, with prices.",
+  "description": "Every English and Japanese Pokémon TCG card in one offline, instantly searchable page, with prices.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "sources": "bash scripts/fetch-sources.sh build/sources",
-    "graded": "node scripts/fetch-pricecharting.js",
-    "build": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && node scripts/build-catalog.js build/sources build/catalog.json && node scripts/fetch-tcgdex-products.js build/sources && node scripts/merge-pricecharting.js data/pricecharting build/pc_data.json && node scripts/assemble.js",
-    "refresh": "npm run sources && npm run graded && npm run build",
-    "collect": "node scripts/collect.js store",
-    "test": "node --test test/collect.test.js test/scraper.test.js",
+    "start": "node scripts/ingest-server.js --publish --publish-minutes=15",
     "helper": "node scripts/ingest-server.js --publish --publish-minutes=15",
+    "test": "node --test \"test/**/*.test.js\"",
+    "collect": "node scripts/collect.js store",
+    "dataset": "node scripts/dataset.js",
     "page": "node scripts/lib/page.js",
-    "dataset": "node scripts/dataset.js"
+    "sources": "bash scripts/build/fetch-sources.sh build/sources",
+    "graded": "node scripts/build/fetch-pricecharting.js",
+    "build": "node -e \"require('fs').mkdirSync('build',{recursive:true})\" && node scripts/build/build-catalog.js build/sources build/catalog.json && node scripts/build/fetch-tcgdex-products.js build/sources && node scripts/build/merge-pricecharting.js data/pricecharting build/pc_data.json && node scripts/build/assemble.js",
+    "refresh": "npm run sources && npm run graded && npm run build"
   }
 }
