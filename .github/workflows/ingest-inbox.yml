@@ -1,0 +1,65 @@
+name: Ingest phone captures
+# Files what the iPhone script (iphone/) committed to the `inbox` branch into the price store (branch `prices`),
+# then removes those captures from the inbox. The phone starts this workflow after sending (when its token may);
+# the hourly schedule catches anything left.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 * * * *"
+permissions:
+  contents: write
+concurrency:
+  group: prices          # never at the same time as the hourly collector: both replace the prices branch
+  cancel-in-progress: false
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Check out the inbox
+        id: inbox
+        run: |
+          if ! git ls-remote --exit-code --heads origin inbox >/dev/null; then echo "no inbox branch yet"; echo "n=0" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git fetch -q --depth 1 origin inbox && git worktree add -q inbox FETCH_HEAD
+          n=$(find inbox -name '*.json' | wc -l); echo "$n captures waiting"; echo "n=$n" >> "$GITHUB_OUTPUT"
+      - name: Check out the price store (branch "prices")
+        if: steps.inbox.outputs.n != '0'
+        run: |
+          if git ls-remote --exit-code --heads origin prices >/dev/null; then
+            git fetch -q --depth 1 origin prices && git worktree add -q store FETCH_HEAD
+          else
+            mkdir store && git -C store init -q
+          fi
+      - name: Ingest
+        if: steps.inbox.outputs.n != '0'
+        run: node scripts/ingest-inbox.js --store=store --inbox=inbox --done=build/inbox-done.txt
+      # The same publishing as the collector: one commit, replaced. The local helper replays its own captures on top
+      # if it pushes later, so neither side loses data.
+      - name: Publish the store
+        if: steps.inbox.outputs.n != '0'
+        working-directory: store
+        run: |
+          git add -A
+          if git diff --cached --quiet && git rev-parse -q --verify HEAD >/dev/null; then echo "nothing new"; exit 0; fi
+          git checkout -q --orphan snapshot
+          git -c user.name=price-bot -c user.email=actions@users.noreply.github.com commit -q -m "Prices $(date -u +%Y-%m-%dT%H:%MZ) (phone captures)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" snapshot:prices
+      # Only after the store is published: take the handled captures out of the inbox. The phone may have added new
+      # ones meanwhile, so this rebases onto the newest inbox and retries.
+      - name: Empty the handled captures from the inbox
+        if: steps.inbox.outputs.n != '0'
+        run: |
+          [ -s build/inbox-done.txt ] || { echo "nothing to remove"; exit 0; }
+          cd inbox
+          for attempt in 1 2 3 4 5; do
+            git fetch -q --depth 1 origin inbox && git checkout -q --detach FETCH_HEAD
+            while IFS= read -r f; do [ -n "$f" ] && [ -e "$f" ] && git rm -q -- "$f"; done < ../build/inbox-done.txt
+            if git diff --cached --quiet; then echo "already removed"; exit 0; fi
+            git -c user.name=price-bot -c user.email=actions@users.noreply.github.com commit -q -m "Ingested $(wc -l < ../build/inbox-done.txt) phone captures"
+            if git push -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" HEAD:inbox; then echo "inbox emptied"; exit 0; fi
+            echo "the phone pushed meanwhile; retrying"; git reset -q --hard FETCH_HEAD; sleep 3
+          done
+          echo "could not update the inbox; the captures are applied again next run (that is harmless)"; exit 1
