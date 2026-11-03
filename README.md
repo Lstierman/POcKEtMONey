@@ -136,6 +136,10 @@ It keeps going until the catalog is done or you press *Stop*. Every card is save
 
 How it finds each card: eBay uses the same localized searches as the API collector and keeps only items naming the card and its number. Cardmarket opens product pages it has seen before, else the pokemontcg.io redirect (English prints), else a search for the product's exact name within its expansion (from Cardmarket's public product catalog), else a name search; a page only counts for a card when its product id is one of that card's Cardmarket ids. PriceCharting uses the known page, else a search, and accepts a page only when its URL has the card's name, number and language. Found page addresses are remembered in `state.json`. The helper re-reads `data/card-map.json.gz` when the daily build changes it, so added cards are queued and removed cards are forgotten.
 
+### From your iPhone (Cardmarket)
+
+`iphone/pocketmoney-cardmarket.user.js` is a Safari userscript (for the free [Userscripts](https://apps.apple.com/app/userscripts/id1463298887) app). On a card's Cardmarket page, tap **€**: it reads every offer and shows them per language × condition. It also flags near-mint offers well below the median and saves the capture. From any other Cardmarket page it scrapes the whole To watch list. It runs in your own Safari, so there are no robot checks and no computer is needed. Every filtered view is checked against its own rows, so a filter Cardmarket ignores is never mistaken for real data. Where Cardmarket honours a price-from filter, it pages through every offer instead of only the cheapest per view. Captures go to the `inbox` branch, and the *Ingest phone captures* workflow (`scripts/ingest-inbox.js`) files them into the price store with the same checks as everything else. Setup and details: [iphone/README.md](iphone/README.md).
+
 ### Evidence
 
 Every price section in a card's details ends with an **Evidence** line of links to where its figures come from:
@@ -208,6 +212,7 @@ src/                             the app: page.html (UI template), core.js (stor
 config/
   prices.config.json             interval, scraper pace, CPU limit, auto-start, marketplaces
   watchlist.json                 cards added to the To watch list when the helper starts
+iphone/                          the Cardmarket userscript for Safari on iPhone, and its setup
 scraper-extension/               the scraper: collects prices in your own Chrome
   background.js                  the run: one worker per site, starts by itself, saves every card
   governor.js                    the CPU budget (20 %)
@@ -216,6 +221,7 @@ scraper-extension/               the scraper: collects prices in your own Chrome
 scripts/
   ingest-server.js               the helper (npm start): To watch list, what to scrape next, stores and pushes
   collect.js                     hourly price collector (writes the price store)
+  ingest-inbox.js                files the iPhone captures (branch inbox) into the price store
   dataset.js                     exports the stored data for a price model (npm run dataset)
   lib/                           store (schemas, atomic writes, history), scrape plan, entries, page builder, eBay queries, sources
   build/                         the daily build: fetch sources, build the catalog, merge PriceCharting, assemble index.html
@@ -224,7 +230,7 @@ data/
   tcgdex-products.json           cache of TCGdex card -> Cardmarket / TCGplayer ids
   pricecharting/                 graded prices and sold listings, one card per line
 test/                            collector, helper, extension and CPU-budget tests with mocked APIs (npm test)
-.github/workflows/               collect.yml (hourly prices), refresh.yml (daily rebuild), test.yml (tests on every push)
+.github/workflows/               collect.yml (hourly prices), ingest-inbox.yml (phone captures), refresh.yml (daily rebuild), test.yml (tests on every push)
 ```
 
 ## Build
